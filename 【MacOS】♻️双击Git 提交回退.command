@@ -62,7 +62,7 @@ fzf_select() {
 
 # ✅ 安装 Homebrew（芯片架构兼容、含环境注入）
 install_homebrew() {
-  local arch="$(get_cpu_arch)"                    # 获取当前架构（arm64 或 x86_64）
+  local arch="$(get_cpu_arch)"                   # 获取当前架构（arm64 或 x86_64）
   local shell_path="${SHELL##*/}"                # 获取当前 shell 名称（如 zsh、bash）
   local profile_file=""
   local brew_bin=""
@@ -108,15 +108,12 @@ install_homebrew() {
 # ✅ 安装 fzf 工具
 install_fzf() {
   if ! command -v fzf &>/dev/null; then
-    local method=$(fzf_select "通过 Homebrew 安装" "通过 Git 安装")
-    case "$method" in
-      *Homebrew*) brew install fzf ;;
-      *Git*) git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && ~/.fzf/install --all ;;
-      *) error_echo "❌ fzf 安装取消"; exit 1 ;;
-    esac
+    note_echo "📦 未检测到 fzf，正在通过 Homebrew 安装..."
+    brew install fzf || { error_echo "❌ fzf 安装失败"; exit 1; }
+    success_echo "✅ fzf 安装成功"
   else
     info_echo "🔄 fzf 已安装，升级中..."
-    brew upgrade fzf || true
+    brew upgrade fzf && brew cleanup
     success_echo "✅ fzf 已是最新版"
   fi
 }
