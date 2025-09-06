@@ -39,91 +39,69 @@ pick_fg_code() { local l; l=$(rel_luma "$1" "$2" "$3"); if (( l > 186 )); then e
 # xterm-256 背景色计算（TrueColor 不可用时退化）
 rgb_to_ansi256() {
   local r=$1 g=$2 b=$3
-  # 灰阶判定
   if (( r==g && g==b )); then
     if   (( r < 8 ));   then echo 16;  return
     elif (( r > 248 )); then echo 231; return
-    else
-      echo $(( 232 + ( (r-8) * 24 / 247 ) ))
-      return
+    else echo $(( 232 + ( (r-8) * 24 / 247 ) )); return
     fi
   fi
-  # 6x6x6 色立方
   local rc=$(( (r * 5) / 255 ))
   local gc=$(( (g * 5) / 255 ))
   local bc=$(( (b * 5) / 255 ))
   echo $(( 16 + 36*rc + 6*gc + bc ))
 }
 
-# 色块输出（只显示“原汁原味”的单块）
+# 色块输出
 show_block() {
   local rr=$1 gg=$2 bb=$3 label=$4
   local fg; fg=$(pick_fg_code "$rr" "$gg" "$bb")
   if supports_truecolor; then
-    printf "\e[48;2;%d;%d;%dm" "$rr" "$gg" "$bb"   # 背景 TrueColor
+    printf "\e[48;2;%d;%d;%dm" "$rr" "$gg" "$bb"
   else
     local idx; idx=$(rgb_to_ansi256 "$rr" "$gg" "$bb")
-    printf "\e[48;5;%sm" "$idx"                     # 背景 256 色
+    printf "\e[48;5;%sm" "$idx"
   fi
-  printf "\e[%sm" "$fg"                             # 前景（黑/白）
-  printf "  %-18s  " "$label"                       # 固定宽度块
-  printf "\e[0m"                                     # 复位
+  printf "\e[%sm" "$fg"
+  printf "  %-18s  " "$label"
+  printf "\e[0m"
 }
 
 # ================================== 解析输入为 RGBA =============================
-# 输出（全局变量）：
-#   r g b       : 0~255
-#   a_float     : 0.00~1.00
-#   aa_hex      : 两位十六进制 Alpha（打印时直接用它）
 parse_input() {
   local raw="$1" input
   input=$(sanitize_input "$raw")
 
-  # 0xAARRGGBB
   if [[ "$input" =~ ^0x[0-9a-fA-F]{8}$ ]]; then
     local hex="${input:2}"; hex=$(upper_hex "$hex")
     local aa=${hex:0:2} rr=${hex:2:2} gg=${hex:4:2} bb=${hex:6:2}
     r=$((16#$rr)); g=$((16#$gg)); b=$((16#$bb))
-    aa_hex="$aa"
-    a_float=$(alpha_255_to_float $((16#$aa)))
-    return 0
+    aa_hex="$aa"; a_float=$(alpha_255_to_float $((16#$aa))); return 0
   fi
-
-  # #RRGGBB / #RRGGBBAA
   if [[ "$input" =~ ^#[0-9a-fA-F]{6}([0-9a-fA-F]{2})?$ ]]; then
     local hex="${input:1}"; hex=$(upper_hex "$hex")
     local rr=${hex:0:2} gg=${hex:2:2} bb=${hex:4:2}
     r=$((16#$rr)); g=$((16#$gg)); b=$((16#$bb))
     if [[ ${#hex} -eq 8 ]]; then
-      aa_hex=${hex:6:2}
-      a_float=$(alpha_255_to_float $((16#$aa_hex)))
+      aa_hex=${hex:6:2}; a_float=$(alpha_255_to_float $((16#$aa_hex)))
     else
-      aa_hex="FF"
-      a_float="1.00"
-    fi
-    return 0
+      aa_hex="FF"; a_float="1.00"
+    fi; return 0
   fi
-
-  # rgb(...) / rgba(...)
   if [[ "$input" =~ ^rgba?\( ]]; then
-    local nums; nums=$(echo "$input" | sed -E 's/rgba?\(|\)//g')
+    local nums; nums=$(echo "$input" | sed -E 's/^rgba?\(|\)//g')
     IFS=',' read -r R G B A <<<"$nums"
     r=${R%%.*}; g=${G%%.*}; b=${B%%.*}
     [[ -z "$A" ]] && A="1"
     a_float=$(awk 'BEGIN{printf("%.2f",'"$A"')}')
     local A255; A255=$(alpha_float_to_255 "$a_float")
-    aa_hex=$(to_hex "$A255")
-    return 0
+    aa_hex=$(to_hex "$A255"); return 0
   fi
-
   return 1
 }
 
 # ================================== 格式化输出（含色块） ========================
 format_and_print_all() {
-  local RR=$(to_hex "$r") GG=$(to_hex "$g") BB=$(to_hex "$b")
-  local AA="$aa_hex"
-
+  local RR=$(to_hex "$r") GG=$(to_hex "$g") BB=$(to_hex "$b") AA="$aa_hex"
   echo
   echo -e "${ESC}[1m输入：$user_input${RESET}"
   echo "----------------------------------------"
@@ -132,10 +110,8 @@ format_and_print_all() {
   echo "RGB           :  rgb(${r}, ${g}, ${b})"
   echo "RGBA          :  rgba(${r}, ${g}, ${b}, $(printf '%.2f' "$a_float"))"
   echo "0x 格式       :  0x${AA}${RR}${GG}${BB}"
-  # —— 原汁原味色块（只一块）
   show_block "$r" "$g" "$b" "原色 #${RR}${GG}${BB}"
-  echo
-  echo
+  echo; echo
 }
 
 # ================================== UI & 交互 ==================================
@@ -144,6 +120,7 @@ print_title() {
   echo -e "${c}================== 颜色格式转换器 ==================${RESET}"
   echo -e "${c}支持：#RRGGBB / #RRGGBBAA / rgb() / rgba() / 0xAARRGGBB${RESET}"
   echo -e "${c}标题使用颜色：#D2D4DE（210,212,222）${RESET}"
+  echo -e "${c}在线取色器：https://photokit.com/colors/color-picker/?lang=zh${RESET}"
   echo
 }
 
@@ -185,15 +162,12 @@ convert_once() {
 
 # ================================== main ==================================
 main() {
-  preface_and_wait  # 显示自述并等待用户回车
-
+  preface_and_wait
   if [[ $# -ge 1 ]]; then
-    # 传入 1 个或多个参数：逐个转换
     for user_input in "$@"; do
       convert_once "$user_input"
     done
   else
-    # 无参数：进入交互模式
     interactive_loop
   fi
 }
