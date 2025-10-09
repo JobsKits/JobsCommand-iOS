@@ -205,4 +205,4 @@ main() {
     open https://github.com/settings/tokens
 }
 # 执行主函数
-main
+main "$@"

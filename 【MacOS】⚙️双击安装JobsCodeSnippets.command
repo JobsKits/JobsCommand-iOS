@@ -137,4 +137,4 @@ main() {
     _JobsPrint_Green "脚本执行完成。"
 }
 
-main
+main "$@"

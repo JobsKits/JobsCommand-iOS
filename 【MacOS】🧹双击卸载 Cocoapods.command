@@ -68,6 +68,12 @@ uninstall_cocoapod(){
     exit 0
 }
 
-jobs_logo # 打印 "Jobs" logo
-self_intro # 自述信息
-uninstall_cocoapod # 卸载 cocoapod
+main() {
+ jobs_logo # 打印 "Jobs" logo
+ self_intro # 自述信息
+ uninstall_cocoapod # 卸载 cocoapod
+
+ echo "🎉 操作完成"
+}
+
+main "$@"

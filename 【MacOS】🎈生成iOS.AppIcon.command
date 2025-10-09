@@ -1,10 +1,25 @@
 #!/bin/zsh
-# iOS_AppIcon_Generator.command
-set -u  # 不用 -e，避免误退出；对关键命令我们手动判错
+# ===============================================================
+#  iOS_AppIcon_Generator.command
+# ---------------------------------------------------------------
+#  功能：
+#   • 将用户拖入的图片批量生成多尺寸 iOS 图标。
+#   • 自动检测输入文件是否为有效图片。
+#   • 支持 Finder “的替身”文件解析。
+#   • 输出到桌面 AppIcon.appiconset/。
+#   • 命名格式：Jobs{宽}x{高}.png（无 @2x/@3x 后缀）。
+# ---------------------------------------------------------------
+#  作者：JobsHi
+# ===============================================================
 
-# ====================== 自述 ======================
-clear
-cat <<'EOF'
+set -u  # 不用 -e，避免误退出；对关键命令手动判错
+
+# ===============================================================
+# 🧾 自述
+# ===============================================================
+show_intro() {
+  clear
+  cat <<'EOF'
 🌈 ===========================================
        iOS App Icon 自动生成工具
 ===========================================
@@ -17,35 +32,43 @@ cat <<'EOF'
 5. 命名格式：Jobs{宽}x{高}.png（无 @2x/@3x 后缀）
 ===========================================
 EOF
-read "?👉 按回车键继续 ..."
+  read "?👉 按回车键继续 ..."
+}
 
-# ====================== 基础配置 ======================
+# ===============================================================
+# ⚙️ 全局配置
+# ===============================================================
 PREFIX="Jobs"
 OUT_DIR="$HOME/Desktop/AppIcon.appiconset"
 typeset -a SIZES=(20 29 40 58 60 76 80 87 120 152 167 180 1024)
 
-# ====================== 依赖自检 ======================
-if ! command -v sips >/dev/null 2>&1; then
-  echo "❌ 未找到 macOS 自带的 sips，请检查系统。"; read -n1 -s -r -p "按任意键退出…"; exit 1
-fi
+# ===============================================================
+# 🔍 环境检测
+# ===============================================================
+check_dependencies() {
+  if ! command -v sips >/dev/null 2>&1; then
+    echo "❌ 未找到 macOS 自带的 sips，请检查系统。"
+    read -n1 -s -r -p "按任意键退出…"
+    exit 1
+  fi
+}
 
-# ====================== 工具函数 ======================
+# ===============================================================
+# 🧰 工具函数
+# ===============================================================
 clean_path() {
   local raw="$1"
   raw="${raw#\'}"; raw="${raw%\'}"
   raw="${raw#\"}"; raw="${raw%\"}"
-  # 还原反斜杠转义
   printf '%b' "${raw//\\/\\}"
 }
 
 resolve_alias_if_needed() {
-  # 如果是 Finder “的替身”（Alias），解析到原始目标
   local p="$1"
   if command -v mdls >/dev/null 2>&1; then
     local kind
     kind=$(mdls -name kMDItemKind -raw "$p" 2>/dev/null || true)
     if echo "$kind" | grep -qi "alias"; then
-      # 用 AppleScript 解析别名
       local resolved
       resolved=$(osascript -e 'on run argv
         set p to POSIX file (item 1 of argv)
@@ -64,43 +87,29 @@ resolve_alias_if_needed() {
 }
 
 is_image() {
-  # 返回 0 表示是图片；否则非图片
   local p="$1"
-
-  # 先试 sips 探测像素（最快最准）
   local w
   w=$(sips -g pixelWidth "$p" 2>/dev/null | awk '/pixelWidth/{print $2}')
-  if [[ "$w" =~ ^[0-9]+$ && "$w" -gt 0 ]]; then
-    return 0
-  fi
+  if [[ "$w" =~ ^[0-9]+$ && "$w" -gt 0 ]]; then return 0; fi
 
-  # 再降级用 file MIME
   if command -v file >/dev/null 2>&1; then
     local mime
     mime=$(file -b --mime-type "$p" 2>/dev/null || true)
-    if echo "$mime" | grep -qi '^image/'; then
-      return 0
-    fi
+    if echo "$mime" | grep -qi '^image/'; then return 0; fi
   fi
 
-  # 再兜底看扩展名
   local ext="${p##*.}"; ext="${ext:l}"
   case "$ext" in
     png|jpg|jpeg|heic|webp|tif|tiff|bmp|gif|ico|icns) return 0 ;;
   esac
-
   return 1
 }
 
 prepare_square_png() {
-  # 将任意图片转为 PNG，若非正方形则居中裁成正方形
   local in="$1" out_png="$2"
-
-  # 转 PNG
   if ! sips -s format png "$in" --out "$out_png" >/dev/null 2>&1; then
     return 1
   fi
-
   local w h
   w=$(sips -g pixelWidth  "$out_png" 2>/dev/null | awk '/pixelWidth/{print $2}')
   h=$(sips -g pixelHeight "$out_png" 2>/dev/null | awk '/pixelHeight/{print $2}')
@@ -117,79 +126,98 @@ prepare_square_png() {
   return 0
 }
 
-# ====================== 主循环：反复要图片，直到正确 ======================
-IMG_PATH=""
-while true; do
+# ===============================================================
+# 📥 等待并验证图片输入
+# ===============================================================
+get_valid_image() {
+  local img_path=""
+  while true; do
+    echo
+    echo "👉 请从 Finder 拖入【图片文件】到此窗口，然后按回车："
+    read -r USER_INPUT
+    USER_INPUT="${USER_INPUT:-}"
+
+    if [[ -z "$USER_INPUT" ]]; then
+      echo "⚠️  未检测到输入，请重试。"
+      continue
+    fi
+
+    CLEANED="$(clean_path "$USER_INPUT")"
+    TARGET="$(resolve_alias_if_needed "$CLEANED")"
+
+    if [[ ! -f "$TARGET" ]]; then
+      echo "⚠️  文件不存在：$TARGET"
+      continue
+    fi
+
+    if ! is_image "$TARGET"; then
+      echo "⚠️  这不是有效的图片文件：$TARGET"
+      continue
+    fi
+
+    if ! sips -g pixelWidth "$TARGET" >/dev/null 2>&1; then
+      echo "⚠️  sips 无法读取该文件，请换一张图片。"
+      continue
+    fi
+
+    img_path="$TARGET"
+    break
+  done
+  echo "$img_path"
+}
+
+# ===============================================================
+# 🧩 主逻辑：生成 AppIcon 图片集
+# ===============================================================
+generate_icons() {
+  local img="$1"
+  rm -rf "$OUT_DIR"
+  mkdir -p "$OUT_DIR/tmp"
+
+  local sq="$OUT_DIR/tmp/_square.png"
+  if ! prepare_square_png "$img" "$sq"; then
+    echo "❌ 图片预处理失败，请重试。"
+    read -n1 -s -r -p "按任意键退出…"
+    exit 1
+  fi
+
+  local base="$OUT_DIR/tmp/_base_1024.png"
+  if ! sips -Z 1024 "$sq" --out "$base" >/dev/null 2>&1; then
+    echo "❌ 生成基准图失败。"
+    read -n1 -s -r -p "按任意键退出…"
+    exit 1
+  fi
+
   echo
-  echo "👉 请从 Finder 拖入【图片文件】到此窗口，然后按回车："
-  read -r USER_INPUT
-  USER_INPUT="${USER_INPUT:-}"
+  for px in "${SIZES[@]}"; do
+    local out="$OUT_DIR/${PREFIX}${px}x${px}.png"
+    if sips -z "$px" "$px" "$base" --out "$out" >/dev/null 2>&1; then
+      printf "✅ 生成 %-26s (%4d×%4d)\n" "$(basename "$out")" "$px" "$px"
+    else
+      printf "❌ 失败 %-26s\n" "$(basename "$out")"
+    fi
+  done
 
-  # 空输入
-  if [[ -z "$USER_INPUT" ]]; then
-    echo "⚠️  未检测到输入，请重试。"
-    continue
-  fi
+  rm -rf "$OUT_DIR/tmp"
+  echo
+  echo "🎉 完成！输出路径：$OUT_DIR"
+  echo "👉 文件命名：${PREFIX}{宽}x{高}.png（无 @2x/@3x 后缀）"
+  open -R "$OUT_DIR"
+  echo
+  read -n1 -s -r -p "按任意键关闭窗口…"
+}
 
-  # 清洗路径并解析别名
-  CLEANED="$(clean_path "$USER_INPUT")"
-  TARGET="$(resolve_alias_if_needed "$CLEANED")"
+# ===============================================================
+# 🧭 main 入口
+# ===============================================================
+main() {
+  show_intro
+  check_dependencies
+  IMG_PATH="$(get_valid_image)"
+  generate_icons "$IMG_PATH"
+}
 
-  # 存在性检查
-  if [[ ! -f "$TARGET" ]]; then
-    echo "⚠️  文件不存在：$TARGET"
-    continue
-  fi
-
-  # 图片性检查
-  if ! is_image "$TARGET"; then
-    echo "⚠️  这不是有效的图片文件：$TARGET"
-    continue
-  fi
-
-  # 到这一步先做一次轻量探测，确保 sips 能处理
-  if ! sips -g pixelWidth "$TARGET" >/dev/null 2>&1; then
-    echo "⚠️  sips 无法读取该文件，请换一张图片。"
-    continue
-  fi
-
-  IMG_PATH="$TARGET"
-  break
-done
-
-# ====================== 生成流程 ======================
-# 准备输出目录
-rm -rf "$OUT_DIR"
-mkdir -p "$OUT_DIR/tmp"
-
-# 预处理：转 PNG + 正方形
-SQ="$OUT_DIR/tmp/_square.png"
-if ! prepare_square_png "$IMG_PATH" "$SQ"; then
-  echo "❌ 图片预处理失败（格式转换/读取异常）。请重试。"
-  read -n1 -s -r -p "按任意键退出…"; exit 1
-fi
-
-# 基准 1024（从大图缩放，避免多次缩放损失）
-BASE="$OUT_DIR/tmp/_base_1024.png"
-if ! sips -Z 1024 "$SQ" --out "$BASE" >/dev/null 2>&1; then
-  echo "❌ 生成基准图失败。"; read -n1 -s -r -p "按任意键退出…"; exit 1
-fi
-
-echo
-for px in "${SIZES[@]}"; do
-  out="$OUT_DIR/${PREFIX}${px}x${px}.png"
-  if sips -z "$px" "$px" "$BASE" --out "$out" >/dev/null 2>&1; then
-    printf "✅ 生成 %-26s (%4d×%4d)\n" "$(basename "$out")" "$px" "$px"
-  else
-    printf "❌ 失败 %-26s\n" "$(basename "$out")"
-  fi
-done
-
-# 清理
-rm -rf "$OUT_DIR/tmp"
-
-echo
-echo "🎉 完成！输出路径：$OUT_DIR"
-echo "👉 文件命名：${PREFIX}{宽}x{高}.png（无 @2x/@3x 后缀）"
-echo
-read -n 1 -s -r -p "按任意键关闭窗口…"
+# ===============================================================
+# 🚀 执行入口
+# ===============================================================
+main "$@"

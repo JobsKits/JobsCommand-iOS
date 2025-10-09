@@ -592,4 +592,4 @@ main() {
     _JobsPrint_Green "项目名称已成功从 $default_old_project_name 修改为 $NEW_PROJECT_NAME，并重新安装了 CocoaPods 依赖"
 }
 # 调用主函数
-main
+main "$@"
