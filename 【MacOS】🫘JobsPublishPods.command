@@ -38,7 +38,7 @@ show_intro_and_wait() {
   note_echo "3) 在脚本当前目录查找 *.podspec，多文件时用 fzf 选择；没有就循环让你输入路径。"
   note_echo "4) 如果检测到 Git 仓库且当前 HEAD 有 tag，则把该 tag 写入 podspec 的 version 字段。"
   note_echo "5) 解析选中的 podspec，读取 name 和 version，仅作为信息展示。"
-  note_echo "6) 执行 pod lib lint --allow-warnings，仅 lint 通过才继续。"
+  note_echo "6) 执行 pod lib lint --allow-warnings，仅 lint 通过才继续（可选）。"
   note_echo "7) 检测是否已经登录 CocoaPods trunk："
   note_echo "   - 已登录：跳过 pod trunk register，不再询问。"
   note_echo "   - 未登录：只在首次时询问是否执行 pod trunk register。"
@@ -417,18 +417,63 @@ run_pod_lib_lint() {
   fi
 }
 
+maybe_run_pod_lib_lint() {
+  warm_echo "是否先执行 pod lib lint --allow-warnings？"
+  echo "👉 直接按 [Enter]：先执行 pod lib lint（推荐，确保本地能通过）"
+  echo "👉 输入任意内容后回车：跳过 lint，直接进行 trunk 发布流程（风险自负）"
+  printf "> "
+  local ans
+  IFS= read -r ans
+  echo
+
+  if [[ -z "$ans" ]]; then
+    note_echo "将先执行 pod lib lint ..."
+    run_pod_lib_lint
+  else
+    warn_echo "已选择跳过 pod lib lint，脚本将直接进入 trunk 发布流程。"
+  fi
+}
+
 push_to_trunk() {
   info_echo "准备执行 pod trunk push $PODSPEC_BASENAME --allow-warnings"
   warm_echo "确保该 Pod 已完成 trunk 邮箱验证，并且本地 'pod trunk me' 状态正常。"
   echo "按 [Enter] 继续推送，或 Ctrl+C 取消。"
   IFS= read -r _
 
-  if pod trunk push "$PODSPEC_PATH" --allow-warnings; then
+  local tmp_log="/tmp/pod_trunk_push_${SCRIPT_BASENAME}.log"
+  info_echo "pod trunk push 输出已同步记录到: $tmp_log"
+
+  # 执行 push，并通过 tee 显示 + 记录日志
+  pod trunk push "$PODSPEC_PATH" --allow-warnings 2>&1 | tee "$tmp_log"
+  local exit_code=${PIPESTATUS[0]}   # 取 pipeline 中第一个命令（pod）的退出码
+
+  if [[ $exit_code -eq 0 ]]; then
     success_echo "✅ pod trunk push 成功 ($POD_NAME $POD_VERSION)"
-  else
-    error_echo "❌ pod trunk push 失败，请检查错误信息。"
-    exit 1
+    return 0
   fi
+
+  # ---- 失败情况：先判断是不是 CocoaPods 的内部错误 ----
+  if grep -q "An internal server error occurred" "$tmp_log"; then
+    warn_echo "⚠ 检测到 CocoaPods Trunk 返回 Internal Server Error（服务器内部错误）。"
+    note_echo "大概率是 CocoaPods 官方服务故障，并不一定是你的 podspec 有问题。"
+    echo
+    warm_echo "按 [Enter] 继续执行后续步骤（本次 push 失败，但脚本不会中断）；"
+    warm_echo "或者输入任意字符后回车：立刻结束脚本。"
+    printf "> "
+    local ans
+    IFS= read -r ans
+    if [[ -z "$ans" ]]; then
+      note_echo "已选择继续：脚本将跳过本次 push 错误，继续执行后续步骤。"
+      return 0
+    else
+      error_echo "已根据你的选择终止脚本。"
+      exit 1
+    fi
+  fi
+
+  # ---- 其它错误：仍然直接终止 ----
+  error_echo "❌ pod trunk push 失败，请检查上面的错误信息（非服务器内部错误）。"
+  exit 1
 }
 
 show_trunk_info() {
@@ -459,8 +504,8 @@ main() {
   # 4. 解析 name / version
   read_podspec_metadata
 
-  # 5. lint 通过再继续
-  run_pod_lib_lint
+  # 5. 是否执行 lint（回车执行，否则直接跳过）
+  maybe_run_pod_lib_lint
 
   # 6. trunk register（仅在当前环境未登录 trunk 时，才问一次）
   maybe_trunk_register
