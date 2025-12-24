@@ -136,11 +136,11 @@ install_homebrew() {
 
   else
     info_echo "🔄 Homebrew 已安装。是否执行更新？"
-    echo "👉 按 [Enter] 继续：将依次执行  brew update && brew upgrade && brew cleanup && brew doctor && brew -v"
-    echo "👉 输入任意字符后回车：跳过更新"
+    echo "👉 直接按 [Enter]：跳过更新"
+    echo "👉 输入任意字符后回车：执行更新（brew update && brew upgrade && brew cleanup && brew doctor && brew -v）"
     local confirm
     IFS= read -r confirm
-    if [[ -z "$confirm" ]]; then
+    if [[ -n "$confirm" ]]; then
       info_echo "⏳ 正在更新 Homebrew..."
       brew update       || { error_echo "❌ brew update 失败"; return 1; }
       brew upgrade      || { error_echo "❌ brew upgrade 失败"; return 1; }
@@ -161,12 +161,12 @@ install_fzf() {
     success_echo "✅ fzf 安装成功"
   else
     info_echo "🔄 fzf 已安装。是否执行升级？"
-    echo "👉 按 [Enter] 继续：将依次执行  brew upgrade fzf && brew cleanup"
-    echo "👉 输入任意字符后回车：跳过升级"
+    echo "👉 直接按 [Enter]：跳过升级"
+    echo "👉 输入任意字符后回车：执行升级（brew upgrade fzf && brew cleanup）"
 
     local confirm
     IFS= read -r confirm
-    if [[ -z "$confirm" ]]; then
+    if [[ -n "$confirm" ]]; then
       info_echo "⏳ 正在升级 fzf..."
       brew upgrade fzf       || { error_echo "❌ fzf 升级失败"; return 1; }
       brew cleanup           || { warn_echo  "⚠️  brew cleanup 执行时有警告"; }
