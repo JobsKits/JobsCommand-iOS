@@ -24,7 +24,7 @@ print_intro() {
   SCRIPT_NAME=$(basename "$0" .command)
   echo ""
   success_echo "🛠️ 脚本功能："
-  success_echo "1️⃣ 自动打开 GitHub 项目：https://github.com/295060456/MacEnvVarConfig"
+  success_echo "1️⃣ 自动打开 GitHub 项目：https://github.com/JobsKits/MacEnvVarConfig"
   success_echo "2️⃣ 克隆仓库到本脚本同级目录中，文件夹名称与脚本文件同名：$SCRIPT_NAME"
   echo ""
   read "?👉 按下回车键开始执行，或按 Ctrl+C 取消..."
@@ -56,7 +56,7 @@ check_existing_dir() {
 # ✅ 执行克隆操作
 clone_repo() {
   success_echo "📥 开始克隆..."
-  git clone https://github.com/295060456/MacEnvVarConfig.git "$TARGET_DIR"
+  git clone https://github.com/JobsKits/MacEnvVarConfig.git "$TARGET_DIR"
 
   if [[ $? -eq 0 ]]; then
     success_echo "🎉 克隆成功！路径：$TARGET_DIR"
