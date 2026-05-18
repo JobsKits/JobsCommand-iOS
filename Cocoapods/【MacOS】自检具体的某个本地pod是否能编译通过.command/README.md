@@ -1,5 +1,14 @@
 # pd 本地 Pod 编译自检工具
 
+![Jobs倾情奉献](https://picsum.photos/1500/400 "Jobs出品，必属精品")
+
+[toc]
+
+## 🔥 <font id=前言>前言</font>
+
+- 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
+
+
 ## 用途
 
 `pd` 用来检查一个本地 CocoaPods Pod 是否能在自己的 podspec 环境下独立编译通过。
@@ -101,3 +110,13 @@ The following build commands failed
 - subspec 依赖关系缺失
 - 本地 Pod 之间存在循环依赖
 - 资源文件没有正确写入 `resources` / `resource_bundles`
+
+## 一、日志文件
+
+运行日志默认写入 `/tmp`，文件名通常来自脚本名去掉扩展名：
+
+```shell
+/tmp/【MacOS】自检具体的某个本地pod是否能编译通过.log
+```
+
+<a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

@@ -15,27 +15,29 @@
 
 ## 🔥 <font id=前言>前言</font>
 
+- 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
+
 > 当前总行数：714
 
-* 🔧 **工欲善其事必先利其器**
+- 🔧 **工欲善其事必先利其器**
 
-* 🌋 **站在巨人的肩膀上，才能看得更远**
+- 🌋 **站在巨人的肩膀上，才能看得更远**
 
-* ✝️ **面向信仰编程**
+- ✝️ **面向信仰编程**
 
-* 📚 **参考来源**：[**CocoaPods**](https://cocoapods.org/)｜[**Ruby**](https://www.ruby-lang.org/)｜[**zsh**](https://www.zsh.org/)
+- 📚 **参考来源**：[**CocoaPods**](https://cocoapods.org/)｜[**Ruby**](https://www.ruby-lang.org/)｜[**zsh**](https://www.zsh.org/)
 
-* 🔔 **温馨提示**：本文较长，直接访问 [**Github**](https://github.com/) 可能无法完整阅读全文
+- 🔔 **温馨提示**：本文较长，直接访问 [**Github**](https://github.com/) 可能无法完整阅读全文
 
   * 推荐下载到本地阅读，推荐阅读器 ➤ [**Typora**](https://typora.io/)
 
   * 或者使用 [**Google Chrom**e](https://www.google.com/chrome/) 浏览器安装 `Markdown Preview Plus` 插件并启用
 
-* 本脚本用于把已经整理、解耦或批量处理后的 `.podspec` 文件，按同名规则放回本地 Pod 管理目录中的对应 Pod。
+- 本脚本用于把已经整理、解耦或批量处理后的 `.podspec` 文件，按同名规则放回本地 Pod 管理目录中的对应 Pod。
 
-* 如果来源 `.podspec` 同目录存在 `JobsPodspecKit.rb`，脚本会把它同步放回目标 `.podspec` 同级目录。这个设计适合每个 Pod 作为独立工程维护：`.podspec` 负责声明规格，`JobsPodspecKit.rb` 负责承载从 podspec 中拆出去的 Ruby 辅助逻辑。
+- 如果来源 `.podspec` 同目录存在 `JobsPodspecKit.rb`，脚本会把它同步放回目标 `.podspec` 同级目录。这个设计适合每个 Pod 作为独立工程维护：`.podspec` 负责声明规格，`JobsPodspecKit.rb` 负责承载从 podspec 中拆出去的 Ruby 辅助逻辑。
 
-* `Podfile`、`Podfile.deps`、`Podfile.lock` 不会默认替换，脚本会逐个询问。直接回车跳过，输入任意字符后回车才执行替换。
+- `Podfile`、`Podfile.deps`、`Podfile.lock` 不会默认替换，脚本会逐个询问。直接回车跳过，输入任意字符后回车才执行替换。
 
 ## 一、🎯 项目白皮书 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
@@ -43,20 +45,20 @@
 
 典型场景如下：
 
-* 你把一批本地 Pod 的 `.podspec` 抽取出来统一处理
-* 你对 `.podspec` 做了结构解耦
-* 每个 Pod 拆成 `.podspec + JobsPodspecKit.rb`
-* 处理完成后，需要把这些文件按 Pod 名称放回原来的本地 Pod 目录
-* 同时希望避免误创建、误覆盖、误替换不存在的文件
+- 你把一批本地 Pod 的 `.podspec` 抽取出来统一处理
+- 你对 `.podspec` 做了结构解耦
+- 每个 Pod 拆成 `.podspec + JobsPodspecKit.rb`
+- 处理完成后，需要把这些文件按 Pod 名称放回原来的本地 Pod 目录
+- 同时希望避免误创建、误覆盖、误替换不存在的文件
 
 脚本核心策略是：
 
-* 只按同名 `.podspec` 精确匹配
-* 只替换目标中已经存在的 `.podspec`
-* 来源中存在 `JobsPodspecKit.rb` 时，同步到目标 `.podspec` 同目录
-* `Podfile` 三件套只在用户确认后替换
-* 对重复同名文件采取跳过策略，避免误判
-* 支持拖入路径中的空格、引号、反斜杠转义、`~`、Unix 软链接和 Finder 替身
+- 只按同名 `.podspec` 精确匹配
+- 只替换目标中已经存在的 `.podspec`
+- 来源中存在 `JobsPodspecKit.rb` 时，同步到目标 `.podspec` 同目录
+- `Podfile` 三件套只在用户确认后替换
+- 对重复同名文件采取跳过策略，避免误判
+- 支持拖入路径中的空格、引号、反斜杠转义、`~`、Unix 软链接和 Finder 替身
 
 最终处理对象如下：
 
@@ -218,10 +220,10 @@ JobsPodspecKit.rb
 
 处理规则如下：
 
-* 目标同级已经存在 `JobsPodspecKit.rb`：覆盖
-* 目标同级不存在 `JobsPodspecKit.rb`：创建
-* 目标路径存在但不是文件：跳过
-* 来源路径存在但不是文件：跳过
+- 目标同级已经存在 `JobsPodspecKit.rb`：覆盖
+- 目标同级不存在 `JobsPodspecKit.rb`：创建
+- 目标路径存在但不是文件：跳过
+- 来源路径存在但不是文件：跳过
 
 这个逻辑适合 `.podspec + JobsPodspecKit.rb` 的解耦结构，尤其适合每个 Pod 使用独立 Ruby 命名空间的方案。
 
@@ -272,14 +274,14 @@ Podfile.lock
 
 脚本支持以下输入情况：
 
-* Finder 拖入路径
-* 路径中包含空格
-* 路径被单引号包裹
-* 路径被双引号包裹
-* 路径中包含反斜杠转义
-* `~` 和 `~/xxx`
-* Unix 软链接
-* Finder 替身
+- Finder 拖入路径
+- 路径中包含空格
+- 路径被单引号包裹
+- 路径被双引号包裹
+- 路径中包含反斜杠转义
+- `~` 和 `~/xxx`
+- Unix 软链接
+- Finder 替身
 
 脚本会尽量把输入路径解析为真实路径后再执行替换。
 
@@ -448,9 +450,9 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 
 默认建议：
 
-* 只处理 podspec 解耦结果：直接回车跳过三件套
-* 确认来源目录内三件套就是你要同步的版本：输入任意字符后回车替换
-* 不确定：跳过，后续手动 diff
+- 只处理 podspec 解耦结果：直接回车跳过三件套
+- 确认来源目录内三件套就是你要同步的版本：输入任意字符后回车替换
+- 不确定：跳过，后续手动 diff
 
 ## 六、🧪 常用自检命令 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
@@ -604,41 +606,49 @@ find JobsByPods -name JobsPodspecKit.rb -print
 
 这个脚本会做的事情：
 
-* 替换已经存在的同名 `.podspec`
-* 同步来源同目录下的 `JobsPodspecKit.rb`
-* 在目标 `.podspec` 同目录缺少 `JobsPodspecKit.rb` 时创建该文件
-* 在用户确认后替换 `Podfile.deps`
-* 在用户确认后替换 `Podfile`
-* 在用户确认后替换 `Podfile.lock`
-* 打印替换和跳过统计
+- 替换已经存在的同名 `.podspec`
+- 同步来源同目录下的 `JobsPodspecKit.rb`
+- 在目标 `.podspec` 同目录缺少 `JobsPodspecKit.rb` 时创建该文件
+- 在用户确认后替换 `Podfile.deps`
+- 在用户确认后替换 `Podfile`
+- 在用户确认后替换 `Podfile.lock`
+- 打印替换和跳过统计
 
 这个脚本不会做的事情：
 
-* 不会创建新的 `.podspec`
-* 不会新建 `Podfile`
-* 不会新建 `Podfile.deps`
-* 不会新建 `Podfile.lock`
-* 不会修改 `.podspec` 内容
-* 不会分析 podspec 依赖关系
-* 不会执行 `pod install`
-* 不会自动备份旧文件
-* 不会安装 Homebrew 或其他依赖
+- 不会创建新的 `.podspec`
+- 不会新建 `Podfile`
+- 不会新建 `Podfile.deps`
+- 不会新建 `Podfile.lock`
+- 不会修改 `.podspec` 内容
+- 不会分析 podspec 依赖关系
+- 不会执行 `pod install`
+- 不会自动备份旧文件
+- 不会安装 Homebrew 或其他依赖
 
 ## 九、✅ 总结 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 这个脚本的核心目标是：
 
-* 把批量处理后的 `.podspec` 安全放回本地 Pod 目录
-* 保留每个 Pod 独立工程的 `.podspec + JobsPodspecKit.rb` 解耦结构
-* 避免来源或目标不唯一时误替换
-* 避免自动创建新的 podspec 导致目录污染
-* 让 `Podfile` 三件套替换保持显式确认
-* 支持 Finder 拖入路径，降低手动输入路径的错误率
+- 把批量处理后的 `.podspec` 安全放回本地 Pod 目录
+- 保留每个 Pod 独立工程的 `.podspec + JobsPodspecKit.rb` 解耦结构
+- 避免来源或目标不唯一时误替换
+- 避免自动创建新的 podspec 导致目录污染
+- 让 `Podfile` 三件套替换保持显式确认
+- 支持 Finder 拖入路径，降低手动输入路径的错误率
 
 真正稳的工作流应该是：
 
 ```text
 导出 podspec → 批量解耦 → 生成 .podspec + JobsPodspecKit.rb → 运行本脚本放回 → git diff 检查 → pod install 验证
+```
+
+## 十、日志文件
+
+运行日志默认写入 `/tmp`，文件名通常来自脚本名去掉扩展名：
+
+```shell
+/tmp/【MacOS】♻️放回本地Pod的podspec.log
 ```
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>
