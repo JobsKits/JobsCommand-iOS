@@ -1,6 +1,6 @@
 # `【MacOS】🎈切换生成 iOS 的 Web Clip（桌面网页快捷方式）.command`
 
-![Jobs倾情奉献](https://picsum.photos/1500/400 "Jobs出品，必属精品")
+![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
 [toc]
 
