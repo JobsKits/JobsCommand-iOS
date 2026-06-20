@@ -15,6 +15,7 @@ PODFILE_COUNT=0
 TOTAL_COUNT=0
 COPIED_SOURCE_LIST=''
 
+# 展示脚本用途和影响范围，并在执行前等待用户确认。
 print_intro() {
     printf "${BLUE}============================================================${NC}\n"
     printf "${BLUE} 提取项目中的 CocoaPods 相关文件${NC}\n"
@@ -36,6 +37,7 @@ print_intro() {
     printf "\n"
 }
 
+# 封装 normalize_dragged_path 对应的独立处理逻辑。
 normalize_dragged_path() {
     local RAW_PATH="$1"
 
@@ -59,6 +61,7 @@ normalize_dragged_path() {
     printf '%s\n' "$RAW_PATH"
 }
 
+# 封装 canonicalize_path 对应的独立处理逻辑。
 canonicalize_path() {
     local INPUT_PATH="$1"
     local DIR_NAME
@@ -83,6 +86,7 @@ canonicalize_path() {
     printf '%s\n' "$INPUT_PATH"
 }
 
+# 解析并返回后续流程需要的目标信息。
 resolve_unix_symlink_path() {
     local INPUT_PATH="$1"
     local LINK_TARGET
@@ -108,6 +112,7 @@ resolve_unix_symlink_path() {
     canonicalize_path "$LINK_TARGET"
 }
 
+# 解析并返回后续流程需要的目标信息。
 resolve_finder_alias_path() {
     local INPUT_PATH="$1"
     local RESOLVED_PATH
@@ -141,6 +146,7 @@ APPLESCRIPT
     fi
 }
 
+# 解析并返回后续流程需要的目标信息。
 resolve_real_path() {
     local INPUT_PATH="$1"
     local CURRENT_PATH
@@ -167,10 +173,12 @@ resolve_real_path() {
     printf '%s\n' "$CURRENT_PATH"
 }
 
+# 解析并返回后续流程需要的目标信息。
 resolve_dragged_path() {
     resolve_real_path "$1"
 }
 
+# 封装 read_project_path 对应的独立处理逻辑。
 read_project_path() {
     local RAW_PATH
     local NORMALIZED_PATH
@@ -196,6 +204,7 @@ read_project_path() {
     done
 }
 
+# 封装 create_output_dir 对应的独立处理逻辑。
 create_output_dir() {
     local DESKTOP_DIR="$HOME/Desktop"
     local TIME_TEXT
@@ -206,16 +215,19 @@ create_output_dir() {
     mkdir -p "$OUTPUT_DIR"
 }
 
+# 封装 create_copied_source_list 对应的独立处理逻辑。
 create_copied_source_list() {
     COPIED_SOURCE_LIST="$(mktemp "/tmp/podspec_real_sources.XXXXXX")"
 }
 
+# 执行对应的清理操作，并保留必要的安全检查。
 cleanup_temp_files() {
     if [ -n "$COPIED_SOURCE_LIST" ] && [ -f "$COPIED_SOURCE_LIST" ]; then
         rm -f "$COPIED_SOURCE_LIST"
     fi
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 is_podspec_path() {
     local INPUT_PATH="$1"
     local LOWER_PATH
@@ -224,6 +236,7 @@ is_podspec_path() {
     [[ "$LOWER_PATH" == *.podspec ]]
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 has_copied_source() {
     local REAL_SOURCE_FILE="$1"
 
@@ -234,12 +247,14 @@ has_copied_source() {
     grep -F -x -q -- "$REAL_SOURCE_FILE" "$COPIED_SOURCE_LIST"
 }
 
+# 封装 record_copied_source 对应的独立处理逻辑。
 record_copied_source() {
     local REAL_SOURCE_FILE="$1"
 
     printf '%s\n' "$REAL_SOURCE_FILE" >> "$COPIED_SOURCE_LIST"
 }
 
+# 封装 make_unique_target_file 对应的独立处理逻辑。
 make_unique_target_file() {
     local SOURCE_FILE="$1"
     local FILE_NAME
@@ -273,6 +288,7 @@ make_unique_target_file() {
     echo "$OUTPUT_DIR/${NAME}_${INDEX}${EXT}"
 }
 
+# 封装 make_unique_target_dir 对应的独立处理逻辑。
 make_unique_target_dir() {
     local DIR_NAME="$1"
     local TARGET_DIR="$OUTPUT_DIR/$DIR_NAME"
@@ -292,6 +308,7 @@ make_unique_target_dir() {
     echo "$OUTPUT_DIR/${DIR_NAME}_${INDEX}"
 }
 
+# 解析并返回后续流程需要的目标信息。
 get_jobs_podspec_kit_file() {
     local PODSPEC_FILE="$1"
     local PODSPEC_DIR
@@ -305,6 +322,7 @@ get_jobs_podspec_kit_file() {
     fi
 }
 
+# 封装 copy_jobs_podspec_kit_to_dir 对应的独立处理逻辑。
 copy_jobs_podspec_kit_to_dir() {
     local KIT_FILE="$1"
     local TARGET_DIR="$2"
@@ -334,6 +352,7 @@ copy_jobs_podspec_kit_to_dir() {
     return 0
 }
 
+# 封装 copy_podspec_to_output_dir 对应的独立处理逻辑。
 copy_podspec_to_output_dir() {
     local SOURCE_FILE="$1"
     local REAL_SOURCE_FILE
@@ -390,6 +409,7 @@ copy_podspec_to_output_dir() {
     return 0
 }
 
+# 封装 copy_to_output_dir 对应的独立处理逻辑。
 copy_to_output_dir() {
     local SOURCE_FILE="$1"
     local REAL_SOURCE_FILE
@@ -429,6 +449,7 @@ copy_to_output_dir() {
     return 0
 }
 
+# 封装 copy_podspec_files 对应的独立处理逻辑。
 copy_podspec_files() {
     local PODSPEC_FILE
 
@@ -439,6 +460,7 @@ copy_podspec_files() {
     done < <(find "$PROJECT_PATH" \( -type f -o -type l \) -iname "*.podspec" -print0)
 }
 
+# 封装 copy_podspec_alias_target_files 对应的独立处理逻辑。
 copy_podspec_alias_target_files() {
     local CANDIDATE_FILE
     local REAL_SOURCE_FILE
@@ -460,6 +482,7 @@ copy_podspec_alias_target_files() {
     done < <(find "$PROJECT_PATH" \( -type f -o -type l \) \( -iname "*podspec*" -o -iname "*alias*" -o -iname "*替身*" -o -iname "*别名*" \) ! -iname "*.podspec" -print0)
 }
 
+# 封装 copy_root_podfile_by_name 对应的独立处理逻辑。
 copy_root_podfile_by_name() {
     local PODFILE_NAME="$1"
     local PODFILE_FILE="$PROJECT_PATH/$PODFILE_NAME"
@@ -481,12 +504,14 @@ copy_root_podfile_by_name() {
     fi
 }
 
+# 封装 copy_root_podfiles 对应的独立处理逻辑。
 copy_root_podfiles() {
     copy_root_podfile_by_name "Podfile.deps"
     copy_root_podfile_by_name "Podfile"
     copy_root_podfile_by_name "Podfile.lock"
 }
 
+# 执行对应的清理操作，并保留必要的安全检查。
 remove_empty_output_dir_if_needed() {
     if [ "$TOTAL_COUNT" -eq 0 ]; then
         rmdir "$OUTPUT_DIR"
@@ -495,6 +520,7 @@ remove_empty_output_dir_if_needed() {
     fi
 }
 
+# 封装 print_result 对应的独立处理逻辑。
 print_result() {
     echo ""
     printf "${GREEN}完成，共复制 %s 个文件。${NC}\n" "$TOTAL_COUNT"
@@ -503,10 +529,12 @@ print_result() {
     echo "输出目录：$OUTPUT_DIR"
 }
 
+# 封装 open_output_dir 对应的独立处理逻辑。
 open_output_dir() {
     open "$OUTPUT_DIR"
 }
 
+# 封装 make_unique_zip_file 对应的独立处理逻辑。
 make_unique_zip_file() {
     local ZIP_FILE="$OUTPUT_DIR.zip"
     local ZIP_DIR
@@ -531,6 +559,7 @@ make_unique_zip_file() {
     echo "$ZIP_DIR/${ZIP_NAME}_${INDEX}.zip"
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_zip_output_dir() {
     local USER_INPUT
     local ZIP_FILE
@@ -557,7 +586,8 @@ ask_zip_output_dir() {
     fi
 }
 
-main() {
+# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
+run_main_flow() {
     trap cleanup_temp_files EXIT
 
     # 1. 打印脚本自述，并等待用户确认开始。
@@ -588,6 +618,12 @@ main() {
 
     # 9. 执行完毕后询问是否需要将输出目录打包成 zip。
     ask_zip_output_dir
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"

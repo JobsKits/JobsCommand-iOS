@@ -19,20 +19,24 @@ SCRIPT_PARENT_DIR="${SCRIPT_DIR:h}"
 PROJECT_ROOT=""
 typeset -ga XCODE_ITEMS
 
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 log() {
   print -r -- "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
 
+# 封装 line 对应的独立处理逻辑。
 line() {
   print -r -- "────────────────────────────────────────────────────────────"
 }
 
+# 封装 pause_to_exit 对应的独立处理逻辑。
 pause_to_exit() {
   print
   print -n "按回车退出："
   read -r _unused
 }
 
+# 封装 print_header 对应的独立处理逻辑。
 print_header() {
   clear 2>/dev/null || true
   print -r -- "🧠 ${APP_NAME}"
@@ -44,6 +48,7 @@ print_header() {
   line
 }
 
+# 封装 normalize_user_path 对应的独立处理逻辑。
 normalize_user_path() {
   local raw="$1"
 
@@ -70,12 +75,14 @@ normalize_user_path() {
   print -r -- "$raw"
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 is_xcode_item_path() {
   local path="$1"
   local lower="${path:l}"
   [[ -d "$path" && ( "$lower" == *.xcworkspace || "$lower" == *.xcodeproj ) ]]
 }
 
+# 封装 scan_xcode_items_in_dir 对应的独立处理逻辑。
 scan_xcode_items_in_dir() {
   local dir="$1"
   XCODE_ITEMS=()
@@ -95,6 +102,7 @@ scan_xcode_items_in_dir() {
   (( ${#XCODE_ITEMS[@]} > 0 ))
 }
 
+# 封装 print_found_xcode_items 对应的独立处理逻辑。
 print_found_xcode_items() {
   local root="$1"
   line
@@ -108,6 +116,7 @@ print_found_xcode_items() {
   line
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 confirm_project_root() {
   local root="$1"
   print_found_xcode_items "$root"
@@ -117,6 +126,7 @@ confirm_project_root() {
   [[ -z "$ans" ]]
 }
 
+# 封装 try_set_project_root_from_dir 对应的独立处理逻辑。
 try_set_project_root_from_dir() {
   local dir="$1"
   dir="${dir:A}"
@@ -133,6 +143,7 @@ try_set_project_root_from_dir() {
   return 1
 }
 
+# 封装 try_set_project_root_from_input_path 对应的独立处理逻辑。
 try_set_project_root_from_input_path() {
   local input_path="$1"
   local candidate="$input_path"
@@ -156,6 +167,7 @@ try_set_project_root_from_input_path() {
   return 1
 }
 
+# 解析并返回后续流程需要的目标信息。
 locate_project_root() {
   log "开始查找 Xcode/iOS 工程根目录。查找规则："
   log "1) 脚本当前目录"
@@ -202,6 +214,7 @@ locate_project_root() {
   done
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 check_codex_health() {
   line
   log "开始 Codex 健康体检"
@@ -228,6 +241,7 @@ check_codex_health() {
   return 0
 }
 
+# 执行对应的环境配置或同步处理。
 install_understand_anything_for_codex() {
   line
   log "开始安装 Understand Anything 到 Codex"
@@ -256,6 +270,7 @@ install_understand_anything_for_codex() {
   return 1
 }
 
+# 执行对应的环境配置或同步处理。
 upgrade_understand_anything_if_needed() {
   line
   log "检测到 Understand Anything 已安装：${UA_REPO}"
@@ -306,6 +321,7 @@ upgrade_understand_anything_if_needed() {
   return 0
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 check_understand_anything_health() {
   line
   log "开始 Understand Anything 健康体检"
@@ -320,6 +336,7 @@ check_understand_anything_health() {
   return $?
 }
 
+# 封装 print_usage_logs 对应的独立处理逻辑。
 print_usage_logs() {
   line
   log "Understand Anything 使用方式"
@@ -351,6 +368,7 @@ print_usage_logs() {
   line
 }
 
+# 封装 launch_codex_prompt 对应的独立处理逻辑。
 launch_codex_prompt() {
   print
   print -r -- "是否现在从工程根目录启动 Codex？"
@@ -376,7 +394,8 @@ launch_codex_prompt() {
   codex
 }
 
-main() {
+# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
+run_main_flow() {
   print_header
 
   if ! locate_project_root; then
@@ -403,6 +422,12 @@ main() {
   print
   log "脚本流程结束。"
   pause_to_exit
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"

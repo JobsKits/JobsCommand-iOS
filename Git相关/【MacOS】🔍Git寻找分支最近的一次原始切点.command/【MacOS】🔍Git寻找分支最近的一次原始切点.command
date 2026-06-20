@@ -10,19 +10,33 @@ SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
 : > "$LOG_FILE"
 
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 err_echo()       { log "\033[1;31m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 bold_echo()      { log "\033[1m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }
 
 # ============================= 标准工具函数 =============================
@@ -30,6 +44,7 @@ get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
 
+# 封装 abs_path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
   [[ -z "$p" ]] && return 1
@@ -44,6 +59,7 @@ abs_path() {
   fi
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   echo ""
   note_echo "👉 $1"
@@ -53,6 +69,7 @@ ask_run() {
   [[ -n "$input" ]]
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 confirm_yes() {
   echo ""
   warn_echo "⚠ $1"
@@ -62,6 +79,7 @@ confirm_yes() {
   [[ "$input" == "YES" ]]
 }
 
+# 封装 inject_shellenv_block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
   local shellenv_cmd="$2"
@@ -84,6 +102,7 @@ inject_shellenv_block() {
   eval "$shellenv_cmd" || true
 }
 
+# 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -107,6 +126,7 @@ activate_homebrew_shellenv() {
   eval "$(${brew_bin} shellenv)"
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
   brew update  || { error_echo "brew update 失败"; return 1; }
@@ -117,6 +137,7 @@ run_brew_health_update() {
   success_echo "Homebrew 健康更新完成"
 }
 
+# 执行对应的环境配置或同步处理。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -144,6 +165,7 @@ install_homebrew() {
   fi
 }
 
+# 封装 brew_install_or_upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
   [[ -z "$formula" ]] && return 1
@@ -163,6 +185,7 @@ brew_install_or_upgrade() {
   fi
 }
 
+# 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear
   local readme_path="${SCRIPT_DIR}/README.md"
@@ -177,6 +200,7 @@ show_readme_and_wait() {
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
   # ================================== git-branch-origin-from-branch ==================================
@@ -203,13 +227,18 @@ run_original_logic() {
 
   # ---------- 简单输出（到 TTY，避免污染 stdout） ----------
   say()      { print -r -- "$*" > /dev/tty; }
+  # 封装 ok 对应的独立处理逻辑。
   ok()       { say "✅ $*"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   info()     { say "ℹ️  $*"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   warn()     { say "⚠️  $*"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   err()      { say "❌ $*"; }
 
   # ---------- 去 ANSI & 路径清理 ----------
   _strip_ansi() { perl -pe 's/\e\[[0-9;]*[A-Za-z]//g'; }
+  # 封装 sanitize_path 对应的独立处理逻辑。
   sanitize_path() {
     local p; p="$(print -r -- "${1:-}" | _strip_ansi)"
     p="${p//$'\r'/}"                                            # 去 CR（拖拽常见）
@@ -219,6 +248,7 @@ run_original_logic() {
     [[ "$p" != "/" ]] && p="${p%/}"
     print -r -- "$p"
   }
+  # 封装 abs_path 对应的独立处理逻辑。
   abs_path() {
     local p; p="$(sanitize_path "$1")"; [[ -z "$p" ]] && return 1
     if [[ -d "$p" ]]; then ( builtin cd -P -- "$p" 2>/dev/null && pwd -P ) || return 1
@@ -270,6 +300,7 @@ run_original_logic() {
     git -C "$SCRIPT_DIR" for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
     | grep -v '^origin/HEAD$' | sort -u
   }
+  # 封装 pick_target_branch 对应的独立处理逻辑。
   pick_target_branch() {
     local choice=""
     if command -v fzf >/dev/null 2>&1; then
@@ -309,6 +340,7 @@ run_original_logic() {
     [[ -z "$fk" ]] && fk="$(git -C "$SCRIPT_DIR" merge-base "$base" "$head" 2>/dev/null || true)"
     print -r -- "$fk"
   }
+  # 封装 first_unique_after_fork 对应的独立处理逻辑。
   first_unique_after_fork() {
     local fork="$1" head="$2"
     git -C "$SCRIPT_DIR" rev-list --ancestry-path "$fork..$head" --reverse | head -n1 || true
@@ -341,6 +373,7 @@ run_original_logic() {
     done | sort -nr -k1,1 | head -n1
   }
 
+  # 封装 session_once 对应的独立处理逻辑。
   session_once() {
     # ① 选目标分支
     local TARGET; TARGET="$(pick_target_branch)"
@@ -418,10 +451,17 @@ run_original_logic() {
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
 
-main() {
+# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
+run_main_flow() {
   show_readme_and_wait
   run_original_logic "$@"
   success_echo "脚本执行结束。日志：$LOG_FILE"
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"

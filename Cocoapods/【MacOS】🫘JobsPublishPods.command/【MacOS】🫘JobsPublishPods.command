@@ -10,19 +10,33 @@ SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
 : > "$LOG_FILE"
 
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 err_echo()       { log "\033[1;31m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 bold_echo()      { log "\033[1m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }
 
 # ============================= 标准工具函数 =============================
@@ -30,6 +44,7 @@ get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
 
+# 封装 abs_path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
   [[ -z "$p" ]] && return 1
@@ -44,6 +59,7 @@ abs_path() {
   fi
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   echo ""
   note_echo "👉 $1"
@@ -53,6 +69,7 @@ ask_run() {
   [[ -n "$input" ]]
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 confirm_yes() {
   echo ""
   warn_echo "⚠ $1"
@@ -62,6 +79,7 @@ confirm_yes() {
   [[ "$input" == "YES" ]]
 }
 
+# 封装 inject_shellenv_block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
   local shellenv_cmd="$2"
@@ -84,6 +102,7 @@ inject_shellenv_block() {
   eval "$shellenv_cmd" || true
 }
 
+# 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -107,6 +126,7 @@ activate_homebrew_shellenv() {
   eval "$(${brew_bin} shellenv)"
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
   brew update  || { error_echo "brew update 失败"; return 1; }
@@ -117,6 +137,7 @@ run_brew_health_update() {
   success_echo "Homebrew 健康更新完成"
 }
 
+# 执行对应的环境配置或同步处理。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -144,6 +165,7 @@ install_homebrew() {
   fi
 }
 
+# 封装 brew_install_or_upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
   [[ -z "$formula" ]] && return 1
@@ -163,6 +185,7 @@ brew_install_or_upgrade() {
   fi
 }
 
+# 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear
   local readme_path="${SCRIPT_DIR}/README.md"
@@ -177,6 +200,7 @@ show_readme_and_wait() {
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
   # ================================== 路径 & 日志 ==================================
@@ -185,21 +209,36 @@ run_original_logic() {
   SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
   LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"                  # 设置对应的日志文件路径
 
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   color_echo()     { log "\033[1;32m$1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   warm_echo()      { log "\033[1;33m$1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   err_echo()       { log "\033[1;31m$1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   gray_echo()      { log "\033[0;90m$1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   bold_echo()      { log "\033[1m$1\033[0m"; }
+  # 按当前输出级别记录终端信息，并同步写入脚本日志。
   underline_echo() { log "\033[4m$1\033[0m"; }
 
+  # 封装 init_log 对应的独立处理逻辑。
   init_log() {
     : > "$LOG_FILE"  # 清空旧日志
   }
@@ -238,6 +277,7 @@ run_original_logic() {
   get_cpu_arch() {
     [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
   }
+  # 封装 inject_shellenv_block 对应的独立处理逻辑。
   inject_shellenv_block() {
     local profile_file="$1"
     local shellenv_cmd="$2"
@@ -260,6 +300,7 @@ run_original_logic() {
     eval "$shellenv_cmd" || true
   }
 
+  # 检查当前运行条件是否满足后续流程要求。
   ensure_command() {
     local cmd="$1"
     local hint="$2"
@@ -314,6 +355,7 @@ run_original_logic() {
     fi
   }
 
+  # 执行对应的环境配置或同步处理。
   install_fzf() {
     if ! command -v fzf &>/dev/null; then
       note_echo "📦 未检测到 fzf，正在通过 Homebrew 安装..."
@@ -344,6 +386,7 @@ run_original_logic() {
   POD_VERSION=""
   GIT_TAG=""
 
+  # 收集并校验用户输入，决定后续执行路径。
   select_podspec_in_script_dir() {
     local search_dir="$SCRIPT_DIR"
     local podspec_files=("$search_dir"/*.podspec)
@@ -377,6 +420,7 @@ run_original_logic() {
     success_echo "已选择 podspec: $PODSPEC_BASENAME"
   }
 
+  # 收集并校验用户输入，决定后续执行路径。
   ask_podspec_from_user() {
     while :; do
       warm_echo "请手动输入要发布的 .podspec 文件路径（可直接将文件拖入终端后回车）："
@@ -416,6 +460,7 @@ run_original_logic() {
     return 1
   }
 
+  # 执行对应的环境配置或同步处理。
   sync_podspec_version_with_git_tag_if_possible() {
     local repo_root
     if ! repo_root=$(find_git_repo_root); then
@@ -510,6 +555,7 @@ run_original_logic() {
     ensure_command pod "请先安装 CocoaPods，例如: sudo gem install cocoapods"
   }
 
+  # 检查当前运行条件是否满足后续流程要求。
   is_trunk_logged_in() {
     # 使用 pod trunk me 判断是否已经登录；只要成功就认为“注册+登录过”
     local tmp_log="/tmp/pod_trunk_me_${SCRIPT_BASENAME}.log"
@@ -528,6 +574,7 @@ run_original_logic() {
     return 1
   }
 
+  # 封装 maybe_trunk_register 对应的独立处理逻辑。
   maybe_trunk_register() {
     # 如果已经登录过 trunk，就完全跳过，不再问
     if is_trunk_logged_in; then
@@ -577,6 +624,7 @@ run_original_logic() {
     fi
   }
 
+  # 封装 maybe_run_pod_lib_lint 对应的独立处理逻辑。
   maybe_run_pod_lib_lint() {
     warm_echo "是否先执行 pod lib lint --allow-warnings？"
     echo "👉 直接按 [Enter]：先执行 pod lib lint（推荐，确保本地能通过）"
@@ -594,6 +642,7 @@ run_original_logic() {
     fi
   }
 
+  # 封装 push_to_trunk 对应的独立处理逻辑。
   push_to_trunk() {
     info_echo "准备执行 pod trunk push $PODSPEC_BASENAME --allow-warnings"
     warm_echo "确保该 Pod 已完成 trunk 邮箱验证，并且本地 'pod trunk me' 状态正常。"
@@ -636,6 +685,7 @@ run_original_logic() {
     exit 1
   }
 
+  # 封装 show_trunk_info 对应的独立处理逻辑。
   show_trunk_info() {
     info_echo "查询 trunk 上的 Pod 信息: $POD_NAME"
     if pod trunk info "$POD_NAME"; then
@@ -682,10 +732,17 @@ run_original_logic() {
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
 
-main() {
+# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
+run_main_flow() {
   show_readme_and_wait
   run_original_logic "$@"
   success_echo "脚本执行结束。日志：$LOG_FILE"
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"

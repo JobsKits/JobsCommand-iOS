@@ -51,19 +51,32 @@ WORKSPACE_ROOT_CACHE_FILE="${CACHE_DIR}/local_pod_lint_workspace_root.txt"
 
 : > "$LOG_FILE"
 
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { /usr/bin/printf "%b\n" "$1" | /usr/bin/tee -a "$LOG_FILE" >/dev/null; /usr/bin/printf "%b\n" "$1"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 bold_echo()      { log "\033[1m$1\033[0m"; }
 
+# 封装 close_trace_noise 对应的独立处理逻辑。
 close_trace_noise() {
     # 防止 .zshenv、外层执行器或旧脚本残留 xtrace/verbose，导致内部变量泄漏到终端。
     # 注意：有些本机环境会把 xtrace 打到 stdout，而不是 stderr，所以这里必须同时吞掉 stdout/stderr。
@@ -80,6 +93,7 @@ close_trace_noise() {
     } >/dev/null 2>&1
 }
 
+# 封装 silent_input_guard 对应的独立处理逻辑。
 silent_input_guard() {
     # 任何读取用户输入、清洗路径、变量赋值的区域都用这个模式包住：
     #   { ... } >/dev/null 2>&1
@@ -87,10 +101,12 @@ silent_input_guard() {
     close_trace_noise >/dev/null 2>&1
 }
 
+# 封装 print_divider 对应的独立处理逻辑。
 print_divider() {
     gray_echo "------------------------------------------------------------------------"
 }
 
+# 封装 pause_for_enter 对应的独立处理逻辑。
 pause_for_enter() {
     { close_trace_noise; } >/dev/null 2>&1
     local prompt_text="${1:-👉 请按回车继续，或按 Ctrl+C 取消...}"
@@ -104,6 +120,7 @@ pause_for_enter() {
     silent_input_guard
 }
 
+# 封装 trim_string 对应的独立处理逻辑。
 trim_string() {
     local input_value="$1"
     input_value="${input_value#"${input_value%%[![:space:]]*}"}"
@@ -111,6 +128,7 @@ trim_string() {
     print -r -- "$input_value"
 }
 
+# 封装 normalize_input_dir 对应的独立处理逻辑。
 normalize_input_dir() {
     local input_value="$1"
     local output_value
@@ -128,6 +146,7 @@ normalize_input_dir() {
     print -r -- "$output_value"
 }
 
+# 封装 normalize_input_dir_to_global 对应的独立处理逻辑。
 normalize_input_dir_to_global() {
     local input_value="$1"
     local output_value="$input_value"
@@ -147,6 +166,7 @@ normalize_input_dir_to_global() {
     __NORMALIZED_INPUT_DIR="$output_value"
 }
 
+# 封装 trim_string_to_global 对应的独立处理逻辑。
 trim_string_to_global() {
     local input_value="$1"
     input_value="${input_value#"${input_value%%[![:space:]]*}"}"
@@ -154,6 +174,7 @@ trim_string_to_global() {
     __TRIMMED_INPUT_VALUE="$input_value"
 }
 
+# 封装 load_workspace_root_cache 对应的独立处理逻辑。
 load_workspace_root_cache() {
     [[ -f "$WORKSPACE_ROOT_CACHE_FILE" ]] || return 0
 
@@ -166,6 +187,7 @@ load_workspace_root_cache() {
     print -r -- "$__NORMALIZED_INPUT_DIR"
 }
 
+# 封装 save_workspace_root_cache 对应的独立处理逻辑。
 save_workspace_root_cache() {
     local workspace_root_value="$1"
     [[ -n "$workspace_root_value" ]] || return 1
@@ -174,6 +196,7 @@ save_workspace_root_cache() {
     /usr/bin/printf "%s\n" "$workspace_root_value" > "$WORKSPACE_ROOT_CACHE_FILE"
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_cmd_stream() {
     local desc="$1"
     shift
@@ -193,6 +216,7 @@ run_cmd_stream() {
     return $exit_code
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_cmd_stream_to_file() {
     local desc="$1"
     local capture_file="$2"
@@ -214,18 +238,21 @@ run_cmd_stream_to_file() {
     return $exit_code
 }
 
+# 封装 lint_output_contains 对应的独立处理逻辑。
 lint_output_contains() {
     local output_file="$1"
     local fixed_text="$2"
     /usr/bin/grep -Fq -- "$fixed_text" "$output_file" 2>/dev/null
 }
 
+# 封装 lint_output_matches 对应的独立处理逻辑。
 lint_output_matches() {
     local output_file="$1"
     local regex_text="$2"
     /usr/bin/grep -Eq -- "$regex_text" "$output_file" 2>/dev/null
 }
 
+# 封装 print_lint_error_summary 对应的独立处理逻辑。
 print_lint_error_summary() {
     local output_file="$1"
     local summary_text
@@ -243,6 +270,7 @@ print_lint_error_summary() {
     fi
 }
 
+# 封装 print_lint_failure_advice 对应的独立处理逻辑。
 print_lint_failure_advice() {
     local output_file="$1"
 
@@ -264,6 +292,7 @@ print_lint_failure_advice() {
     fi
 }
 
+# 封装 glob_has_match 对应的独立处理逻辑。
 glob_has_match() {
     local pattern_text="$1"
 
@@ -281,6 +310,7 @@ glob_has_match() {
     (( ${#matched_files[@]} > 0 ))
 }
 
+# 封装 preflight_resource_patterns 对应的独立处理逻辑。
 preflight_resource_patterns() {
     local spec_file="$1"
     local spec_dir
@@ -346,12 +376,14 @@ preflight_resource_patterns() {
     return 0
 }
 
+# 封装 relative_to_root 对应的独立处理逻辑。
 relative_to_root() {
     local root_dir="$1"
     local item_file="$2"
     print -r -- "${item_file#$root_dir/}"
 }
 
+# 封装 unique_existing_files 对应的独立处理逻辑。
 unique_existing_files() {
     local -a raw_files=("$@")
     local -a unique_files=()
@@ -367,6 +399,7 @@ unique_existing_files() {
     print -r -- "${(pj:\n:)unique_files}"
 }
 
+# 解析并返回后续流程需要的目标信息。
 find_x_command_candidates() {
     local -a candidate_files=()
     local cursor_dir="$SCRIPT_DIR"
@@ -388,6 +421,7 @@ find_x_command_candidates() {
     unique_existing_files "${candidate_files[@]}"
 }
 
+# 封装 repair_one_x_command_file 对应的独立处理逻辑。
 repair_one_x_command_file() {
     local target_file="$1"
 
@@ -422,6 +456,7 @@ repair_one_x_command_file() {
     return 0
 }
 
+# 封装 repair_x_command_wait_prompt_if_possible 对应的独立处理逻辑。
 repair_x_command_wait_prompt_if_possible() {
     local candidates_text
     candidates_text="$(find_x_command_candidates)"
@@ -452,6 +487,7 @@ repair_x_command_wait_prompt_if_possible() {
     return 0
 }
 
+# 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_block() {
     clear 2>/dev/null || true
 
@@ -509,6 +545,7 @@ show_readme_and_block() {
     pause_for_enter "👉 请确认开始执行。按回车继续，或按 Ctrl+C 取消..."
 }
 
+# 解析并返回后续流程需要的目标信息。
 find_gem_bin() {
     if command -v gem >/dev/null 2>&1; then
         command -v gem
@@ -526,6 +563,7 @@ find_gem_bin() {
     return 1
 }
 
+# 解析并返回后续流程需要的目标信息。
 find_pod_bin() {
     if command -v pod >/dev/null 2>&1; then
         command -v pod
@@ -543,6 +581,7 @@ find_pod_bin() {
     return 1
 }
 
+# 执行对应的环境配置或同步处理。
 install_cocoapods_by_gem() {
     local gem_bin
     if ! gem_bin="$(find_gem_bin)"; then
@@ -567,6 +606,7 @@ install_cocoapods_by_gem() {
     return 1
 }
 
+# 检查当前运行条件是否满足后续流程要求。
 ensure_pod_command() {
     print_divider
     highlight_echo "开始自检 CocoaPods"
@@ -620,6 +660,7 @@ PODSPEC_NAME_BY_PATH=()
 typeset -ga PODSPEC_DUPLICATE_NAMES
 PODSPEC_DUPLICATE_NAMES=()
 
+# 封装 discover_podspecs_under_root 对应的独立处理逻辑。
 discover_podspecs_under_root() {
     local root_dir="$1"
     local -a found_specs
@@ -643,6 +684,7 @@ discover_podspecs_under_root() {
     print -r -- "${(pj:\n:)filtered_specs}"
 }
 
+# 封装 extract_podspec_declared_name 对应的独立处理逻辑。
 extract_podspec_declared_name() {
     local spec_file="$1"
     local declared_name
@@ -657,6 +699,7 @@ extract_podspec_declared_name() {
     basename -- "$spec_file" .podspec
 }
 
+# 封装 extract_dependency_names_from_podspec 对应的独立处理逻辑。
 extract_dependency_names_from_podspec() {
     local spec_file="$1"
     local dependencies_text
@@ -678,6 +721,7 @@ extract_dependency_names_from_podspec() {
     print -r -- "${(pj:\n:)dependency_names}"
 }
 
+# 封装 build_podspec_index 对应的独立处理逻辑。
 build_podspec_index() {
     PODSPEC_BY_NAME=()
     PODSPEC_NAME_BY_PATH=()
@@ -711,11 +755,13 @@ build_podspec_index() {
     fi
 }
 
+# 封装 join_files_by_comma 对应的独立处理逻辑。
 join_files_by_comma() {
     local -a files=("$@")
     print -r -- "${(j:,:)files}"
 }
 
+# 封装 collect_all_dependency_podspecs 对应的独立处理逻辑。
 collect_all_dependency_podspecs() {
     local target_spec="$1"
     local -a dependency_specs
@@ -730,6 +776,7 @@ collect_all_dependency_podspecs() {
     join_files_by_comma "${dependency_specs[@]}"
 }
 
+# 封装 collect_smart_dependency_podspecs 对应的独立处理逻辑。
 collect_smart_dependency_podspecs() {
     local target_spec="$1"
     local -a queue
@@ -775,6 +822,7 @@ collect_smart_dependency_podspecs() {
     join_files_by_comma "${dependency_specs[@]}"
 }
 
+# 封装 count_comma_items 对应的独立处理逻辑。
 count_comma_items() {
     local comma_text="$1"
     if [[ -z "$comma_text" ]]; then
@@ -787,6 +835,7 @@ count_comma_items() {
     print -r -- "${#items[@]}"
 }
 
+# 封装 print_include_podspecs 对应的独立处理逻辑。
 print_include_podspecs() {
     local include_podspecs="$1"
     local mode_name="$2"
@@ -803,11 +852,13 @@ print_include_podspecs() {
     done
 }
 
+# 封装 lint_output_has_missing_spec 对应的独立处理逻辑。
 lint_output_has_missing_spec() {
     local output_file="$1"
     lint_output_matches "$output_file" 'Unable to find a specification for|None of your spec sources contain a spec satisfying'
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 choose_from_candidates() {
     local root_dir="$1"
     shift
@@ -855,6 +906,7 @@ choose_from_candidates() {
     done
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_for_workspace_root() {
     local cached_workspace_root=""
     local raw_workspace_root=""
@@ -946,6 +998,7 @@ ask_for_workspace_root() {
         return 0
     done
 }
+# 解析并返回后续流程需要的目标信息。
 find_target_podspec() {
     local root_dir="$1"
     local pod_name="$2"
@@ -980,6 +1033,7 @@ find_target_podspec() {
     return 1
 }
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_for_target_pod_name() {
     while true; do
         echo ""
@@ -1016,6 +1070,7 @@ ask_for_target_pod_name() {
     done
 }
 
+# 执行已经拆分完成的独立业务步骤。
 execute_pod_lint_once() {
     local pod_bin="$1"
     local include_podspecs="$2"
@@ -1041,6 +1096,7 @@ execute_pod_lint_once() {
     run_cmd_stream_to_file "执行 pod lib lint（${mode_name}）" "$lint_run_log" "${lint_cmd[@]}"
 }
 
+# 封装 classify_lint_result 对应的独立处理逻辑。
 classify_lint_result() {
     local lint_run_log="$1"
     local lint_exit_code="$2"
@@ -1093,6 +1149,7 @@ classify_lint_result() {
     return $lint_exit_code
 }
 
+# 执行已经拆分完成的独立业务步骤。
 run_pod_lint() {
     print_divider
     highlight_echo "开始执行 pod lib lint"
@@ -1148,6 +1205,7 @@ run_pod_lint() {
 ASK_NEXT_POD_ACTION=""
 ASK_NEXT_POD_ANSWER=""
 
+# 收集并校验用户输入，决定后续执行路径。
 ask_next_pod_action() {
     ASK_NEXT_POD_ACTION=""
     ASK_NEXT_POD_ANSWER=""
@@ -1194,13 +1252,15 @@ ask_next_pod_action() {
     done
 }
 
+# 执行对应的清理操作，并保留必要的安全检查。
 reset_target_pod_state() {
     TARGET_POD_NAME=""
     TARGET_PODSPEC_PATH=""
     CHOSEN_PODSPEC_PATH=""
 }
 
-main() {
+# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
+run_main_flow() {
     show_readme_and_block
     ensure_pod_command || exit 1
     ask_for_workspace_root
@@ -1238,6 +1298,12 @@ main() {
     done
 
     exit $final_exit_code
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"

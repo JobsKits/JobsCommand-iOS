@@ -6,19 +6,33 @@ set -u
 SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"                  # 设置对应的日志文件路径
 
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 color_echo()     { log "\033[1;32m$1\033[0m"; }         # ✅ 正常绿色输出
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }       # ℹ 信息
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }       # ✔ 成功
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }       # ⚠ 警告
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }         # 🟡 温馨提示（无图标）
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }       # ➤ 说明
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }       # ✖ 错误
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 err_echo()       { log "\033[1;31m$1\033[0m"; }         # 🔴 错误纯文本
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }      # 🐞 调试
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }      # 🔹 高亮
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }         # ⚫ 次要信息
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 bold_echo()      { log "\033[1m$1\033[0m"; }            # 📝 加粗
+# 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }            # 🔗 下划线
 
 # ✅ 自述信息
@@ -1153,6 +1167,7 @@ def make_interactive_html(data_json)
 
       * { box-sizing: border-box; }
 
+      # 封装 body 对应的独立处理逻辑。
       body {
         margin: 0;
         font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -1160,6 +1175,7 @@ def make_interactive_html(data_json)
         color: var(--ink);
       }
 
+      # 封装 header 对应的独立处理逻辑。
       header { padding: 14px 18px; background: var(--nav); color: white; }
       header h1 { margin: 0 0 8px; font-size: 20px; }
       header .meta { opacity: .8; font-size: 13px; }
@@ -1175,7 +1191,9 @@ def make_interactive_html(data_json)
       }
 
       input, select, button { height: 32px; font-size: 14px; }
+      # 封装 input 对应的独立处理逻辑。
       input { width: 260px; padding: 0 10px; }
+      # 封装 button 对应的独立处理逻辑。
       button { padding: 0 12px; cursor: pointer; }
 
       .view-switch {
@@ -1272,6 +1290,7 @@ def make_interactive_html(data_json)
         pointer-events: none;
       }
 
+      # 封装 aside 对应的独立处理逻辑。
       aside { overflow: auto; background: white; border-left: 1px solid var(--border); padding: 14px; }
       aside h2 { font-size: 16px; margin: 0 0 10px; }
       aside h3 { font-size: 14px; margin: 18px 0 8px; }
@@ -1283,7 +1302,9 @@ def make_interactive_html(data_json)
 
       @media (max-width: 900px) {
         .layout { grid-template-columns: 1fr; height: calc(100vh - 160px); }
+        # 封装 aside 对应的独立处理逻辑。
         aside { height: 280px; border-left: 0; border-top: 1px solid var(--border); }
+        # 封装 input 对应的独立处理逻辑。
         input { width: min(260px, 100%); }
       }
     </style>
@@ -1370,14 +1391,17 @@ def make_interactive_html(data_json)
       document.getElementById('meta').textContent =
         `分析目录：${data.root} ｜ 生成时间：${data.generatedAt} ｜ Pod 数：${data.pods.length}`;
 
+      # 封装 allEdges 对应的独立处理逻辑。
       function allEdges() {
         return state.mode === 'internal' ? data.internalEdges : data.allEdges;
       }
 
+      # 封装 localPodNames 对应的独立处理逻辑。
       function localPodNames() {
         return new Set(data.pods.map(p => p.name));
       }
 
+      # 封装 nodeNames 对应的独立处理逻辑。
       function nodeNames() {
         const names = new Set(data.pods.map(p => p.name));
         allEdges().forEach(e => {
@@ -1387,6 +1411,7 @@ def make_interactive_html(data_json)
         return [...names].sort();
       }
 
+      # 封装 collectVisibleNames 对应的独立处理逻辑。
       function collectVisibleNames() {
         let names = new Set(nodeNames());
         const q = state.search.trim().toLowerCase();
@@ -1441,10 +1466,12 @@ def make_interactive_html(data_json)
         }));
       }
 
+      # 封装 applyTransform 对应的独立处理逻辑。
       function applyTransform() {
         canvas.style.transform = `translate(${state.tx}px, ${state.ty}px) scale(${state.scale})`;
       }
 
+      # 封装 render 对应的独立处理逻辑。
       function render() {
         updateViewVisibility();
 
@@ -1457,6 +1484,7 @@ def make_interactive_html(data_json)
         updateDetail();
       }
 
+      # 封装 render2d 对应的独立处理逻辑。
       function render2d() {
         const visibleNames = collectVisibleNames();
         state.nodes = layout(visibleNames);
@@ -1505,6 +1533,7 @@ def make_interactive_html(data_json)
         });
       }
 
+      # 封装 resize3dCanvas 对应的独立处理逻辑。
       function resize3dCanvas() {
         const rect = stage3d.getBoundingClientRect();
         const dpr = window.devicePixelRatio || 1;
@@ -1541,6 +1570,7 @@ def make_interactive_html(data_json)
           const theta = index * golden;
           const degree = degrees.get(name) || 0;
 
+          # 封装 return 对应的独立处理逻辑。
           return {
             name,
             x: Math.cos(theta) * r * radius,
@@ -1563,6 +1593,7 @@ def make_interactive_html(data_json)
         const y1 = point.y * cosX - z1 * sinX;
         const z2 = point.y * sinX + z1 * cosX;
 
+        # 封装 return 对应的独立处理逻辑。
         return { x: x1, y: y1, z: z2 };
       }
 
@@ -1573,6 +1604,7 @@ def make_interactive_html(data_json)
         const perspective = camera / Math.max(120, depth);
         const scale = perspective * state.zoom3d;
 
+        # 封装 return 对应的独立处理逻辑。
         return {
           name: point.name,
           x: rect.width / 2 + rotated.x * scale,
@@ -1623,6 +1655,7 @@ def make_interactive_html(data_json)
         ctx3d.restore();
       }
 
+      # 封装 render3d 对应的独立处理逻辑。
       function render3d() {
         const rect = resize3dCanvas();
         ctx3d.clearRect(0, 0, rect.width, rect.height);
@@ -1642,6 +1675,7 @@ def make_interactive_html(data_json)
           .map(edge => ({ edge, a: projected.get(edge.from), b: projected.get(edge.to) }))
           .sort((one, two) => ((one.a.z + one.b.z) - (two.a.z + two.b.z)))
           .forEach(item => {
+            # 封装 const 对应的独立处理逻辑。
             const { edge, a, b } = item;
             const related = !state.focus || edge.from === state.focus || edgeTargetsName(edge, state.focus);
             const alpha = related ? .58 : .16;
@@ -1715,6 +1749,7 @@ def make_interactive_html(data_json)
         });
       }
 
+      # 执行对应的环境配置或同步处理。
       function updateViewVisibility() {
         const is3d = state.view === '3d';
 
@@ -1732,6 +1767,7 @@ def make_interactive_html(data_json)
         return edge.from || '';
       }
 
+      # 执行对应的环境配置或同步处理。
       function updateDetail() {
         const box = document.getElementById('detail');
 
@@ -1767,6 +1803,7 @@ def make_interactive_html(data_json)
         `;
       }
 
+      # 封装 fitView 对应的独立处理逻辑。
       function fitView() {
         if (state.view === '3d') {
           state.rotateX = -0.46;
@@ -1782,6 +1819,7 @@ def make_interactive_html(data_json)
         applyTransform();
       }
 
+      # 执行对应的清理操作，并保留必要的安全检查。
       function resetAll() {
         state.search = '';
         state.focus = null;
@@ -2292,7 +2330,7 @@ open_outputs() {
 }
 
 # ✅ 主流程
-main() {
+run_main_flow() {
   : > "$LOG_FILE"
 
   local target_dir=""
@@ -2322,6 +2360,12 @@ main() {
   run_generator "$generator" "$target_dir" "$report_dir"
   generate_graphviz_png "$report_dir"
   open_outputs "$report_dir"
+}
+
+# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+main() {
+  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
+  run_main_flow "$@"
 }
 
 main "$@"
