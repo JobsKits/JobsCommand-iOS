@@ -1,17 +1,10 @@
 #!/bin/zsh -f
+# 脚本自述：
+# - 脚本名称：【MacOS】自检具体的某个本地pod是否能编译通过.command
+# - 核心用途：执行“自检具体的某个本地pod是否能编译通过”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
-emulate -R zsh
-{
-    set +x 2>/dev/null || true
-    set +v 2>/dev/null || true
-    unsetopt xtrace 2>/dev/null || true
-    unsetopt verbose 2>/dev/null || true
-    setopt typeset_silent 2>/dev/null || true
-    unset XTRACEFD BASH_XTRACEFD 2>/dev/null || true
-    trap - DEBUG 2>/dev/null || true
-    unfunction TRAPDEBUG 2>/dev/null || true
-    PS4=''
-} >/dev/null 2>&1
 
 # ==============================================================================
 # 本地 Pod 编译自检工具
@@ -26,21 +19,9 @@ emulate -R zsh
 # - 开启 typeset_silent，避免 zsh 在重复 local 声明空变量时把 raw/input 等内部变量打印到终端
 # ==============================================================================
 
-{
-    set +xv 2>/dev/null || true
-    unsetopt xtrace 2>/dev/null || true
-    unsetopt verbose 2>/dev/null || true
-    setopt typeset_silent 2>/dev/null || true
-    unset XTRACEFD BASH_XTRACEFD 2>/dev/null || true
-    PS4=''
-} >/dev/null 2>&1
 
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
-set -u
-setopt null_glob
-setopt extended_glob
-setopt typeset_silent 2>/dev/null || true
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
@@ -48,9 +29,6 @@ SCRIPT_BASENAME="$(basename -- "$0" | /usr/bin/sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
 CACHE_DIR="${HOME}/.jobscommand/cache"
 WORKSPACE_ROOT_CACHE_FILE="${CACHE_DIR}/local_pod_lint_workspace_root.txt"
-
-: > "$LOG_FILE"
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { /usr/bin/printf "%b\n" "$1" | /usr/bin/tee -a "$LOG_FILE" >/dev/null; /usr/bin/printf "%b\n" "$1"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -75,7 +53,6 @@ highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 bold_echo()      { log "\033[1m$1\033[0m"; }
-
 # 封装 close_trace_noise 对应的独立处理逻辑。
 close_trace_noise() {
     # 防止 .zshenv、外层执行器或旧脚本残留 xtrace/verbose，导致内部变量泄漏到终端。
@@ -92,7 +69,6 @@ close_trace_noise() {
         PS4=''
     } >/dev/null 2>&1
 }
-
 # 封装 silent_input_guard 对应的独立处理逻辑。
 silent_input_guard() {
     # 任何读取用户输入、清洗路径、变量赋值的区域都用这个模式包住：
@@ -100,12 +76,10 @@ silent_input_guard() {
     # 这样即便 xtrace 被系统环境重新打开，也不会把内部变量打到终端。
     close_trace_noise >/dev/null 2>&1
 }
-
 # 封装 print_divider 对应的独立处理逻辑。
 print_divider() {
     gray_echo "------------------------------------------------------------------------"
 }
-
 # 封装 pause_for_enter 对应的独立处理逻辑。
 pause_for_enter() {
     { close_trace_noise; } >/dev/null 2>&1
@@ -119,7 +93,6 @@ pause_for_enter() {
     } >/dev/null 2>&1
     silent_input_guard
 }
-
 # 封装 trim_string 对应的独立处理逻辑。
 trim_string() {
     local input_value="$1"
@@ -127,7 +100,6 @@ trim_string() {
     input_value="${input_value%"${input_value##*[![:space:]]}"}"
     print -r -- "$input_value"
 }
-
 # 封装 normalize_input_dir 对应的独立处理逻辑。
 normalize_input_dir() {
     local input_value="$1"
@@ -145,7 +117,6 @@ normalize_input_dir() {
 
     print -r -- "$output_value"
 }
-
 # 封装 normalize_input_dir_to_global 对应的独立处理逻辑。
 normalize_input_dir_to_global() {
     local input_value="$1"
@@ -165,7 +136,6 @@ normalize_input_dir_to_global() {
 
     __NORMALIZED_INPUT_DIR="$output_value"
 }
-
 # 封装 trim_string_to_global 对应的独立处理逻辑。
 trim_string_to_global() {
     local input_value="$1"
@@ -173,7 +143,6 @@ trim_string_to_global() {
     input_value="${input_value%"${input_value##*[![:space:]]}"}"
     __TRIMMED_INPUT_VALUE="$input_value"
 }
-
 # 封装 load_workspace_root_cache 对应的独立处理逻辑。
 load_workspace_root_cache() {
     [[ -f "$WORKSPACE_ROOT_CACHE_FILE" ]] || return 0
@@ -186,7 +155,6 @@ load_workspace_root_cache() {
     normalize_input_dir_to_global "$cached_value"
     print -r -- "$__NORMALIZED_INPUT_DIR"
 }
-
 # 封装 save_workspace_root_cache 对应的独立处理逻辑。
 save_workspace_root_cache() {
     local workspace_root_value="$1"
@@ -195,7 +163,6 @@ save_workspace_root_cache() {
     /bin/mkdir -p "$CACHE_DIR" 2>/dev/null || return 1
     /usr/bin/printf "%s\n" "$workspace_root_value" > "$WORKSPACE_ROOT_CACHE_FILE"
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_cmd_stream() {
     local desc="$1"
@@ -215,7 +182,6 @@ run_cmd_stream() {
 
     return $exit_code
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_cmd_stream_to_file() {
     local desc="$1"
@@ -237,21 +203,18 @@ run_cmd_stream_to_file() {
 
     return $exit_code
 }
-
 # 封装 lint_output_contains 对应的独立处理逻辑。
 lint_output_contains() {
     local output_file="$1"
     local fixed_text="$2"
     /usr/bin/grep -Fq -- "$fixed_text" "$output_file" 2>/dev/null
 }
-
 # 封装 lint_output_matches 对应的独立处理逻辑。
 lint_output_matches() {
     local output_file="$1"
     local regex_text="$2"
     /usr/bin/grep -Eq -- "$regex_text" "$output_file" 2>/dev/null
 }
-
 # 封装 print_lint_error_summary 对应的独立处理逻辑。
 print_lint_error_summary() {
     local output_file="$1"
@@ -269,7 +232,6 @@ print_lint_error_summary() {
         warn_echo "未提取到明确 ERROR 摘要，请查看完整日志：${LOG_FILE}"
     fi
 }
-
 # 封装 print_lint_failure_advice 对应的独立处理逻辑。
 print_lint_failure_advice() {
     local output_file="$1"
@@ -291,7 +253,6 @@ print_lint_failure_advice() {
         gray_echo "• private lint 通常能容忍 warning，但如果你的环境把 warning 当失败，需要补齐 source/homepage/license 等字段。"
     fi
 }
-
 # 封装 glob_has_match 对应的独立处理逻辑。
 glob_has_match() {
     local pattern_text="$1"
@@ -309,7 +270,6 @@ glob_has_match() {
     matched_files=( ${~pattern_text}(N) )
     (( ${#matched_files[@]} > 0 ))
 }
-
 # 封装 preflight_resource_patterns 对应的独立处理逻辑。
 preflight_resource_patterns() {
     local spec_file="$1"
@@ -375,14 +335,12 @@ preflight_resource_patterns() {
 
     return 0
 }
-
 # 封装 relative_to_root 对应的独立处理逻辑。
 relative_to_root() {
     local root_dir="$1"
     local item_file="$2"
     print -r -- "${item_file#$root_dir/}"
 }
-
 # 封装 unique_existing_files 对应的独立处理逻辑。
 unique_existing_files() {
     local -a raw_files=("$@")
@@ -398,7 +356,6 @@ unique_existing_files() {
 
     print -r -- "${(pj:\n:)unique_files}"
 }
-
 # 解析并返回后续流程需要的目标信息。
 find_x_command_candidates() {
     local -a candidate_files=()
@@ -420,7 +377,6 @@ find_x_command_candidates() {
 
     unique_existing_files "${candidate_files[@]}"
 }
-
 # 封装 repair_one_x_command_file 对应的独立处理逻辑。
 repair_one_x_command_file() {
     local target_file="$1"
@@ -455,7 +411,6 @@ repair_one_x_command_file() {
     gray_echo "备份文件：${backup_file}"
     return 0
 }
-
 # 封装 repair_x_command_wait_prompt_if_possible 对应的独立处理逻辑。
 repair_x_command_wait_prompt_if_possible() {
     local candidates_text
@@ -486,10 +441,15 @@ repair_x_command_wait_prompt_if_possible() {
 
     return 0
 }
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_block() {
     clear 2>/dev/null || true
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】自检具体的某个本地pod是否能编译通过.command'
+  print -r -- '核心用途：执行“自检具体的某个本地pod是否能编译通过”对应的自动化任务。'
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
 
     echo ""
     bold_echo "====================== 本地 Pod 编译自检工具 ======================"
@@ -544,7 +504,6 @@ show_readme_and_block() {
 
     pause_for_enter "👉 请确认开始执行。按回车继续，或按 Ctrl+C 取消..."
 }
-
 # 解析并返回后续流程需要的目标信息。
 find_gem_bin() {
     if command -v gem >/dev/null 2>&1; then
@@ -562,7 +521,6 @@ find_gem_bin() {
 
     return 1
 }
-
 # 解析并返回后续流程需要的目标信息。
 find_pod_bin() {
     if command -v pod >/dev/null 2>&1; then
@@ -580,7 +538,6 @@ find_pod_bin() {
 
     return 1
 }
-
 # 执行对应的环境配置或同步处理。
 install_cocoapods_by_gem() {
     local gem_bin
@@ -605,7 +562,6 @@ install_cocoapods_by_gem() {
     warm_echo "可能是 gem 可执行目录未加入 PATH，请重新打开终端后再试。"
     return 1
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 ensure_pod_command() {
     print_divider
@@ -659,7 +615,6 @@ typeset -gA PODSPEC_NAME_BY_PATH
 PODSPEC_NAME_BY_PATH=()
 typeset -ga PODSPEC_DUPLICATE_NAMES
 PODSPEC_DUPLICATE_NAMES=()
-
 # 封装 discover_podspecs_under_root 对应的独立处理逻辑。
 discover_podspecs_under_root() {
     local root_dir="$1"
@@ -683,7 +638,6 @@ discover_podspecs_under_root() {
 
     print -r -- "${(pj:\n:)filtered_specs}"
 }
-
 # 封装 extract_podspec_declared_name 对应的独立处理逻辑。
 extract_podspec_declared_name() {
     local spec_file="$1"
@@ -698,7 +652,6 @@ extract_podspec_declared_name() {
 
     basename -- "$spec_file" .podspec
 }
-
 # 封装 extract_dependency_names_from_podspec 对应的独立处理逻辑。
 extract_dependency_names_from_podspec() {
     local spec_file="$1"
@@ -720,7 +673,6 @@ extract_dependency_names_from_podspec() {
 
     print -r -- "${(pj:\n:)dependency_names}"
 }
-
 # 封装 build_podspec_index 对应的独立处理逻辑。
 build_podspec_index() {
     PODSPEC_BY_NAME=()
@@ -754,13 +706,11 @@ build_podspec_index() {
         done
     fi
 }
-
 # 封装 join_files_by_comma 对应的独立处理逻辑。
 join_files_by_comma() {
     local -a files=("$@")
     print -r -- "${(j:,:)files}"
 }
-
 # 封装 collect_all_dependency_podspecs 对应的独立处理逻辑。
 collect_all_dependency_podspecs() {
     local target_spec="$1"
@@ -775,7 +725,6 @@ collect_all_dependency_podspecs() {
 
     join_files_by_comma "${dependency_specs[@]}"
 }
-
 # 封装 collect_smart_dependency_podspecs 对应的独立处理逻辑。
 collect_smart_dependency_podspecs() {
     local target_spec="$1"
@@ -821,7 +770,6 @@ collect_smart_dependency_podspecs() {
 
     join_files_by_comma "${dependency_specs[@]}"
 }
-
 # 封装 count_comma_items 对应的独立处理逻辑。
 count_comma_items() {
     local comma_text="$1"
@@ -834,7 +782,6 @@ count_comma_items() {
     items=( ${(s:,:)comma_text} )
     print -r -- "${#items[@]}"
 }
-
 # 封装 print_include_podspecs 对应的独立处理逻辑。
 print_include_podspecs() {
     local include_podspecs="$1"
@@ -851,13 +798,11 @@ print_include_podspecs() {
         gray_echo "• $(relative_to_root "$WORKSPACE_ROOT" "$dependency_item")"
     done
 }
-
 # 封装 lint_output_has_missing_spec 对应的独立处理逻辑。
 lint_output_has_missing_spec() {
     local output_file="$1"
     lint_output_matches "$output_file" 'Unable to find a specification for|None of your spec sources contain a spec satisfying'
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 choose_from_candidates() {
     local root_dir="$1"
@@ -905,7 +850,6 @@ choose_from_candidates() {
         return 0
     done
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_for_workspace_root() {
     local cached_workspace_root=""
@@ -1032,7 +976,6 @@ find_target_podspec() {
 
     return 1
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_for_target_pod_name() {
     while true; do
@@ -1069,7 +1012,6 @@ ask_for_target_pod_name() {
         warm_echo "请确认 Pod 名是否等于 podspec 文件名，或等于 spec.name。"
     done
 }
-
 # 执行已经拆分完成的独立业务步骤。
 execute_pod_lint_once() {
     local pod_bin="$1"
@@ -1095,7 +1037,6 @@ execute_pod_lint_once() {
     echo ""
     run_cmd_stream_to_file "执行 pod lib lint（${mode_name}）" "$lint_run_log" "${lint_cmd[@]}"
 }
-
 # 封装 classify_lint_result 对应的独立处理逻辑。
 classify_lint_result() {
     local lint_run_log="$1"
@@ -1148,7 +1089,6 @@ classify_lint_result() {
     warm_echo "重点查看上方 pod lib lint 输出，以及日志文件：${LOG_FILE}"
     return $lint_exit_code
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_pod_lint() {
     print_divider
@@ -1204,7 +1144,6 @@ run_pod_lint() {
 
 ASK_NEXT_POD_ACTION=""
 ASK_NEXT_POD_ANSWER=""
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_next_pod_action() {
     ASK_NEXT_POD_ACTION=""
@@ -1251,59 +1190,113 @@ ask_next_pod_action() {
         esac
     done
 }
-
 # 执行对应的清理操作，并保留必要的安全检查。
 reset_target_pod_state() {
     TARGET_POD_NAME=""
     TARGET_PODSPEC_PATH=""
     CHOSEN_PODSPEC_PATH=""
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
-    show_readme_and_block
+# 执行入口下沉后的完整业务流程和控制逻辑。
+run_main_business_flow() {
+    # 检查当前步骤所需的环境、路径或输入条件。
     ensure_pod_command || exit 1
+    # 执行当前流程中的独立业务步骤：ask_for_workspace_root。
     ask_for_workspace_root
 
+    # 初始化当前流程后续步骤需要使用的变量。
     local final_exit_code=0
+    # 初始化当前流程后续步骤需要使用的变量。
     local current_exit_code=0
 
+    # 循环处理用户输入或当前批次中的全部目标。
     while true; do
+        # 执行当前流程中的独立业务步骤：reset_target_pod_state。
         reset_target_pod_state
+        # 执行当前流程中的独立业务步骤：ask_for_target_pod_name。
         ask_for_target_pod_name || exit 1
+        # 执行当前流程中的独立业务步骤：run_pod_lint。
         run_pod_lint
+        # 初始化当前流程后续步骤需要使用的变量。
         current_exit_code=$?
         final_exit_code=$current_exit_code
 
+        # 执行当前流程中的独立业务步骤：ask_next_pod_action。
         ask_next_pod_action
 
+        # 根据当前条件选择对应的执行分支。
         case "$ASK_NEXT_POD_ACTION" in
+            # 执行当前流程中的独立业务步骤：next。
             next)
+                # 输出当前步骤的提示或执行进度。
                 echo ""
+                # 执行当前流程中的独立业务步骤：highlight_echo。
                 highlight_echo "进入下一个 Pod 自检流程"
+                # 执行当前流程中的独立业务步骤：continue。
                 continue
                 ;;
+            # 执行当前流程中的独立业务步骤：change_root。
             change_root)
+                # 输出当前步骤的提示或执行进度。
                 echo ""
+                # 执行当前流程中的独立业务步骤：highlight_echo。
                 highlight_echo "重新选择本地 Pod 根目录"
+                # 执行当前流程中的独立业务步骤：ask_for_workspace_root。
                 ask_for_workspace_root
+                # 执行当前流程中的独立业务步骤：continue。
                 continue
                 ;;
+            # 执行当前流程中的独立业务步骤：quit。
             quit)
+                # 输出当前步骤的提示或执行进度。
                 echo ""
+                # 执行当前流程中的独立业务步骤：info_echo。
                 info_echo "已退出本地 Pod 编译自检工具。"
+                # 执行当前流程中的独立业务步骤：break。
                 break
                 ;;
         esac
     done
 
+    # 执行当前流程中的独立业务步骤：exit。
     exit $final_exit_code
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  emulate -R zsh
+  {
+      set +x 2>/dev/null || true
+      set +v 2>/dev/null || true
+      unsetopt xtrace 2>/dev/null || true
+      unsetopt verbose 2>/dev/null || true
+      setopt typeset_silent 2>/dev/null || true
+      unset XTRACEFD BASH_XTRACEFD 2>/dev/null || true
+      trap - DEBUG 2>/dev/null || true
+      unfunction TRAPDEBUG 2>/dev/null || true
+      PS4=''
+  } >/dev/null 2>&1
+  {
+      set +xv 2>/dev/null || true
+      unsetopt xtrace 2>/dev/null || true
+      unsetopt verbose 2>/dev/null || true
+      setopt typeset_silent 2>/dev/null || true
+      unset XTRACEFD BASH_XTRACEFD 2>/dev/null || true
+      PS4=''
+  } >/dev/null 2>&1
+  set -u
+  setopt null_glob
+  setopt extended_glob
+  setopt typeset_silent 2>/dev/null || true
+  : > "$LOG_FILE"
+}
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_block
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行入口下沉后的完整业务流程。
+  run_main_business_flow "$@"
 }
 
 main "$@"

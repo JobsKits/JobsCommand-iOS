@@ -1,4 +1,9 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】🔍Git依据提交日志关键字查找.command
+# - 核心用途：执行“🔍Git依据提交日志关键字查找”对应的 Git / Sourcetree 自动化操作。
+# - 影响范围：可能修改当前仓库、工作区、分支、菜单配置或 Git 索引。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
@@ -8,8 +13,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-: > "$LOG_FILE"
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -38,12 +41,10 @@ gray_echo()      { log "\033[0;90m$1\033[0m"; }
 bold_echo()      { log "\033[1m$1\033[0m"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }
-
 # ============================= 标准工具函数 =============================
 get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
-
 # 封装 abs_path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
@@ -58,7 +59,6 @@ abs_path() {
     return 1
   fi
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   echo ""
@@ -68,7 +68,6 @@ ask_run() {
   IFS= read -r "input?➤ "
   [[ -n "$input" ]]
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 confirm_yes() {
   echo ""
@@ -78,7 +77,6 @@ confirm_yes() {
   IFS= read -r "input?➤ "
   [[ "$input" == "YES" ]]
 }
-
 # 封装 inject_shellenv_block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
@@ -101,7 +99,6 @@ inject_shellenv_block() {
   fi
   eval "$shellenv_cmd" || true
 }
-
 # 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
@@ -125,7 +122,6 @@ activate_homebrew_shellenv() {
   inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
   eval "$(${brew_bin} shellenv)"
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
@@ -136,7 +132,6 @@ run_brew_health_update() {
   brew -v      || warn_echo "打印 brew 版本失败，可忽略"
   success_echo "Homebrew 健康更新完成"
 }
-
 # 执行对应的环境配置或同步处理。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
@@ -164,7 +159,6 @@ install_homebrew() {
     note_echo "已跳过 Homebrew 更新"
   fi
 }
-
 # 封装 brew_install_or_upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
@@ -184,10 +178,15 @@ brew_install_or_upgrade() {
     fi
   fi
 }
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】🔍Git依据提交日志关键字查找.command'
+  print -r -- '核心用途：执行“🔍Git依据提交日志关键字查找”对应的 Git 自动化操作。'
+  print -r -- '影响范围：可能修改当前仓库、工作区、分支或 Git 索引。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   local readme_path="${SCRIPT_DIR}/README.md"
   if [[ -f "$readme_path" ]]; then
     highlight_echo "正在显示脚本自述文件：$readme_path"
@@ -199,7 +198,6 @@ show_readme_and_wait() {
   echo ""
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
@@ -218,7 +216,6 @@ run_original_logic() {
   # ---------- 彩色 & 日志 ----------
   SCRIPT_BASENAME="${0:t:r}"
   LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-
   # 屏幕+日志（stdout），用于常规输出
   log()            { local msg="$1"; printf '%b\n' "$msg"; printf '%b\n' "$msg" >> "$LOG_FILE"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -233,7 +230,6 @@ run_original_logic() {
   highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
   gray_echo()      { log "\033[0;90m$1\033[0m"; }
-
   # 只写 TTY+日志（不碰 stdout），用于需要把 stdout 当“返回值”的函数
   tty_log()     { local msg="$1"; printf '%b\n' "$msg" > /dev/tty; printf '%b\n' "$msg" >> "$LOG_FILE"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -244,7 +240,6 @@ run_original_logic() {
   warn_tty()    { tty_log "\033[1;33m⚠ $1\033[0m"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
   error_tty()   { tty_log "\033[1;31m✖ $1\033[0m"; }
-
   # ---------- 横幅/自述 ----------
   show_banner() {
     cat <<'EOF'
@@ -253,7 +248,7 @@ run_original_logic() {
   │  自动：匹配 “Merge … into <当前分支> / 合并…到 <当前分支>”     │
   │  回退：输入关键字（或 fzf 选择）在提交描述里定位锚点          │
   └──────────────────────────────────────────────────────────────┘
-  EOF
+EOF
   }
   # 展示脚本用途和影响范围，并在执行前等待用户确认。
   intro() {
@@ -261,10 +256,8 @@ run_original_logic() {
     print -r -- "按回车继续（Ctrl+C 退出）..." > /dev/tty
     read -r _ < /dev/tty || true
   }
-
   # ---------- 去 ANSI ----------
   strip_ansi() { perl -pe 's/\e\[[0-9;]*[A-Za-z]//g'; }
-
   # ---------- 路径处理 ----------
   sanitize_path() {
     local p; p="$(print -r -- "$1" | strip_ansi)"
@@ -282,7 +275,6 @@ run_original_logic() {
     [[ "$p" != "/" ]] && p="${p%/}"
     print -r -- "$p"
   }
-
   # 封装 abs_path 对应的独立处理逻辑。
   abs_path() {
     local p; p="$(sanitize_path "$1")"; [[ -z "$p" ]] && return 1
@@ -293,7 +285,6 @@ run_original_logic() {
       else return 1; fi
     fi
   }
-
   # ---------- Git 判定 ----------
   is_git_repo() {
     local dir="$1"
@@ -303,7 +294,6 @@ run_original_logic() {
     [[ -f "$dir/HEAD" && -d "$dir/objects" && -d "$dir/refs" ]] && return 0
     return 1
   }
-
   # ---------- 询问直到 Git 仓库（stdout 只输出路径） ----------
   ask_git_repo() {
     local default_dir="$1"
@@ -339,10 +329,8 @@ run_original_logic() {
       fi
     done
   }
-
   # ---------- 当前分支 ----------
   current_branch_name() { git -C "$1" rev-parse --abbrev-ref HEAD; }
-
   # ---------- 解析 subject：输出 "<SRC> <DST>"（Perl，避免 awk 引号坑） ----------
   parse_src_dst_from_subject() {
     perl -ne "
@@ -353,7 +341,6 @@ run_original_logic() {
       if (/将\\s+([^ ]+)\\s+合并到\\s+([^ ]+)/){ print \"\$1 \$2\\n\"; exit }
     "
   }
-
   # ---------- 自动：扫描日志（取“最早”命中） ----------
   find_origin_from_desc() {
     local repo="$1" cur="$2"
@@ -368,17 +355,14 @@ run_original_logic() {
       done
     return 1
   }
-
   # ---------- 回退：锚点关键字模式（可用 fzf 选择） ----------
   has_fzf() { command -v fzf >/dev/null 2>&1; }
-
   # 封装 anchor_search 对应的独立处理逻辑。
   anchor_search() {
     local repo="$1" kw="$2" scope="${3:-fp}" extra=()
     [[ "$scope" == "fp" ]] && extra+=( --first-parent )
     git -C "$repo" log --no-color --date=iso --pretty=format:'%H%x09%ad%x09%s' "${extra[@]}" HEAD | grep -F -- "$kw" || true
   }
-
   # 执行已经拆分完成的独立业务步骤。
   run_anchor_interactive() {
     local repo="$1" kw=""
@@ -410,7 +394,6 @@ run_original_logic() {
     git -C "$repo" show -s --format=$'哈希: %H\n作者: %an <%ae>\n时间: %ad\n标题: %s' --date=iso "$H" > /dev/tty
     return 0
   }
-
   # ---------- 主流程 ----------
   main() {
     : > "$LOG_FILE" 2>/dev/null || true
@@ -450,18 +433,21 @@ run_original_logic() {
 
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
-  show_readme_and_wait
-  run_original_logic "$@"
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  : > "$LOG_FILE"
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 run_original_logic 对应的核心业务步骤。
+  run_original_logic "$@"
+  # 输出脚本执行结果、摘要和日志位置。
+  success_echo "脚本执行结束。日志：$LOG_FILE"
 }
 
 main "$@"

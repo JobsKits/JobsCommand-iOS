@@ -1,4 +1,9 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】⚙️双击安装Cocoapods.command
+# - 核心用途：执行“⚙️双击安装Cocoapods”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
@@ -8,28 +13,39 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-: > "$LOG_FILE"
-
+# 统一输出终端信息并同步记录日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+# 输出 color echo 对应级别的日志信息。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 输出 info echo 对应级别的日志信息。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 输出 success echo 对应级别的日志信息。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 输出 warn echo 对应级别的日志信息。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 输出 warm echo 对应级别的日志信息。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 输出 note echo 对应级别的日志信息。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 输出 error echo 对应级别的日志信息。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 输出 err echo 对应级别的日志信息。
 err_echo()       { log "\033[1;31m$1\033[0m"; }
+# 输出 debug echo 对应级别的日志信息。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 输出 highlight echo 对应级别的日志信息。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 输出 gray echo 对应级别的日志信息。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 输出 bold echo 对应级别的日志信息。
 bold_echo()      { log "\033[1m$1\033[0m"; }
+# 输出 underline echo 对应级别的日志信息。
 underline_echo() { log "\033[4m$1\033[0m"; }
-
 # ============================= 标准工具函数 =============================
 get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
-
+# 封装 abs path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
   [[ -z "$p" ]] && return 1
@@ -43,7 +59,7 @@ abs_path() {
     return 1
   fi
 }
-
+# 收集并校验 ask run 对应的用户确认。
 ask_run() {
   echo ""
   note_echo "👉 $1"
@@ -52,7 +68,7 @@ ask_run() {
   IFS= read -r "input?➤ "
   [[ -n "$input" ]]
 }
-
+# 收集并校验 confirm yes 对应的用户确认。
 confirm_yes() {
   echo ""
   warn_echo "⚠ $1"
@@ -61,7 +77,7 @@ confirm_yes() {
   IFS= read -r "input?➤ "
   [[ "$input" == "YES" ]]
 }
-
+# 封装 inject shellenv block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
   local shellenv_cmd="$2"
@@ -83,7 +99,7 @@ inject_shellenv_block() {
   fi
   eval "$shellenv_cmd" || true
 }
-
+# 封装 activate homebrew shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -106,7 +122,7 @@ activate_homebrew_shellenv() {
   inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
   eval "$(${brew_bin} shellenv)"
 }
-
+# 执行 run brew health update 对应的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
   brew update  || { error_echo "brew update 失败"; return 1; }
@@ -116,7 +132,7 @@ run_brew_health_update() {
   brew -v      || warn_echo "打印 brew 版本失败，可忽略"
   success_echo "Homebrew 健康更新完成"
 }
-
+# 准备并配置 install homebrew 对应的运行条件。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -143,7 +159,7 @@ install_homebrew() {
     note_echo "已跳过 Homebrew 更新"
   fi
 }
-
+# 封装 brew install or upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
   [[ -z "$formula" ]] && return 1
@@ -162,9 +178,15 @@ brew_install_or_upgrade() {
     fi
   fi
 }
-
+# 输出 show readme and wait 对应的说明与结果。
 show_readme_and_wait() {
   clear
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】⚙️双击安装Cocoapods.command'
+  print -r -- '核心用途：执行“⚙️双击安装Cocoapods”对应的移动端项目自动化任务。'
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   local readme_path="${SCRIPT_DIR}/README.md"
   if [[ -f "$readme_path" ]]; then
     highlight_echo "正在显示脚本自述文件：$readme_path"
@@ -176,7 +198,7 @@ show_readme_and_wait() {
   echo ""
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
-
+# 执行 run original logic 对应的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
   # ================================== Jobs CocoaPods Installer ==================================
@@ -194,10 +216,8 @@ run_original_logic() {
   START_TIME=$(date +%s)
   SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')
   LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-
   # ================================== 日志与彩色输出 ==================================
   log() { echo -e "$1" | tee -a "$LOG_FILE"; }
-
   # 你原脚本里用到了 _color_echo，这里补齐，并且写入 LOG_FILE
   _color_echo() {
     local color="$1"; shift
@@ -225,15 +245,20 @@ run_original_logic() {
       *)          log "${text}" ;;
     esac
   }
-
+  # 输出 info echo 对应级别的日志信息。
   info_echo()      { _color_echo info "$1"; }
+  # 输出 success echo 对应级别的日志信息。
   success_echo()   { _color_echo success "$1"; }
+  # 输出 warn echo 对应级别的日志信息。
   warn_echo()      { _color_echo warning "$1"; }
+  # 输出 note echo 对应级别的日志信息。
   note_echo()      { _color_echo note "$1"; }
+  # 输出 error echo 对应级别的日志信息。
   error_echo()     { _color_echo error "$1"; }
+  # 输出 gray echo 对应级别的日志信息。
   gray_echo()      { _color_echo gray "$1"; }
+  # 输出 bold echo 对应级别的日志信息。
   bold_echo()      { _color_echo bold "$1"; }
-
   # ================================== UI / 工具函数 ==================================
   print_logo() {
     _color_echo cyan "======================="
@@ -241,22 +266,23 @@ run_original_logic() {
     _color_echo cyan "======================="
     gray_echo "日志：$LOG_FILE"
   }
-
+  # 输出 print duration 对应的说明与结果。
   print_duration() {
     local end_time=$(date +%s)
     local duration=$((end_time - START_TIME))
     info_echo "⚙️ 脚本总耗时：${duration}s"
   }
-
+  # 封装 pause to exit 对应的独立处理逻辑。
   pause_to_exit() {
     echo ""
     note_echo "✅ 脚本结束。按回车退出..."
     IFS= read -r _
   }
+  # 解析并返回 get cpu arch 所需信息。
   get_cpu_arch() {
     [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
   }
-
+  # 收集并校验 confirm upgrade 对应的用户确认。
   confirm_upgrade() {
     # 回车：跳过；输入任意字符：执行升级（按你的要求）
     local what="$1"
@@ -267,7 +293,7 @@ run_original_logic() {
     IFS= read -r confirm
     [[ -n "$confirm" ]]
   }
-
+  # 检查 ensure command 所需条件，不满足时阻止继续执行。
   ensure_command() {
     local cmd="$1"
     local hint="$2"
@@ -277,7 +303,6 @@ run_original_logic() {
       return 1
     fi
   }
-
   # ================================== Xcode Command Line Tools ==================================
   ensure_clt() {
     if xcode-select -p &>/dev/null; then
@@ -292,7 +317,6 @@ run_original_logic() {
     pause_to_exit
     exit 1
   }
-
   # ================================== Homebrew ==================================
   detect_brew_bin() {
     if command -v brew &>/dev/null; then
@@ -313,11 +337,12 @@ run_original_logic() {
 
     return 1
   }
-
+  # 执行 apply brew shellenv 对应的独立业务步骤。
   apply_brew_shellenv() {
     local brew_bin="$1"
     eval "$("$brew_bin" shellenv)"
   }
+  # 准备并配置 install homebrew 对应的运行条件。
   install_homebrew() {
     local arch="$(get_cpu_arch)"
     local shell_name="${SHELL##*/}"
@@ -360,7 +385,6 @@ run_original_logic() {
       note_echo "已跳过 Homebrew 更新"
     fi
   }
-
   # ================================== fzf（自检/安装/升级） ==================================
   install_fzf() {
     ensure_command brew "Homebrew 不可用，无法安装 fzf。"
@@ -382,7 +406,6 @@ run_original_logic() {
       note_echo "⏭️ 已选择跳过 fzf 升级"
     fi
   }
-
   # ================================== Ruby（优先 Homebrew Ruby） ==================================
   ensure_brew_ruby() {
     ensure_command brew "Homebrew 不可用，无法安装 Ruby。"
@@ -405,7 +428,6 @@ run_original_logic() {
     info_echo "Ruby: $(ruby -v 2>/dev/null || echo 'not found')"
     info_echo "Gem : $(gem -v 2>/dev/null || echo 'not found')"
   }
-
   # ================================== RubyGems 源（可选） ==================================
   is_in_china() {
     ensure_command curl "无法访问网络，跳过根据 IP 判断。" || return 1
@@ -423,7 +445,7 @@ run_original_logic() {
     # 无 jq：用简单 grep 兜底
     echo "$json" | grep -q '"country"[[:space:]]*:[[:space:]]*"CN"'
   }
-
+  # 封装 set gem source 对应的独立处理逻辑。
   set_gem_source() {
     command -v gem &>/dev/null || { warn_echo "⚠️ gem 不可用，跳过 RubyGems 源设置"; return 0; }
 
@@ -440,7 +462,6 @@ run_original_logic() {
     info_echo "📦 当前 RubyGems 源列表："
     gem sources -l | tee -a "$LOG_FILE" || true
   }
-
   # ================================== CocoaPods 安装 ==================================
   install_cocoapods() {
     ensure_command brew "Homebrew 不可用，无法安装 CocoaPods。"
@@ -481,7 +502,6 @@ run_original_logic() {
       gray_echo "ℹ 已存在 ~/.cocoapods，跳过 pod setup"
     fi
   }
-
   # ================================== 备份配置文件（可选） ==================================
   backup_configs() {
     local files=("$HOME/.zshrc" "$HOME/.zprofile" "$HOME/.bash_profile" "$HOME/.profile")
@@ -491,7 +511,6 @@ run_original_logic() {
     done
     success_echo "📦 配置文件已备份（*.bak，如存在）"
   }
-
   # ================================== 主流程 ==================================
   main() {
     : > "$LOG_FILE" 2>/dev/null || true
@@ -520,16 +539,21 @@ run_original_logic() {
 
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
-
-run_main_flow() {
-  show_readme_and_wait
-  run_original_logic "$@"
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  : > "$LOG_FILE"
 }
-
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 run_original_logic 对应的核心业务步骤。
+  run_original_logic "$@"
+  # 输出脚本执行结果、摘要和日志位置。
+  success_echo "脚本执行结束。日志：$LOG_FILE"
 }
 
 main "$@"

@@ -1,4 +1,9 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】♻️双击Git（识别子Git） 提交回退.command
+# - 核心用途：执行“♻️双击Git（识别子Git） 提交回退”对应的 Git / Sourcetree 自动化操作。
+# - 影响范围：可能修改当前仓库、工作区、分支、菜单配置或 Git 索引。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
@@ -8,8 +13,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-: > "$LOG_FILE"
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -38,12 +41,10 @@ gray_echo()      { log "\033[0;90m$1\033[0m"; }
 bold_echo()      { log "\033[1m$1\033[0m"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }
-
 # ============================= 标准工具函数 =============================
 get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
-
 # 封装 abs_path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
@@ -58,7 +59,6 @@ abs_path() {
     return 1
   fi
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   echo ""
@@ -68,7 +68,6 @@ ask_run() {
   IFS= read -r "input?➤ "
   [[ -n "$input" ]]
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 confirm_yes() {
   echo ""
@@ -78,7 +77,6 @@ confirm_yes() {
   IFS= read -r "input?➤ "
   [[ "$input" == "YES" ]]
 }
-
 # 封装 inject_shellenv_block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
@@ -101,7 +99,6 @@ inject_shellenv_block() {
   fi
   eval "$shellenv_cmd" || true
 }
-
 # 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
@@ -125,7 +122,6 @@ activate_homebrew_shellenv() {
   inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
   eval "$(${brew_bin} shellenv)"
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
@@ -136,7 +132,6 @@ run_brew_health_update() {
   brew -v      || warn_echo "打印 brew 版本失败，可忽略"
   success_echo "Homebrew 健康更新完成"
 }
-
 # 执行对应的环境配置或同步处理。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
@@ -164,7 +159,6 @@ install_homebrew() {
     note_echo "已跳过 Homebrew 更新"
   fi
 }
-
 # 封装 brew_install_or_upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
@@ -184,10 +178,15 @@ brew_install_or_upgrade() {
     fi
   fi
 }
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】♻️双击Git（识别子Git） 提交回退.command'
+  print -r -- '核心用途：执行“♻️双击Git（识别子Git） 提交回退”对应的 Git 自动化操作。'
+  print -r -- '影响范围：可能修改当前仓库、工作区、分支或 Git 索引。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   local readme_path="${SCRIPT_DIR}/README.md"
   if [[ -f "$readme_path" ]]; then
     highlight_echo "正在显示脚本自述文件：$readme_path"
@@ -199,7 +198,6 @@ show_readme_and_wait() {
   echo ""
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
@@ -228,7 +226,6 @@ run_original_logic() {
       fi
     fi
   fi
-
   # =============== 彩色输出 ===============
   log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -249,7 +246,6 @@ run_original_logic() {
   highlight_echo() { log "\033[1;35m✨ $1\033[0m"; }
   # 按当前输出级别记录终端信息，并同步写入脚本日志。
   bold_echo()      { log "\033[1m$1\033[0m"; }
-
   # =============== 自述 ===============
   print_git_reset_intro() {
     echo ""
@@ -265,7 +261,6 @@ run_original_logic() {
     echo "  5️⃣ 通过 reflog 回退到任意历史状态"
     echo ""
   }
-
   # =============== 基础工具 ===============
   get_cpu_arch() {
     [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
@@ -292,7 +287,6 @@ run_original_logic() {
     fi
     eval "$shellenv_cmd" || true
   }
-
   # =============== Homebrew（回车跳过） ===============
   install_homebrew() {
     local arch="$(get_cpu_arch)"
@@ -336,7 +330,6 @@ run_original_logic() {
       note_echo "已跳过 Homebrew 更新"
     fi
   }
-
   # =============== fzf（回车跳过） ===============
   install_fzf() {
     warm_echo "🔍 是否检查 / 安装 / 升级 fzf？"
@@ -368,7 +361,6 @@ run_original_logic() {
       fi
     fi
   }
-
   # =============== 获取 Git 仓库路径（兼容子 git / 子目录） ===============
   resolve_git_repo_path() {
     while true; do
@@ -418,7 +410,6 @@ run_original_logic() {
       fi
     done
   }
-
   # =============== 进入 Git 仓库目录（兼容 SourceTree） ===============
   enter_git_repo_dir() {
     local git_root=""
@@ -441,7 +432,6 @@ run_original_logic() {
     }
     highlight_echo "当前 Git 仓库：$git_root"
   }
-
   # =============== 检查暂存区（仅交互模式用） ===============
   check_staged_changes() {
     if ! git diff --cached --quiet 2>/dev/null; then
@@ -454,7 +444,6 @@ run_original_logic() {
       fi
     fi
   }
-
   # =============== soft 回退到远端（你要的“推送打回提交”） ===============
   reset_soft_to_remote() {
     local branch
@@ -480,7 +469,6 @@ run_original_logic() {
     note_echo "   - 所有未推送的提交已被撤销"
     note_echo "   - 对应改动现在处于【已暂存】状态，会出现在提交面板里"
   }
-
   # =============== hard 回退到远端（交互模式可选） ===============
   reset_hard_to_remote() {
     local branch
@@ -503,7 +491,6 @@ run_original_logic() {
     git reset --hard "$upstream"
     success_echo "✅ 已 hard 回退到远端 $upstream"
   }
-
   # =============== 选择 Commit / Tag / Reflog 的几个函数（只在交互模式用） ===============
   reset_to_selected_commit() {
     local commits
@@ -536,7 +523,6 @@ run_original_logic() {
     git reset --hard "$target_hash"
     success_echo "✅ 已回退到提交：$selected"
   }
-
   # 执行对应的清理操作，并保留必要的安全检查。
   reset_to_tag() {
     local tags
@@ -566,7 +552,6 @@ run_original_logic() {
     git reset --hard "$selected"
     success_echo "✅ 已回退到 tag：$selected"
   }
-
   # 执行对应的清理操作，并保留必要的安全检查。
   reset_via_reflog() {
     local reflogs
@@ -599,7 +584,6 @@ run_original_logic() {
     git reset --hard "$target_hash"
     success_echo "✅ 已通过 reflog 回退到：$selected"
   }
-
   # =============== 模式选择（交互用） ===============
   select_reset_mode() {
     local choice
@@ -621,7 +605,6 @@ run_original_logic() {
       * ) info_echo "ℹ 未选择任何模式，已退出。";;
     esac
   }
-
   # =============== 主流程 ===============
   main() {
     if [[ "$RUN_MODE" == "sourcetree" ]]; then
@@ -644,18 +627,21 @@ run_original_logic() {
 
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
-  show_readme_and_wait
-  run_original_logic "$@"
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  : > "$LOG_FILE"
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 run_original_logic 对应的核心业务步骤。
+  run_original_logic "$@"
+  # 输出脚本执行结果、摘要和日志位置。
+  success_echo "脚本执行结束。日志：$LOG_FILE"
 }
 
 main "$@"

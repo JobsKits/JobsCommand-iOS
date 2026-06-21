@@ -1,4 +1,9 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】⏬下载配置系统环境变量.command
+# - 核心用途：执行“⏬下载配置系统环境变量”对应的本机环境配置任务。
+# - 影响范围：可能安装、更新或修改当前用户的工具链与配置文件。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
@@ -8,28 +13,39 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-: > "$LOG_FILE"
-
+# 统一输出终端信息并同步记录日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+# 输出 color echo 对应级别的日志信息。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 输出 info echo 对应级别的日志信息。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 输出 success echo 对应级别的日志信息。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 输出 warn echo 对应级别的日志信息。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 输出 warm echo 对应级别的日志信息。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 输出 note echo 对应级别的日志信息。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 输出 error echo 对应级别的日志信息。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 输出 err echo 对应级别的日志信息。
 err_echo()       { log "\033[1;31m$1\033[0m"; }
+# 输出 debug echo 对应级别的日志信息。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 输出 highlight echo 对应级别的日志信息。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 输出 gray echo 对应级别的日志信息。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 输出 bold echo 对应级别的日志信息。
 bold_echo()      { log "\033[1m$1\033[0m"; }
+# 输出 underline echo 对应级别的日志信息。
 underline_echo() { log "\033[4m$1\033[0m"; }
-
 # ============================= 标准工具函数 =============================
 get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
-
+# 封装 abs path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
   [[ -z "$p" ]] && return 1
@@ -43,7 +59,7 @@ abs_path() {
     return 1
   fi
 }
-
+# 收集并校验 ask run 对应的用户确认。
 ask_run() {
   echo ""
   note_echo "👉 $1"
@@ -52,7 +68,7 @@ ask_run() {
   IFS= read -r "input?➤ "
   [[ -n "$input" ]]
 }
-
+# 收集并校验 confirm yes 对应的用户确认。
 confirm_yes() {
   echo ""
   warn_echo "⚠ $1"
@@ -61,7 +77,7 @@ confirm_yes() {
   IFS= read -r "input?➤ "
   [[ "$input" == "YES" ]]
 }
-
+# 封装 inject shellenv block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
   local shellenv_cmd="$2"
@@ -83,7 +99,7 @@ inject_shellenv_block() {
   fi
   eval "$shellenv_cmd" || true
 }
-
+# 封装 activate homebrew shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -106,7 +122,7 @@ activate_homebrew_shellenv() {
   inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
   eval "$(${brew_bin} shellenv)"
 }
-
+# 执行 run brew health update 对应的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
   brew update  || { error_echo "brew update 失败"; return 1; }
@@ -116,7 +132,7 @@ run_brew_health_update() {
   brew -v      || warn_echo "打印 brew 版本失败，可忽略"
   success_echo "Homebrew 健康更新完成"
 }
-
+# 准备并配置 install homebrew 对应的运行条件。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
   local brew_bin=""
@@ -143,7 +159,7 @@ install_homebrew() {
     note_echo "已跳过 Homebrew 更新"
   fi
 }
-
+# 封装 brew install or upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
   [[ -z "$formula" ]] && return 1
@@ -162,9 +178,15 @@ brew_install_or_upgrade() {
     fi
   fi
 }
-
+# 输出 show readme and wait 对应的说明与结果。
 show_readme_and_wait() {
   clear
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】⏬下载配置系统环境变量.command'
+  print -r -- '核心用途：执行“⏬下载配置系统环境变量”对应的本机环境配置任务。'
+  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   local readme_path="${SCRIPT_DIR}/README.md"
   if [[ -f "$readme_path" ]]; then
     highlight_echo "正在显示脚本自述文件：$readme_path"
@@ -176,28 +198,40 @@ show_readme_and_wait() {
   echo ""
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
-
+# 执行 run original logic 对应的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
   # ✅ 日志与彩色输出
   SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
   LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"                  # 设置对应的日志文件路径
-
+  # 统一输出终端信息并同步记录日志。
   log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
+  # 输出 color echo 对应级别的日志信息。
   color_echo()     { log "\033[1;32m$1\033[0m"; }        # ✅ 正常绿色输出
+  # 输出 info echo 对应级别的日志信息。
   info_echo()      { log "\033[1;34mℹ $1\033[0m"; }      # ℹ 信息
+  # 输出 success echo 对应级别的日志信息。
   success_echo()   { log "\033[1;32m✔ $1\033[0m"; }      # ✔ 成功
+  # 输出 warn echo 对应级别的日志信息。
   warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }      # ⚠ 警告
+  # 输出 warm echo 对应级别的日志信息。
   warm_echo()      { log "\033[1;33m$1\033[0m"; }        # 🟡 温馨提示（无图标）
+  # 输出 note echo 对应级别的日志信息。
   note_echo()      { log "\033[1;35m➤ $1\033[0m"; }      # ➤ 说明
+  # 输出 error echo 对应级别的日志信息。
   error_echo()     { log "\033[1;31m✖ $1\033[0m"; }      # ✖ 错误
+  # 输出 err echo 对应级别的日志信息。
   err_echo()       { log "\033[1;31m$1\033[0m"; }        # 🔴 错误纯文本
+  # 输出 debug echo 对应级别的日志信息。
   debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }     # 🐞 调试
+  # 输出 highlight echo 对应级别的日志信息。
   highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }     # 🔹 高亮
+  # 输出 gray echo 对应级别的日志信息。
   gray_echo()      { log "\033[0;90m$1\033[0m"; }        # ⚫ 次要信息
+  # 输出 bold echo 对应级别的日志信息。
   bold_echo()      { log "\033[1m$1\033[0m"; }           # 📝 加粗
+  # 输出 underline echo 对应级别的日志信息。
   underline_echo() { log "\033[4m$1\033[0m"; }           # 🔗 下划线
-
   # ✅ 自述信息
   print_intro() {
     SCRIPT_NAME=$(basename "$0" .command)
@@ -208,14 +242,12 @@ run_original_logic() {
     echo ""
     read "?👉 按下回车键开始执行，或按 Ctrl+C 取消..."
   }
-
   # ✅ 获取目录信息
   init_vars() {
     SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
     SCRIPT_NAME=$(basename "$0" .command)
     TARGET_DIR="$SCRIPT_DIR/$SCRIPT_NAME"
   }
-
   # ✅ 检查已有目录并确认
   check_existing_dir() {
     if [[ -d "$TARGET_DIR" ]]; then
@@ -231,7 +263,6 @@ run_original_logic() {
       fi
     fi
   }
-
   # ✅ 执行克隆操作
   clone_repo() {
     success_echo "📥 开始克隆..."
@@ -243,7 +274,6 @@ run_original_logic() {
       error_echo "❌ 克隆失败，请检查网络连接或 GitHub 可访问性。"
     fi
   }
-
   # ✅ 主函数入口
   main() {
     clear                                 # 清屏美观
@@ -257,16 +287,21 @@ run_original_logic() {
 
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
-
-run_main_flow() {
-  show_readme_and_wait
-  run_original_logic "$@"
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  : > "$LOG_FILE"
 }
-
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 run_original_logic 对应的核心业务步骤。
+  run_original_logic "$@"
+  # 输出脚本执行结果、摘要和日志位置。
+  success_echo "脚本执行结束。日志：$LOG_FILE"
 }
 
 main "$@"

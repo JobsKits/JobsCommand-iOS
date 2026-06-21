@@ -1,9 +1,10 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】⏬simios.command
+# - 核心用途：执行“⏬simios”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
-emulate -R zsh
-set -eu
-set -o pipefail
-setopt NULL_GLOB
 
 C_RESET='\033[0m'
 C_BOLD='\033[1m'
@@ -24,46 +25,38 @@ XCODE_APP=""
 DEVELOPER_DIR_SELECTED=""
 XCODEBUILD_BIN=""
 VERBOSE_ARG=""
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 cecho() {
   local color="$1"
   shift
   printf "%b%s%b\n" "$color" "$*" "$C_RESET"
 }
-
 # 封装 line 对应的独立处理逻辑。
 line() {
   cecho "$C_GRAY" "────────────────────────────────────────"
 }
-
 # 封装 section 对应的独立处理逻辑。
 section() {
   echo ""
   cecho "$C_BOLD$C_CYAN" "▶ $1"
   line
 }
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log() {
   cecho "$C_BLUE" "[simios] $1"
 }
-
 # 封装 ok 对应的独立处理逻辑。
 ok() {
   cecho "$C_GREEN" "[OK] $1"
 }
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 warn() {
   cecho "$C_YELLOW" "[WARN] $1"
 }
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 err() {
   cecho "$C_RED" "[ERR] $1"
 }
-
 # 封装 pause_enter 对应的独立处理逻辑。
 pause_enter() {
   local message="${1:-按回车继续...}"
@@ -71,7 +64,6 @@ pause_enter() {
   local _input=""
   IFS= read -r _input
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   local message="$1"
@@ -80,7 +72,6 @@ ask_run() {
   IFS= read -r input
   [[ -n "$input" ]]
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_root() {
   if [[ "$(id -u)" -eq 0 ]]; then
@@ -89,10 +80,15 @@ run_root() {
     sudo "$@"
   fi
 }
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear || true
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】⏬simios.command'
+  print -r -- '核心用途：执行“⏬simios”对应的自动化任务。'
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
   cecho "$C_BOLD$C_CYAN" "        simios.command"
   cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
@@ -117,7 +113,6 @@ show_readme_and_wait() {
   echo ""
   pause_enter "按回车开始体检..."
 }
-
 # 封装 require_macos 对应的独立处理逻辑。
 require_macos() {
   section "系统检测"
@@ -129,7 +124,6 @@ require_macos() {
 
   ok "当前系统是 macOS。"
 }
-
 # 封装 collect_xcode_apps 对应的独立处理逻辑。
 collect_xcode_apps() {
   local -a found
@@ -150,7 +144,6 @@ collect_xcode_apps() {
     printf "%s\n" "${found[@]}" | awk '!seen[$0]++'
   fi
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 choose_xcode_app() {
   section "Xcode 检测"
@@ -184,7 +177,6 @@ choose_xcode_app() {
   XCODE_APP="$first_app"
   ok "检测到 Xcode：$XCODE_APP"
 }
-
 # 封装 maybe_check_xcode_update 对应的独立处理逻辑。
 maybe_check_xcode_update() {
   echo ""
@@ -201,7 +193,6 @@ maybe_check_xcode_update() {
     log "跳过 Xcode 升级检查。"
   fi
 }
-
 # 封装 prepare_developer_dir 对应的独立处理逻辑。
 prepare_developer_dir() {
   section "xcode-select / DEVELOPER_DIR 检测"
@@ -234,7 +225,6 @@ prepare_developer_dir() {
     fi
   fi
 }
-
 # 封装 show_xcode_version 对应的独立处理逻辑。
 show_xcode_version() {
   section "Xcode 版本"
@@ -243,7 +233,6 @@ show_xcode_version() {
     exit 1
   }
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 check_xcodebuild_support() {
   section "xcodebuild 能力检测"
@@ -268,7 +257,6 @@ check_xcodebuild_support() {
 
   ok "verbose 参数使用：$VERBOSE_ARG"
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 ensure_first_launch() {
   section "Xcode 首次启动组件检测"
@@ -296,7 +284,6 @@ ensure_first_launch() {
     fi
   fi
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 ensure_license() {
   section "Xcode License 检测"
@@ -318,7 +305,6 @@ ensure_license() {
     exit 1
   fi
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 check_disk_space() {
   section "磁盘空间检测"
@@ -336,7 +322,6 @@ check_disk_space() {
     warn "当前可用空间约 ${free_gb}GB，iOS Simulator Runtime 下载很可能失败。"
   fi
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 check_network() {
   section "网络连通检测"
@@ -353,7 +338,6 @@ check_network() {
     warn "这不是本地环境硬缺失，脚本不会自动改网络设置。"
   fi
 }
-
 # 封装 list_ios_runtimes 对应的独立处理逻辑。
 list_ios_runtimes() {
   if DEVELOPER_DIR="$DEVELOPER_DIR_SELECTED" xcrun simctl runtime list >/dev/null 2>&1; then
@@ -362,7 +346,6 @@ list_ios_runtimes() {
     DEVELOPER_DIR="$DEVELOPER_DIR_SELECTED" xcrun simctl list runtimes 2>/dev/null | grep -i "iOS" || true
   fi
 }
-
 # 封装 show_existing_runtimes 对应的独立处理逻辑。
 show_existing_runtimes() {
   section "现有 iOS Runtime"
@@ -377,7 +360,6 @@ show_existing_runtimes() {
     warn "未检测到 iOS Runtime，稍后建议执行下载。"
   fi
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_download() {
   section "下载 / 补齐 iOS Simulator Runtime"
@@ -410,7 +392,6 @@ run_download() {
 
   ok "iOS Simulator Runtime 下载 / 补齐命令执行完成。"
 }
-
 # 封装 final_report 对应的独立处理逻辑。
 final_report() {
   section "完成报告"
@@ -424,30 +405,48 @@ final_report() {
   echo ""
   cecho "$C_GRAY" "如果 Xcode UI 里暂时看不到新 runtime，重启 Xcode 后再看。"
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
-  show_readme_and_wait
-  require_macos
-  choose_xcode_app
-  maybe_check_xcode_update
-  prepare_developer_dir
-  show_xcode_version
-  check_xcodebuild_support
-  ensure_first_launch
-  ensure_license
-  check_disk_space
-  check_network
-  show_existing_runtimes
-  run_download
-  final_report
-  pause_enter "按回车退出..."
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  emulate -R zsh
+  set -eu
+  set -o pipefail
+  setopt NULL_GLOB
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 require_macos 对应的独立业务步骤。
+  require_macos
+  # 执行 choose_xcode_app 对应的独立业务步骤。
+  choose_xcode_app
+  # 检查当前环境与执行条件是否满足脚本要求。
+  maybe_check_xcode_update
+  # 执行 prepare_developer_dir 对应的独立业务步骤。
+  prepare_developer_dir
+  # 执行 show_xcode_version 对应的独立业务步骤。
+  show_xcode_version
+  # 检查当前环境与执行条件是否满足脚本要求。
+  check_xcodebuild_support
+  # 检查当前环境与执行条件是否满足脚本要求。
+  ensure_first_launch
+  # 检查当前环境与执行条件是否满足脚本要求。
+  ensure_license
+  # 检查当前环境与执行条件是否满足脚本要求。
+  check_disk_space
+  # 检查当前环境与执行条件是否满足脚本要求。
+  check_network
+  # 执行 show_existing_runtimes 对应的核心业务步骤。
+  show_existing_runtimes
+  # 执行 run_download 对应的核心业务步骤。
+  run_download
+  # 执行 final_report 对应的独立业务步骤。
+  final_report
+  # 执行 pause_enter 对应的独立业务步骤。
+  pause_enter "按回车退出..."
 }
 
 main "$@"

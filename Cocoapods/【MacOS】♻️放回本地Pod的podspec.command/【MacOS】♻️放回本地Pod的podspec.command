@@ -1,6 +1,10 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】♻️放回本地Pod的podspec.command
+# - 核心用途：执行“♻️放回本地Pod的podspec”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
-set -u
 
 RED='\033[31m'
 GREEN='\033[32m'
@@ -22,7 +26,6 @@ JOBS_KIT_REPLACED_COUNT=0
 JOBS_KIT_SKIPPED_COUNT=0
 PODFILE_REPLACED_COUNT=0
 PODFILE_SKIPPED_COUNT=0
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 print_intro() {
     printf "${BLUE}============================================================${NC}\n"
@@ -43,7 +46,6 @@ print_intro() {
     read -r USER_CONFIRM
     printf "\n"
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 is_blank_input() {
     local INPUT_TEXT="$1"
@@ -52,7 +54,6 @@ is_blank_input() {
     COMPACT_TEXT="$(printf '%s' "$INPUT_TEXT" | tr -d '[:space:]')"
     [ -z "$COMPACT_TEXT" ]
 }
-
 # 封装 normalize_dragged_path 对应的独立处理逻辑。
 normalize_dragged_path() {
     local RAW_PATH="$1"
@@ -74,7 +75,6 @@ normalize_dragged_path() {
 
     printf '%s\n' "$RAW_PATH"
 }
-
 # 封装 canonicalize_path 对应的独立处理逻辑。
 canonicalize_path() {
     local INPUT_PATH="$1"
@@ -99,7 +99,6 @@ canonicalize_path() {
 
     printf '%s\n' "$INPUT_PATH"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_unix_symlink_path() {
     local INPUT_PATH="$1"
@@ -125,7 +124,6 @@ resolve_unix_symlink_path() {
 
     canonicalize_path "$LINK_TARGET"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_finder_alias_path() {
     local INPUT_PATH="$1"
@@ -157,7 +155,6 @@ APPLESCRIPT
         printf '%s\n' "$INPUT_PATH"
     fi
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_real_path() {
     local INPUT_PATH="$1"
@@ -183,12 +180,10 @@ resolve_real_path() {
 
     printf '%s\n' "$CURRENT_PATH"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_dragged_path() {
     resolve_real_path "$1"
 }
-
 # 封装 read_local_pods_dir 对应的独立处理逻辑。
 read_local_pods_dir() {
     local RAW_PATH
@@ -218,7 +213,6 @@ read_local_pods_dir() {
         echo ""
     done
 }
-
 # 封装 read_podspec_source_dir 对应的独立处理逻辑。
 read_podspec_source_dir() {
     local RAW_PATH
@@ -248,7 +242,6 @@ read_podspec_source_dir() {
         echo ""
     done
 }
-
 # 封装 create_temp_files 对应的独立处理逻辑。
 create_temp_files() {
     TARGET_INDEX_FILE="$(mktemp '/tmp/restore_podspec_target_index.XXXXXX')"
@@ -257,7 +250,6 @@ create_temp_files() {
     SOURCE_REAL_PATH_LIST="$(mktemp '/tmp/restore_podspec_source_real.XXXXXX')"
     PROCESSED_PODSPEC_NAME_LIST="$(mktemp '/tmp/restore_podspec_processed_names.XXXXXX')"
 }
-
 # 执行对应的清理操作，并保留必要的安全检查。
 cleanup_temp_files() {
     [ -n "$TARGET_INDEX_FILE" ] && [ -f "$TARGET_INDEX_FILE" ] && rm -f "$TARGET_INDEX_FILE"
@@ -266,7 +258,6 @@ cleanup_temp_files() {
     [ -n "$SOURCE_REAL_PATH_LIST" ] && [ -f "$SOURCE_REAL_PATH_LIST" ] && rm -f "$SOURCE_REAL_PATH_LIST"
     [ -n "$PROCESSED_PODSPEC_NAME_LIST" ] && [ -f "$PROCESSED_PODSPEC_NAME_LIST" ] && rm -f "$PROCESSED_PODSPEC_NAME_LIST"
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 is_path_within_one_child_level() {
     local ROOT_DIR="$1"
@@ -290,7 +281,6 @@ is_path_within_one_child_level() {
             ;;
     esac
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 has_recorded_real_path() {
     local LIST_FILE="$1"
@@ -298,7 +288,6 @@ has_recorded_real_path() {
 
     [ -f "$LIST_FILE" ] && grep -F -x -q -- "$REAL_PATH" "$LIST_FILE"
 }
-
 # 封装 record_real_path 对应的独立处理逻辑。
 record_real_path() {
     local LIST_FILE="$1"
@@ -306,7 +295,6 @@ record_real_path() {
 
     printf '%s\n' "$REAL_PATH" >> "$LIST_FILE"
 }
-
 # 封装 append_index_record 对应的独立处理逻辑。
 append_index_record() {
     local INDEX_FILE="$1"
@@ -315,7 +303,6 @@ append_index_record() {
 
     printf '%s\t%s\n' "$FILE_NAME" "$FILE_PATH" >> "$INDEX_FILE"
 }
-
 # 封装 build_target_podspec_index 对应的独立处理逻辑。
 build_target_podspec_index() {
     local PODSPEC_FILE
@@ -345,7 +332,6 @@ build_target_podspec_index() {
         record_real_path "$TARGET_REAL_PATH_LIST" "$REAL_PODSPEC_FILE"
     done < <(find "$LOCAL_PODS_DIR" \( -type f -o -type l \) -iname '*.podspec' -print 2>/dev/null)
 }
-
 # 封装 build_source_podspec_index 对应的独立处理逻辑。
 build_source_podspec_index() {
     local PODSPEC_FILE
@@ -375,7 +361,6 @@ build_source_podspec_index() {
         record_real_path "$SOURCE_REAL_PATH_LIST" "$REAL_PODSPEC_FILE"
     done < <(find "$PODSPEC_SOURCE_DIR" \( -type f -o -type l \) -iname '*.podspec' -print 2>/dev/null)
 }
-
 # 解析并返回后续流程需要的目标信息。
 get_index_count_by_name() {
     local INDEX_FILE="$1"
@@ -383,7 +368,6 @@ get_index_count_by_name() {
 
     awk -F '\t' -v fileName="$FILE_NAME" '$1 == fileName { count++ } END { print count + 0 }' "$INDEX_FILE"
 }
-
 # 解析并返回后续流程需要的目标信息。
 get_index_first_path_by_name() {
     local INDEX_FILE="$1"
@@ -391,28 +375,24 @@ get_index_first_path_by_name() {
 
     awk -F '\t' -v fileName="$FILE_NAME" '$1 == fileName { print $2; exit }' "$INDEX_FILE"
 }
-
 # 解析并返回后续流程需要的目标信息。
 get_index_total_count() {
     local INDEX_FILE="$1"
 
     wc -l < "$INDEX_FILE" | tr -d '[:space:]'
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 has_processed_podspec_name() {
     local PODSPEC_NAME="$1"
 
     [ -f "$PROCESSED_PODSPEC_NAME_LIST" ] && grep -F -x -q -- "$PODSPEC_NAME" "$PROCESSED_PODSPEC_NAME_LIST"
 }
-
 # 封装 record_processed_podspec_name 对应的独立处理逻辑。
 record_processed_podspec_name() {
     local PODSPEC_NAME="$1"
 
     printf '%s\n' "$PODSPEC_NAME" >> "$PROCESSED_PODSPEC_NAME_LIST"
 }
-
 # 封装 replace_existing_file 对应的独立处理逻辑。
 replace_existing_file() {
     local SOURCE_FILE="$1"
@@ -446,7 +426,6 @@ replace_existing_file() {
     echo "  目标：$REAL_TARGET_FILE"
     return 1
 }
-
 # 封装 restore_jobs_podspec_kit_for_podspec 对应的独立处理逻辑。
 restore_jobs_podspec_kit_for_podspec() {
     local SOURCE_PODSPEC_FILE="$1"
@@ -503,7 +482,6 @@ restore_jobs_podspec_kit_for_podspec() {
     JOBS_KIT_SKIPPED_COUNT=$((JOBS_KIT_SKIPPED_COUNT + 1))
     return 1
 }
-
 # 封装 restore_podspec_files 对应的独立处理逻辑。
 restore_podspec_files() {
     local SOURCE_NAME
@@ -566,7 +544,6 @@ restore_podspec_files() {
         fi
     done < "$SOURCE_INDEX_FILE"
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_should_replace() {
     local FILE_NAME="$1"
@@ -581,7 +558,6 @@ ask_should_replace() {
 
     return 0
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_default_podfile_target() {
     local PODFILE_NAME="$1"
@@ -602,7 +578,6 @@ resolve_default_podfile_target() {
 
     return 1
 }
-
 # 封装 read_podfile_target_path 对应的独立处理逻辑。
 read_podfile_target_path() {
     local PODFILE_NAME="$1"
@@ -649,7 +624,6 @@ read_podfile_target_path() {
         printf "${RED}错误：目标目录下面不存在同名文件，不会创建新文件：%s${NC}\n\n" "$CANDIDATE_FILE" >&2
     done
 }
-
 # 封装 restore_podfile_by_name 对应的独立处理逻辑。
 restore_podfile_by_name() {
     local PODFILE_NAME="$1"
@@ -695,7 +669,6 @@ restore_podfile_by_name() {
         PODFILE_SKIPPED_COUNT=$((PODFILE_SKIPPED_COUNT + 1))
     fi
 }
-
 # 封装 restore_podfiles 对应的独立处理逻辑。
 restore_podfiles() {
     echo ""
@@ -705,7 +678,6 @@ restore_podfiles() {
     restore_podfile_by_name "Podfile"
     restore_podfile_by_name "Podfile.lock"
 }
-
 # 封装 print_index_summary 对应的独立处理逻辑。
 print_index_summary() {
     echo ""
@@ -714,7 +686,6 @@ print_index_summary() {
     echo "待放回目录中可匹配的 .podspec：$(get_index_total_count "$SOURCE_INDEX_FILE") 个"
     echo ""
 }
-
 # 封装 print_result 对应的独立处理逻辑。
 print_result() {
     echo ""
@@ -726,29 +697,61 @@ print_result() {
     echo "Podfile 三件套已替换：$PODFILE_REPLACED_COUNT 个"
     echo "Podfile 三件套已跳过：$PODFILE_SKIPPED_COUNT 个"
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
+# 打印脚本内置自述，并按运行入口决定是否等待用户确认。
+show_script_intro_and_wait() {
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】♻️放回本地Pod的podspec.command'
+  print -r -- '核心用途：执行“♻️放回本地Pod的podspec”对应的移动端项目自动化任务。'
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
+  if [[ ! -t 0 ]]; then
+    print -u2 -r -- '当前没有可交互输入，请在终端中重新运行。'
+    return 1
+  fi
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+}
+# 执行入口下沉后的完整业务流程和控制逻辑。
+run_main_business_flow() {
+    # 注册退出处理，确保异常中断时仍能执行必要收尾。
     trap cleanup_temp_files EXIT
 
+    # 执行当前流程中的独立业务步骤：print_intro。
     print_intro
+    # 执行当前流程中的独立业务步骤：read_local_pods_dir。
     read_local_pods_dir
+    # 执行当前流程中的独立业务步骤：read_podspec_source_dir。
     read_podspec_source_dir
 
+    # 执行当前流程中的独立业务步骤：create_temp_files。
     create_temp_files
+    # 执行当前流程中的独立业务步骤：build_target_podspec_index。
     build_target_podspec_index
+    # 执行当前流程中的独立业务步骤：build_source_podspec_index。
     build_source_podspec_index
+    # 输出当前流程的完成状态、摘要和日志位置。
     print_index_summary
 
+    # 执行当前流程中的独立业务步骤：restore_podspec_files。
     restore_podspec_files
+    # 执行当前流程中的独立业务步骤：restore_podfiles。
     restore_podfiles
+    # 执行当前流程中的独立业务步骤：print_result。
     print_result
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  set -u
+}
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_script_intro_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行入口下沉后的完整业务流程。
+  run_main_business_flow "$@"
 }
 
 main "$@"

@@ -1,4 +1,9 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】⏳提取项目中所有的podspec.command
+# - 核心用途：执行“⏳提取项目中所有的podspec”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
@@ -8,8 +13,6 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-: > "$LOG_FILE"
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -38,12 +41,10 @@ gray_echo()      { log "\033[0;90m$1\033[0m"; }
 bold_echo()      { log "\033[1m$1\033[0m"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }
-
 # ============================= 标准工具函数 =============================
 get_cpu_arch() {
   [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
 }
-
 # 封装 abs_path 对应的独立处理逻辑。
 abs_path() {
   local p="$1"
@@ -58,7 +59,6 @@ abs_path() {
     return 1
   fi
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_run() {
   echo ""
@@ -68,7 +68,6 @@ ask_run() {
   IFS= read -r "input?➤ "
   [[ -n "$input" ]]
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 confirm_yes() {
   echo ""
@@ -78,7 +77,6 @@ confirm_yes() {
   IFS= read -r "input?➤ "
   [[ "$input" == "YES" ]]
 }
-
 # 封装 inject_shellenv_block 对应的独立处理逻辑。
 inject_shellenv_block() {
   local profile_file="$1"
@@ -101,7 +99,6 @@ inject_shellenv_block() {
   fi
   eval "$shellenv_cmd" || true
 }
-
 # 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
 activate_homebrew_shellenv() {
   local arch="$(get_cpu_arch)"
@@ -125,7 +122,6 @@ activate_homebrew_shellenv() {
   inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
   eval "$(${brew_bin} shellenv)"
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_brew_health_update() {
   info_echo "正在执行 Homebrew 健康更新..."
@@ -136,7 +132,6 @@ run_brew_health_update() {
   brew -v      || warn_echo "打印 brew 版本失败，可忽略"
   success_echo "Homebrew 健康更新完成"
 }
-
 # 执行对应的环境配置或同步处理。
 install_homebrew() {
   local arch="$(get_cpu_arch)"
@@ -164,7 +159,6 @@ install_homebrew() {
     note_echo "已跳过 Homebrew 更新"
   fi
 }
-
 # 封装 brew_install_or_upgrade 对应的独立处理逻辑。
 brew_install_or_upgrade() {
   local formula="$1"
@@ -184,10 +178,15 @@ brew_install_or_upgrade() {
     fi
   fi
 }
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】⏳提取项目中所有的podspec.command'
+  print -r -- '核心用途：执行“⏳提取项目中所有的podspec”对应的自动化任务。'
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
   local readme_path="${SCRIPT_DIR}/README.md"
   if [[ -f "$readme_path" ]]; then
     highlight_echo "正在显示脚本自述文件：$readme_path"
@@ -199,7 +198,6 @@ show_readme_and_wait() {
   echo ""
   read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
 }
-
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
@@ -217,7 +215,6 @@ run_original_logic() {
   PODFILE_COUNT=0
   TOTAL_COUNT=0
   COPIED_SOURCE_LIST=''
-
   # 展示脚本用途和影响范围，并在执行前等待用户确认。
   print_intro() {
       printf "${BLUE}============================================================${NC}\n"
@@ -239,7 +236,6 @@ run_original_logic() {
       read -r _
       printf "\n"
   }
-
   # 封装 normalize_dragged_path 对应的独立处理逻辑。
   normalize_dragged_path() {
       local RAW_PATH="$1"
@@ -263,7 +259,6 @@ run_original_logic() {
 
       printf '%s\n' "$RAW_PATH"
   }
-
   # 封装 canonicalize_path 对应的独立处理逻辑。
   canonicalize_path() {
       local INPUT_PATH="$1"
@@ -288,7 +283,6 @@ run_original_logic() {
 
       printf '%s\n' "$INPUT_PATH"
   }
-
   # 解析并返回后续流程需要的目标信息。
   resolve_unix_symlink_path() {
       local INPUT_PATH="$1"
@@ -314,7 +308,6 @@ run_original_logic() {
 
       canonicalize_path "$LINK_TARGET"
   }
-
   # 解析并返回后续流程需要的目标信息。
   resolve_finder_alias_path() {
       local INPUT_PATH="$1"
@@ -339,7 +332,7 @@ run_original_logic() {
           return inputPath
       end try
   end run
-  APPLESCRIPT
+APPLESCRIPT
   )"
 
       if [ -n "$RESOLVED_PATH" ]; then
@@ -348,7 +341,6 @@ run_original_logic() {
           printf '%s\n' "$INPUT_PATH"
       fi
   }
-
   # 解析并返回后续流程需要的目标信息。
   resolve_real_path() {
       local INPUT_PATH="$1"
@@ -375,12 +367,10 @@ run_original_logic() {
 
       printf '%s\n' "$CURRENT_PATH"
   }
-
   # 解析并返回后续流程需要的目标信息。
   resolve_dragged_path() {
       resolve_real_path "$1"
   }
-
   # 封装 read_project_path 对应的独立处理逻辑。
   read_project_path() {
       local RAW_PATH
@@ -406,7 +396,6 @@ run_original_logic() {
           echo ""
       done
   }
-
   # 封装 create_output_dir 对应的独立处理逻辑。
   create_output_dir() {
       local DESKTOP_DIR="$HOME/Desktop"
@@ -417,19 +406,16 @@ run_original_logic() {
 
       mkdir -p "$OUTPUT_DIR"
   }
-
   # 封装 create_copied_source_list 对应的独立处理逻辑。
   create_copied_source_list() {
       COPIED_SOURCE_LIST="$(mktemp "/tmp/podspec_real_sources.XXXXXX")"
   }
-
   # 执行对应的清理操作，并保留必要的安全检查。
   cleanup_temp_files() {
       if [ -n "$COPIED_SOURCE_LIST" ] && [ -f "$COPIED_SOURCE_LIST" ]; then
           rm -f "$COPIED_SOURCE_LIST"
       fi
   }
-
   # 检查当前运行条件是否满足后续流程要求。
   is_podspec_path() {
       local INPUT_PATH="$1"
@@ -438,7 +424,6 @@ run_original_logic() {
       LOWER_PATH="$(printf '%s' "$INPUT_PATH" | tr '[:upper:]' '[:lower:]')"
       [[ "$LOWER_PATH" == *.podspec ]]
   }
-
   # 检查当前运行条件是否满足后续流程要求。
   has_copied_source() {
       local REAL_SOURCE_FILE="$1"
@@ -449,14 +434,12 @@ run_original_logic() {
 
       grep -F -x -q -- "$REAL_SOURCE_FILE" "$COPIED_SOURCE_LIST"
   }
-
   # 封装 record_copied_source 对应的独立处理逻辑。
   record_copied_source() {
       local REAL_SOURCE_FILE="$1"
 
       printf '%s\n' "$REAL_SOURCE_FILE" >> "$COPIED_SOURCE_LIST"
   }
-
   # 封装 make_unique_target_file 对应的独立处理逻辑。
   make_unique_target_file() {
       local SOURCE_FILE="$1"
@@ -490,7 +473,6 @@ run_original_logic() {
 
       echo "$OUTPUT_DIR/${NAME}_${INDEX}${EXT}"
   }
-
   # 封装 copy_to_output_dir 对应的独立处理逻辑。
   copy_to_output_dir() {
       local SOURCE_FILE="$1"
@@ -530,7 +512,6 @@ run_original_logic() {
       TOTAL_COUNT=$((TOTAL_COUNT + 1))
       return 0
   }
-
   # 封装 copy_podspec_files 对应的独立处理逻辑。
   copy_podspec_files() {
       local PODSPEC_FILE
@@ -541,7 +522,6 @@ run_original_logic() {
           fi
       done < <(find "$PROJECT_PATH" \( -type f -o -type l \) -iname "*.podspec" -print0)
   }
-
   # 封装 copy_podspec_alias_target_files 对应的独立处理逻辑。
   copy_podspec_alias_target_files() {
       local CANDIDATE_FILE
@@ -563,7 +543,6 @@ run_original_logic() {
           fi
       done < <(find "$PROJECT_PATH" \( -type f -o -type l \) \( -iname "*podspec*" -o -iname "*alias*" -o -iname "*替身*" -o -iname "*别名*" \) ! -iname "*.podspec" -print0)
   }
-
   # 封装 copy_root_podfile_by_name 对应的独立处理逻辑。
   copy_root_podfile_by_name() {
       local PODFILE_NAME="$1"
@@ -585,14 +564,12 @@ run_original_logic() {
           printf "${RED}未找到：%s${NC}\n" "$PODFILE_NAME"
       fi
   }
-
   # 封装 copy_root_podfiles 对应的独立处理逻辑。
   copy_root_podfiles() {
       copy_root_podfile_by_name "Podfile.deps"
       copy_root_podfile_by_name "Podfile"
       copy_root_podfile_by_name "Podfile.lock"
   }
-
   # 执行对应的清理操作，并保留必要的安全检查。
   remove_empty_output_dir_if_needed() {
       if [ "$TOTAL_COUNT" -eq 0 ]; then
@@ -601,7 +578,6 @@ run_original_logic() {
           exit 0
       fi
   }
-
   # 封装 print_result 对应的独立处理逻辑。
   print_result() {
       echo ""
@@ -610,12 +586,10 @@ run_original_logic() {
       echo "其中 Podfile 相关文件：$PODFILE_COUNT 个。"
       echo "输出目录：$OUTPUT_DIR"
   }
-
   # 封装 open_output_dir 对应的独立处理逻辑。
   open_output_dir() {
       open "$OUTPUT_DIR"
   }
-
   # 封装 make_unique_zip_file 对应的独立处理逻辑。
   make_unique_zip_file() {
       local ZIP_FILE="$OUTPUT_DIR.zip"
@@ -640,7 +614,6 @@ run_original_logic() {
 
       echo "$ZIP_DIR/${ZIP_NAME}_${INDEX}.zip"
   }
-
   # 收集并校验用户输入，决定后续执行路径。
   ask_zip_output_dir() {
       local USER_INPUT
@@ -667,7 +640,6 @@ run_original_logic() {
           return 1
       fi
   }
-
   # 统一收口脚本入口，仅委托已经拆分完成的业务流程。
   main() {
       trap cleanup_temp_files EXIT
@@ -706,18 +678,21 @@ run_original_logic() {
 
   # =========================== 原脚本业务逻辑区结束 ===========================
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
-  show_readme_and_wait
-  run_original_logic "$@"
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  : > "$LOG_FILE"
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_readme_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行 run_original_logic 对应的核心业务步骤。
+  run_original_logic "$@"
+  # 输出脚本执行结果、摘要和日志位置。
+  success_echo "脚本执行结束。日志：$LOG_FILE"
 }
 
 main "$@"

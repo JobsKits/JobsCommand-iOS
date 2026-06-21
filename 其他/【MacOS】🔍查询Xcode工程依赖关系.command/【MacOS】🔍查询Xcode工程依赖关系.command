@@ -1,11 +1,14 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：【MacOS】🔍查询Xcode工程依赖关系.command
+# - 核心用途：执行“🔍查询Xcode工程依赖关系”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
-set -u
 
 # ✅ 日志输出函数
 SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
 LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"                  # 设置对应的日志文件路径
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
@@ -34,14 +37,12 @@ gray_echo()      { log "\033[0;90m$1\033[0m"; }         # ⚫ 次要信息
 bold_echo()      { log "\033[1m$1\033[0m"; }            # 📝 加粗
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 underline_echo() { log "\033[4m$1\033[0m"; }            # 🔗 下划线
-
 # ✅ 自述信息
 print_banner() {
   highlight_echo "═════════════════════════════════════════════════════════════════════"
   highlight_echo "🔍 Podspec 依赖分析器 - 查询 Xcode / CocoaPods 工程依赖关系"
   highlight_echo "═════════════════════════════════════════════════════════════════════"
 }
-
 # ✅ 打印脚本说明
 # wait：显示自述后等待用户回车
 # skip：显示自述后不等待，适合已自动识别工程目录
@@ -66,7 +67,6 @@ print_readme() {
     success_echo "已自动识别工程目录，跳过回车确认，直接执行。"
   fi
 }
-
 # ✅ 处理终端拖入路径
 normalize_drag_path() {
   RAW_FOR_RUBY="$1" /usr/bin/ruby <<'RUBY'
@@ -87,7 +87,6 @@ end
 puts File.expand_path(s)
 RUBY
 }
-
 # ✅ 解析真实路径：支持普通目录、普通 symlink、Finder「替身」
 resolve_real_path() {
   local input_path="$1"
@@ -142,19 +141,16 @@ RUBY
 
   echo "$real_path"
 }
-
 # ✅ 判断目录是否可用：必须是目录，并且当前目录下直接包含 Podfile
 is_valid_project_dir() {
   local dir="$1"
   [[ -d "$dir" && -f "$dir/Podfile" ]]
 }
-
 # ✅ 获取脚本所在目录
 get_script_dir() {
   local script_path="${0:A}"
   dirname "$script_path"
 }
-
 # ✅ 最高优先级：自动检测脚本所在目录，以及脚本所在目录的上一层目录
 detect_target_dir_from_script_location() {
   local script_dir=""
@@ -182,7 +178,6 @@ detect_target_dir_from_script_location() {
   warn_echo "脚本所在目录及上一层目录均未发现 Podfile，需要手动拖入包含 Podfile 的目录。"
   return 1
 }
-
 # ✅ 手动拖入目录
 prompt_target_dir() {
   local raw_path=""
@@ -217,12 +212,10 @@ prompt_target_dir() {
     fi
   done
 }
-
 # ✅ 获取当前 CPU 架构
 get_cpu_arch() {
   /usr/bin/uname -m
 }
-
 # ✅ 根据架构推导 Homebrew 默认安装路径
 get_brew_bin_by_arch() {
   local arch="$1"
@@ -233,7 +226,6 @@ get_brew_bin_by_arch() {
     echo "/usr/local/bin/brew"
   fi
 }
-
 # ✅ 根据当前 shell 推导 profile 文件
 get_shell_profile_file() {
   local shell_path="${SHELL##*/}"
@@ -244,50 +236,7 @@ get_shell_profile_file() {
     *)    echo "$HOME/.profile" ;;
   esac
 }
-
 # ✅ 写入 Homebrew shellenv 到对应配置文件，并让当前终端立即生效
-inject_shellenv_block() {
-  local profile_file="$1"
-  local shellenv="$2"
-  local header="# >>> homebrew_env 环境变量 >>>"
-  local footer="# <<< homebrew_env 环境变量 <<<"
-  local tmp_file=""
-
-  if [[ -z "$profile_file" || -z "$shellenv" ]]; then
-    error_echo "缺少参数：inject_shellenv_block <profile_file> <shellenv>"
-    return 1
-  fi
-
-  mkdir -p "$(dirname "$profile_file")"
-  touch "$profile_file"
-
-  if grep -Fq "$shellenv" "$profile_file"; then
-    info_echo "Homebrew shellenv 已存在：$profile_file"
-  else
-    if grep -Fq "$header" "$profile_file"; then
-      warn_echo "检测到旧 Homebrew 环境变量块，将替换：$profile_file"
-      tmp_file="$(mktemp)"
-      /usr/bin/awk -v header="$header" -v footer="$footer" '
-        $0 == header { skip = 1; next }
-        $0 == footer { skip = 0; next }
-        skip != 1 { print }
-      ' "$profile_file" > "$tmp_file" && mv "$tmp_file" "$profile_file"
-    fi
-
-    {
-      echo ""
-      echo "$header"
-      echo "$shellenv"
-      echo "$footer"
-    } >> "$profile_file"
-
-    success_echo "已写入 Homebrew 环境变量：$profile_file"
-  fi
-
-  eval "$shellenv"
-  success_echo "Homebrew shellenv 已在当前终端生效"
-}
-
 # ✅ Homebrew 自检
 install_homebrew() {
   local arch="$(get_cpu_arch)"
@@ -371,7 +320,6 @@ install_homebrew() {
     fi
   fi
 }
-
 # ✅ 检查 Graphviz
 ensure_graphviz() {
   warm_echo ""
@@ -405,7 +353,6 @@ ensure_graphviz() {
     warn_echo "未检测到 dot 命令。动态 HTML 图仍会生成；PNG 图不会生成。"
   fi
 }
-
 # ✅ 创建报告输出目录：固定使用 PodspecDependencyReport，新的报告会覆盖旧数据
 prepare_report_dir() {
   local target_dir="$1"
@@ -419,7 +366,6 @@ prepare_report_dir() {
   mkdir -p "$report_dir"
   echo "$report_dir"
 }
-
 # ✅ 写入 Ruby 解析器
 write_generator_script() {
   local generator="$1"
@@ -2267,7 +2213,6 @@ puts md_path
 puts html_path
 RUBY
 }
-
 # ✅ 执行 Ruby 解析器
 run_generator() {
   local generator="$1"
@@ -2289,7 +2234,6 @@ run_generator() {
 
   success_echo "依赖报告生成完成。"
 }
-
 # ✅ 如果系统可用 dot，则额外生成 Graphviz PNG 图片
 generate_graphviz_png() {
   local report_dir="$1"
@@ -2311,7 +2255,6 @@ generate_graphviz_png() {
     warn_echo "未检测到 dot 命令，跳过 PNG 生成。"
   fi
 }
-
 # ✅ 打开主要产物
 open_outputs() {
   local report_dir="$1"
@@ -2328,44 +2271,120 @@ open_outputs() {
   warm_echo ""
   note_echo "推荐先看动态 HTML：$html_file（已内置 2D / 3D 视图切换）"
 }
-
-# ✅ 主流程
-run_main_flow() {
+# 打印脚本内置自述，并按运行入口决定是否等待用户确认。
+show_script_intro_and_wait() {
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】🔍查询Xcode工程依赖关系.command'
+  print -r -- '核心用途：执行“🔍查询Xcode工程依赖关系”对应的移动端项目自动化任务。'
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
+  if [[ ! -t 0 ]]; then
+    print -u2 -r -- '当前没有可交互输入，请在终端中重新运行。'
+    return 1
+  fi
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+}
+# 执行入口下沉后的完整业务流程和控制逻辑。
+run_main_business_flow() {
+  # 执行当前流程中的独立业务步骤：处理当前语句。
   : > "$LOG_FILE"
 
+  # 初始化当前流程后续步骤需要使用的变量。
   local target_dir=""
+  # 初始化当前流程后续步骤需要使用的变量。
   local report_dir=""
+  # 初始化当前流程后续步骤需要使用的变量。
   local generator=""
 
+  # 执行当前流程中的独立业务步骤：print_banner。
   print_banner
 
   # 1. 最高优先级：先检测脚本所在目录和上一层目录是否包含 Podfile。
   # 2. 自动检测成功时，不等待“准备好后按 Enter”，直接继续执行。
   # 3. 自动检测失败时，显示自述并等待回车，然后进入手动拖入目录流程。
   if detect_target_dir_from_script_location; then
+    # 执行当前流程中的独立业务步骤：print_readme。
     print_readme "skip"
   else
+    # 执行当前流程中的独立业务步骤：print_readme。
     print_readme "wait"
+    # 执行当前流程中的独立业务步骤：prompt_target_dir。
     prompt_target_dir
   fi
 
+  # 初始化当前流程后续步骤需要使用的变量。
   target_dir="$SELECTED_TARGET_DIR"
 
+  # 检查当前步骤所需的环境、路径或输入条件。
   ensure_graphviz
 
+  # 初始化当前流程后续步骤需要使用的变量。
   report_dir="$(prepare_report_dir "$target_dir")"
+  # 初始化当前流程后续步骤需要使用的变量。
   generator="$report_dir/.generate_podspec_dependency_report.rb"
 
+  # 执行当前流程中的独立业务步骤：write_generator_script。
   write_generator_script "$generator"
+  # 执行当前流程中的独立业务步骤：run_generator。
   run_generator "$generator" "$target_dir" "$report_dir"
+  # 执行当前流程中的独立业务步骤：generate_graphviz_png。
   generate_graphviz_png "$report_dir"
+  # 执行当前流程中的独立业务步骤：open_outputs。
   open_outputs "$report_dir"
 }
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+# 将 Homebrew shellenv 写入用户配置并在当前终端生效。
+inject_shellenv_block() {
+  local profile_file="$1"
+  local shellenv="$2"
+  local header="# >>> homebrew_env 环境变量 >>>"
+  local footer="# <<< homebrew_env 环境变量 <<<"
+  local tmp_file=""
+  if [[ -z "$profile_file" || -z "$shellenv" ]]; then
+    error_echo "缺少参数：inject_shellenv_block <profile_file> <shellenv>"
+    return 1
+  fi
+  mkdir -p "$(dirname "$profile_file")"
+  touch "$profile_file"
+  if grep -Fq "$shellenv" "$profile_file"; then
+    info_echo "Homebrew shellenv 已存在：$profile_file"
+  else
+    if grep -Fq "$header" "$profile_file"; then
+      warn_echo "检测到旧 Homebrew 环境变量块，将替换：$profile_file"
+      tmp_file="$(mktemp)"
+      /usr/bin/awk -v header="$header" -v footer="$footer" '
+        $0 == header { skip = 1; next }
+        $0 == footer { skip = 0; next }
+        skip != 1 { print }
+      ' "$profile_file" > "$tmp_file" && mv "$tmp_file" "$profile_file"
+    fi
 
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+    {
+      echo ""
+      echo "$header"
+      echo "$shellenv"
+      echo "$footer"
+    } >> "$profile_file"
+
+    success_echo "已写入 Homebrew 环境变量：$profile_file"
+  fi
+  eval "$shellenv"
+  success_echo "Homebrew shellenv 已在当前终端生效"
+}
+# 初始化脚本运行环境和后续流程所需状态。
+initialize_script_runtime() {
+  set -u
+}
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_script_intro_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行入口下沉后的完整业务流程。
+  run_main_business_flow "$@"
 }
 
 main "$@"

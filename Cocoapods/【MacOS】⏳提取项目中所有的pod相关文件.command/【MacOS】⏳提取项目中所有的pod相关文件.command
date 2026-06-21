@@ -1,6 +1,10 @@
 #!/bin/bash
+# 脚本自述：
+# - 脚本名称：【MacOS】⏳提取项目中所有的pod相关文件.command
+# - 核心用途：执行“⏳提取项目中所有的pod相关文件”对应的移动端项目自动化任务。
+# - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
-set -u
 
 RED='\033[31m'
 GREEN='\033[32m'
@@ -14,7 +18,6 @@ PODSPEC_COUNT=0
 PODFILE_COUNT=0
 TOTAL_COUNT=0
 COPIED_SOURCE_LIST=''
-
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 print_intro() {
     printf "${BLUE}============================================================${NC}\n"
@@ -36,7 +39,6 @@ print_intro() {
     read -r _
     printf "\n"
 }
-
 # 封装 normalize_dragged_path 对应的独立处理逻辑。
 normalize_dragged_path() {
     local RAW_PATH="$1"
@@ -60,7 +62,6 @@ normalize_dragged_path() {
 
     printf '%s\n' "$RAW_PATH"
 }
-
 # 封装 canonicalize_path 对应的独立处理逻辑。
 canonicalize_path() {
     local INPUT_PATH="$1"
@@ -85,7 +86,6 @@ canonicalize_path() {
 
     printf '%s\n' "$INPUT_PATH"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_unix_symlink_path() {
     local INPUT_PATH="$1"
@@ -111,7 +111,6 @@ resolve_unix_symlink_path() {
 
     canonicalize_path "$LINK_TARGET"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_finder_alias_path() {
     local INPUT_PATH="$1"
@@ -145,7 +144,6 @@ APPLESCRIPT
         printf '%s\n' "$INPUT_PATH"
     fi
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_real_path() {
     local INPUT_PATH="$1"
@@ -172,12 +170,10 @@ resolve_real_path() {
 
     printf '%s\n' "$CURRENT_PATH"
 }
-
 # 解析并返回后续流程需要的目标信息。
 resolve_dragged_path() {
     resolve_real_path "$1"
 }
-
 # 封装 read_project_path 对应的独立处理逻辑。
 read_project_path() {
     local RAW_PATH
@@ -203,7 +199,6 @@ read_project_path() {
         echo ""
     done
 }
-
 # 封装 create_output_dir 对应的独立处理逻辑。
 create_output_dir() {
     local DESKTOP_DIR="$HOME/Desktop"
@@ -214,19 +209,16 @@ create_output_dir() {
 
     mkdir -p "$OUTPUT_DIR"
 }
-
 # 封装 create_copied_source_list 对应的独立处理逻辑。
 create_copied_source_list() {
     COPIED_SOURCE_LIST="$(mktemp "/tmp/podspec_real_sources.XXXXXX")"
 }
-
 # 执行对应的清理操作，并保留必要的安全检查。
 cleanup_temp_files() {
     if [ -n "$COPIED_SOURCE_LIST" ] && [ -f "$COPIED_SOURCE_LIST" ]; then
         rm -f "$COPIED_SOURCE_LIST"
     fi
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 is_podspec_path() {
     local INPUT_PATH="$1"
@@ -235,7 +227,6 @@ is_podspec_path() {
     LOWER_PATH="$(printf '%s' "$INPUT_PATH" | tr '[:upper:]' '[:lower:]')"
     [[ "$LOWER_PATH" == *.podspec ]]
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 has_copied_source() {
     local REAL_SOURCE_FILE="$1"
@@ -246,14 +237,12 @@ has_copied_source() {
 
     grep -F -x -q -- "$REAL_SOURCE_FILE" "$COPIED_SOURCE_LIST"
 }
-
 # 封装 record_copied_source 对应的独立处理逻辑。
 record_copied_source() {
     local REAL_SOURCE_FILE="$1"
 
     printf '%s\n' "$REAL_SOURCE_FILE" >> "$COPIED_SOURCE_LIST"
 }
-
 # 封装 make_unique_target_file 对应的独立处理逻辑。
 make_unique_target_file() {
     local SOURCE_FILE="$1"
@@ -287,7 +276,6 @@ make_unique_target_file() {
 
     echo "$OUTPUT_DIR/${NAME}_${INDEX}${EXT}"
 }
-
 # 封装 make_unique_target_dir 对应的独立处理逻辑。
 make_unique_target_dir() {
     local DIR_NAME="$1"
@@ -307,7 +295,6 @@ make_unique_target_dir() {
 
     echo "$OUTPUT_DIR/${DIR_NAME}_${INDEX}"
 }
-
 # 解析并返回后续流程需要的目标信息。
 get_jobs_podspec_kit_file() {
     local PODSPEC_FILE="$1"
@@ -321,7 +308,6 @@ get_jobs_podspec_kit_file() {
         printf '%s\n' "$KIT_FILE"
     fi
 }
-
 # 封装 copy_jobs_podspec_kit_to_dir 对应的独立处理逻辑。
 copy_jobs_podspec_kit_to_dir() {
     local KIT_FILE="$1"
@@ -351,7 +337,6 @@ copy_jobs_podspec_kit_to_dir() {
     TOTAL_COUNT=$((TOTAL_COUNT + 1))
     return 0
 }
-
 # 封装 copy_podspec_to_output_dir 对应的独立处理逻辑。
 copy_podspec_to_output_dir() {
     local SOURCE_FILE="$1"
@@ -408,7 +393,6 @@ copy_podspec_to_output_dir() {
 
     return 0
 }
-
 # 封装 copy_to_output_dir 对应的独立处理逻辑。
 copy_to_output_dir() {
     local SOURCE_FILE="$1"
@@ -448,7 +432,6 @@ copy_to_output_dir() {
     TOTAL_COUNT=$((TOTAL_COUNT + 1))
     return 0
 }
-
 # 封装 copy_podspec_files 对应的独立处理逻辑。
 copy_podspec_files() {
     local PODSPEC_FILE
@@ -459,7 +442,6 @@ copy_podspec_files() {
         fi
     done < <(find "$PROJECT_PATH" \( -type f -o -type l \) -iname "*.podspec" -print0)
 }
-
 # 封装 copy_podspec_alias_target_files 对应的独立处理逻辑。
 copy_podspec_alias_target_files() {
     local CANDIDATE_FILE
@@ -481,7 +463,6 @@ copy_podspec_alias_target_files() {
         fi
     done < <(find "$PROJECT_PATH" \( -type f -o -type l \) \( -iname "*podspec*" -o -iname "*alias*" -o -iname "*替身*" -o -iname "*别名*" \) ! -iname "*.podspec" -print0)
 }
-
 # 封装 copy_root_podfile_by_name 对应的独立处理逻辑。
 copy_root_podfile_by_name() {
     local PODFILE_NAME="$1"
@@ -503,14 +484,12 @@ copy_root_podfile_by_name() {
         printf "${RED}未找到：%s${NC}\n" "$PODFILE_NAME"
     fi
 }
-
 # 封装 copy_root_podfiles 对应的独立处理逻辑。
 copy_root_podfiles() {
     copy_root_podfile_by_name "Podfile.deps"
     copy_root_podfile_by_name "Podfile"
     copy_root_podfile_by_name "Podfile.lock"
 }
-
 # 执行对应的清理操作，并保留必要的安全检查。
 remove_empty_output_dir_if_needed() {
     if [ "$TOTAL_COUNT" -eq 0 ]; then
@@ -519,7 +498,6 @@ remove_empty_output_dir_if_needed() {
         exit 0
     fi
 }
-
 # 封装 print_result 对应的独立处理逻辑。
 print_result() {
     echo ""
@@ -528,12 +506,10 @@ print_result() {
     echo "其中 Podfile 相关文件：$PODFILE_COUNT 个。"
     echo "输出目录：$OUTPUT_DIR"
 }
-
 # 封装 open_output_dir 对应的独立处理逻辑。
 open_output_dir() {
     open "$OUTPUT_DIR"
 }
-
 # 封装 make_unique_zip_file 对应的独立处理逻辑。
 make_unique_zip_file() {
     local ZIP_FILE="$OUTPUT_DIR.zip"
@@ -558,7 +534,6 @@ make_unique_zip_file() {
 
     echo "$ZIP_DIR/${ZIP_NAME}_${INDEX}.zip"
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 ask_zip_output_dir() {
     local USER_INPUT
@@ -585,9 +560,23 @@ ask_zip_output_dir() {
         return 1
     fi
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
+# 打印脚本内置自述，并按运行入口决定是否等待用户确认。
+show_script_intro_and_wait() {
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：【MacOS】⏳提取项目中所有的pod相关文件.command'
+  print -r -- '核心用途：执行“⏳提取项目中所有的pod相关文件”对应的自动化任务。'
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
+  if [[ ! -t 0 ]]; then
+    print -u2 -r -- '当前没有可交互输入，请在终端中重新运行。'
+    return 1
+  fi
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+}
+# 执行入口下沉后的完整业务流程和控制逻辑。
+run_main_business_flow() {
+    # 注册退出处理，确保异常中断时仍能执行必要收尾。
     trap cleanup_temp_files EXIT
 
     # 1. 打印脚本自述，并等待用户确认开始。
@@ -598,6 +587,7 @@ run_main_flow() {
 
     # 3. 在桌面创建本次导出的目标文件夹。
     create_output_dir
+    # 执行当前流程中的独立业务步骤：create_copied_source_list。
     create_copied_source_list
 
     # 4. 递归复制项目中的 .podspec 文件。
@@ -614,16 +604,25 @@ run_main_flow() {
 
     # 8. 打印统计结果，并打开输出目录。
     print_result
+    # 执行当前流程中的独立业务步骤：open_output_dir。
     open_output_dir
 
     # 9. 执行完毕后询问是否需要将输出目录打包成 zip。
     ask_zip_output_dir
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  set -u
+}
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_script_intro_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行入口下沉后的完整业务流程。
+  run_main_business_flow "$@"
 }
 
 main "$@"
