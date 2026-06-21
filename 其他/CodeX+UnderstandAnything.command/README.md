@@ -1,5 +1,13 @@
 # CodeX+UnderstandAnything.command
 
+![Jobs出品，必属精品](https://picsum.photos/1500/400)
+
+[toc]
+
+---
+
+## 🔥 <font id=前言>前言</font>
+
 这个脚本用于在 **需要时** 为 Xcode/iOS 工程启动 **Codex + Understand Anything**，生成代码图谱。它不建议挂到 `pod install`，因为 `/understand` 依赖 AI/Codex 算力，频繁执行会消耗额度并拖慢安装流程。
 
 ## 文件结构

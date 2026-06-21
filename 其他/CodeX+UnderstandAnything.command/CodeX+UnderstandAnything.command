@@ -1,12 +1,15 @@
 #!/bin/zsh
+# 脚本自述：
+# - 脚本名称：CodeX+UnderstandAnything.command
+# - 核心用途：执行“CodeX+UnderstandAnything”对应的本机环境配置任务。
+# - 影响范围：可能安装、更新或修改当前用户的工具链与配置文件。
+# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # ==============================================================================
 # CodeX+UnderstandAnything.command
 # 用途：在需要时，通过 Codex + Understand Anything 为 Xcode/iOS 工程生成代码图谱。
 # 说明：Understand Anything 依赖 AI/Codex 算力，本脚本不挂 pod install，避免高频消耗。
 # ==============================================================================
 
-set -u
-setopt NO_NOMATCH
 
 APP_NAME="CodeX+UnderstandAnything"
 UA_REPO="$HOME/.understand-anything/repo"
@@ -18,24 +21,20 @@ SCRIPT_PARENT_DIR="${SCRIPT_DIR:h}"
 
 PROJECT_ROOT=""
 typeset -ga XCODE_ITEMS
-
 # 按当前输出级别记录终端信息，并同步写入脚本日志。
 log() {
   print -r -- "[$(date '+%Y-%m-%d %H:%M:%S')] $*"
 }
-
 # 封装 line 对应的独立处理逻辑。
 line() {
   print -r -- "────────────────────────────────────────────────────────────"
 }
-
 # 封装 pause_to_exit 对应的独立处理逻辑。
 pause_to_exit() {
   print
   print -n "按回车退出："
   read -r _unused
 }
-
 # 封装 print_header 对应的独立处理逻辑。
 print_header() {
   clear 2>/dev/null || true
@@ -47,7 +46,6 @@ print_header() {
   log "脚本上级目录：${SCRIPT_PARENT_DIR}"
   line
 }
-
 # 封装 normalize_user_path 对应的独立处理逻辑。
 normalize_user_path() {
   local raw="$1"
@@ -74,14 +72,12 @@ normalize_user_path() {
 
   print -r -- "$raw"
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 is_xcode_item_path() {
   local path="$1"
   local lower="${path:l}"
   [[ -d "$path" && ( "$lower" == *.xcworkspace || "$lower" == *.xcodeproj ) ]]
 }
-
 # 封装 scan_xcode_items_in_dir 对应的独立处理逻辑。
 scan_xcode_items_in_dir() {
   local dir="$1"
@@ -101,7 +97,6 @@ scan_xcode_items_in_dir() {
 
   (( ${#XCODE_ITEMS[@]} > 0 ))
 }
-
 # 封装 print_found_xcode_items 对应的独立处理逻辑。
 print_found_xcode_items() {
   local root="$1"
@@ -115,7 +110,6 @@ print_found_xcode_items() {
   done
   line
 }
-
 # 收集并校验用户输入，决定后续执行路径。
 confirm_project_root() {
   local root="$1"
@@ -125,7 +119,6 @@ confirm_project_root() {
   read -r ans
   [[ -z "$ans" ]]
 }
-
 # 封装 try_set_project_root_from_dir 对应的独立处理逻辑。
 try_set_project_root_from_dir() {
   local dir="$1"
@@ -142,7 +135,6 @@ try_set_project_root_from_dir() {
 
   return 1
 }
-
 # 封装 try_set_project_root_from_input_path 对应的独立处理逻辑。
 try_set_project_root_from_input_path() {
   local input_path="$1"
@@ -166,7 +158,6 @@ try_set_project_root_from_input_path() {
   log "❌ 路径不存在，或不是目录 / .xcworkspace / .xcodeproj：${candidate}"
   return 1
 }
-
 # 解析并返回后续流程需要的目标信息。
 locate_project_root() {
   log "开始查找 Xcode/iOS 工程根目录。查找规则："
@@ -213,7 +204,6 @@ locate_project_root() {
     log "未能确认有效工程，请重新输入。"
   done
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 check_codex_health() {
   line
@@ -240,7 +230,6 @@ check_codex_health() {
 
   return 0
 }
-
 # 执行对应的环境配置或同步处理。
 install_understand_anything_for_codex() {
   line
@@ -269,7 +258,6 @@ install_understand_anything_for_codex() {
   log "⚠️  安装命令执行完成，但未检测到预期目录：${UA_REPO}"
   return 1
 }
-
 # 执行对应的环境配置或同步处理。
 upgrade_understand_anything_if_needed() {
   line
@@ -320,7 +308,6 @@ upgrade_understand_anything_if_needed() {
   log "✅ Understand Anything 升级完成。"
   return 0
 }
-
 # 检查当前运行条件是否满足后续流程要求。
 check_understand_anything_health() {
   line
@@ -335,7 +322,6 @@ check_understand_anything_health() {
   install_understand_anything_for_codex
   return $?
 }
-
 # 封装 print_usage_logs 对应的独立处理逻辑。
 print_usage_logs() {
   line
@@ -367,7 +353,6 @@ print_usage_logs() {
   print -r -- "注意：/understand 会消耗 Codex/AI 额度；不要把它挂到高频 pod install。"
   line
 }
-
 # 封装 launch_codex_prompt 对应的独立处理逻辑。
 launch_codex_prompt() {
   print
@@ -393,41 +378,81 @@ launch_codex_prompt() {
   cd "$PROJECT_ROOT" || return 1
   codex
 }
-
-# 编排完整业务流程，复杂步骤继续下沉到职责明确的函数。
-run_main_flow() {
+# 打印脚本内置自述，并按运行入口决定是否等待用户确认。
+show_script_intro_and_wait() {
+  print -r -- '============================== 脚本内置自述 =============================='
+  print -r -- '脚本名称：CodeX+UnderstandAnything.command'
+  print -r -- '核心用途：执行“CodeX+UnderstandAnything”对应的自动化任务。'
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
+  print -r -- '============================================================================'
+  if [[ ! -t 0 ]]; then
+    print -u2 -r -- '当前没有可交互输入，请在终端中重新运行。'
+    return 1
+  fi
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+}
+# 执行入口下沉后的完整业务流程和控制逻辑。
+run_main_business_flow() {
+  # 执行当前流程中的独立业务步骤：print_header。
   print_header
 
+  # 根据当前条件选择对应的执行分支。
   if ! locate_project_root; then
+    # 执行当前流程中的独立业务步骤：log。
     log "❌ 未能定位 Xcode/iOS 工程根目录。"
+    # 执行当前流程中的独立业务步骤：pause_to_exit。
     pause_to_exit
+    # 执行当前流程中的独立业务步骤：exit。
     exit 1
   fi
 
+  # 根据当前条件选择对应的执行分支。
   if ! check_codex_health; then
+    # 执行当前流程中的独立业务步骤：pause_to_exit。
     pause_to_exit
+    # 执行当前流程中的独立业务步骤：exit。
     exit 1
   fi
 
+  # 根据当前条件选择对应的执行分支。
   if ! check_understand_anything_health; then
+    # 执行当前流程中的独立业务步骤：log。
     log "❌ Understand Anything 健康体检未通过。"
+    # 执行当前流程中的独立业务步骤：pause_to_exit。
     pause_to_exit
+    # 执行当前流程中的独立业务步骤：exit。
     exit 1
   fi
 
+  # 执行当前流程中的独立业务步骤：log。
   log "✅ 健康体检通过。"
+  # 执行当前流程中的独立业务步骤：print_usage_logs。
   print_usage_logs
+  # 执行当前流程中的独立业务步骤：launch_codex_prompt。
   launch_codex_prompt
 
+  # 输出当前步骤的提示或执行进度。
   print
+  # 执行当前流程中的独立业务步骤：log。
   log "脚本流程结束。"
+  # 执行当前流程中的独立业务步骤：pause_to_exit。
   pause_to_exit
 }
-
-# 统一收口脚本入口，仅委托已经拆分完成的业务流程。
+# 编排脚本的高层业务流程。
+# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
+initialize_script_runtime() {
+  set -u
+  setopt NO_NOMATCH
+}
+# 编排脚本的高层业务流程。
 main() {
-  # 主入口只负责委托完整业务流程，复杂逻辑统一下沉。
-  run_main_flow "$@"
+  # 展示脚本内置自述，并按运行入口完成防误触确认。
+  show_script_intro_and_wait
+  # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  initialize_script_runtime
+  # 执行入口下沉后的完整业务流程。
+  run_main_business_flow "$@"
 }
 
 main "$@"
