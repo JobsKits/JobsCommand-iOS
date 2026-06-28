@@ -179,7 +179,7 @@ brew_install_or_upgrade() {
   fi
 }
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
-show_readme_and_wait() {
+show_script_intro_and_wait() {
   clear
   print -r -- '============================== 脚本内置自述 =============================='
   print -r -- '脚本名称：【MacOS】⏬双击下载SourceTree效率脚本.command'
@@ -187,16 +187,8 @@ show_readme_and_wait() {
   print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
-  local readme_path="${SCRIPT_DIR}/README.md"
-  if [[ -f "$readme_path" ]]; then
-    highlight_echo "正在显示脚本自述文件：$readme_path"
-    echo ""
-    cat "$readme_path" | tee -a "$LOG_FILE"
-  else
-    warn_echo "未找到 README.md：$readme_path"
-  fi
   echo ""
-  read "?👉 请先阅读上面的自述文件，按回车继续执行，或按 Ctrl+C 取消..."
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
@@ -245,7 +237,7 @@ initialize_script_runtime() {
 # 编排脚本的高层业务流程。
 main() {
   # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_readme_and_wait
+  show_script_intro_and_wait
   # 初始化 Shell 选项、日志、依赖和入口运行状态。
   initialize_script_runtime
   # 执行 run_original_logic 对应的核心业务步骤。

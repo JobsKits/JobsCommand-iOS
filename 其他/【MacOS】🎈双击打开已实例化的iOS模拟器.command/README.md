@@ -11,7 +11,7 @@
 - 本自述文件对应脚本：`【MacOS】🎈双击打开已实例化的iOS模拟器.command`。
 - 脚本原始位置：`JobsGenesis@JobsCommand.iOS/其他`。
 - 脚本定位：处理 iOS / Xcode / 模拟器 / ipa 打包相关流程。
-- 本次已按 Jobs 标准升级：`#!/bin/zsh`、README 防误触、彩色日志、结构化入口、`main "$@"` 收口。
+- 本次已按 Jobs 标准升级：`# shell: zsh`、README 防误触、彩色日志、结构化入口、`main "$@"` 收口。
 - 普通安装 / 更新 / 升级交互统一为：**回车跳过，输入任意字符后回车执行**。
 - 危险操作不应该靠回车默认执行；涉及破坏性修改时，应单独输入 `YES` 确认。
 
@@ -40,9 +40,9 @@ chmod +x './【MacOS】🎈双击打开已实例化的iOS模拟器.command'
 
 ## 三、本次升级内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-- 统一脚本解释器为 `#!/bin/zsh`。
+- 统一脚本解释器为 `# shell: zsh`。
 - 增加 README 展示与回车阻塞，防止双击误操作。
-- 增加 Jobs 标准彩色日志函数，日志路径为 `/tmp/脚本名.log`。
+- 增加 Jobs 标准彩色日志函数，日志路径为 `$TMPDIR/脚本名.log`。
 - 增加 `SCRIPT_DIR` / `SCRIPT_PATH` 标准路径变量。
 - 使用 `main "$@"` 作为统一入口。
 - 原业务逻辑保留在 `run_original_logic` 模块内，方便后续继续拆分重构。
@@ -52,8 +52,8 @@ chmod +x './【MacOS】🎈双击打开已实例化的iOS模拟器.command'
 若脚本涉及 Homebrew，统一遵循下面的健康标准：
 
 - 自动识别 `arm64` / `x86_64`。
-- Apple Silicon 优先使用 `/opt/homebrew/bin/brew`。
-- Intel 优先使用 `/usr/local/bin/brew`。
+- Apple Silicon 优先使用 `$(brew --prefix)/bin/brew`。
+- Intel 优先使用 `$(brew --prefix)/bin/brew`。
 - 自动把 `brew shellenv` 写入当前 shell 对应配置文件。
 - 当前会话立即 `eval "$({brew_bin} shellenv)"` 生效。
 - 已安装时不强制升级，而是询问：**回车跳过，输入任意字符后回车升级**。
@@ -65,7 +65,7 @@ chmod +x './【MacOS】🎈双击打开已实例化的iOS模拟器.command'
 - 首次运行前建议先阅读本 README，再执行脚本。
 - 如果脚本涉及工程目录，请确认当前目录或拖入路径正确。
 - 如果脚本涉及 Git / CocoaPods / Flutter 依赖更新，建议先提交或备份本地改动。
-- 运行日志默认写入：`/tmp/【MacOS】🎈双击打开已实例化的iOS模拟器.log`。
+- 运行日志默认写入：`$TMPDIR/【MacOS】🎈双击打开已实例化的iOS模拟器.log`。
 
 ## 六、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 

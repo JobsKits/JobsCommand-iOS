@@ -148,7 +148,7 @@ graph TD
 这个目录通常类似：
 
 ```text
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/JobsByPods
+~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
 脚本会在该目录下查找 `.podspec`，但只接受根目录或一级子目录内的 `.podspec`。
@@ -257,15 +257,15 @@ Podfile.lock
 例如本地 Pod 管理目录是：
 
 ```text
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/JobsByPods
+~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
 那么默认目标就是：
 
 ```text
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/Podfile
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/Podfile.deps
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/Podfile.lock
+~/Desktop/JobsOCBaseConfigDemo/Podfile
+~/Desktop/JobsOCBaseConfigDemo/Podfile.deps
+~/Desktop/JobsOCBaseConfigDemo/Podfile.lock
 ```
 
 默认位置不存在时，脚本会要求你手动拖入目标文件，或者拖入包含目标文件的文件夹。
@@ -295,7 +295,7 @@ Podfile.lock
 
 ### 9、临时文件清理
 
-脚本运行过程中会在 `/tmp` 下创建临时索引文件，用于记录来源、目标和已处理文件名。
+脚本运行过程中会在 `$TMPDIR` 下创建临时索引文件，用于记录来源、目标和已处理文件名。
 
 脚本退出时会自动清理这些临时文件。
 
@@ -409,13 +409,13 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 拖入：
 
 ```text
-/Users/jobs/Desktop/JobsOCBaseConfigDemo/JobsByPods
+~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
 脚本会解析并打印：
 
 ```text
-已解析本地 Pod 管理目录：/Users/jobs/Desktop/JobsOCBaseConfigDemo/JobsByPods
+已解析本地 Pod 管理目录：~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
 ### 4、第二步拖入待放回目录
@@ -429,13 +429,13 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 拖入：
 
 ```text
-/Users/jobs/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
+~/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
 ```
 
 脚本会解析并打印：
 
 ```text
-已解析待放回目录：/Users/jobs/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
+已解析待放回目录：~/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
 ```
 
 ### 5、确认 `Podfile` 三件套
@@ -645,10 +645,10 @@ find JobsByPods -name JobsPodspecKit.rb -print
 
 ## 十、日志文件
 
-运行日志默认写入 `/tmp`，文件名通常来自脚本名去掉扩展名：
+运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 
 ```shell
-/tmp/【MacOS】♻️放回本地Pod的podspec.log
+$TMPDIR/【MacOS】♻️放回本地Pod的podspec.log
 ```
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

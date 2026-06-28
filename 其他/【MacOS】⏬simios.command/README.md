@@ -65,10 +65,10 @@ xcodebuild -downloadPlatform iOS -verbose
 
 ## 五、日志文件
 
-运行日志默认写入 `/tmp`，文件名通常来自脚本名去掉扩展名：
+运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 
 ```shell
-/tmp/【MacOS】⏬simios.log
+$TMPDIR/【MacOS】⏬simios.log
 ```
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

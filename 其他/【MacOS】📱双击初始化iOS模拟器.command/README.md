@@ -33,7 +33,7 @@
 | 是否可能联网 | 是。首次安装 Homebrew / fzf 或选择升级时会联网 |
 | 是否可能修改环境 | 是。首次安装 Homebrew 时可能写入 shell 配置文件 |
 | 是否含高风险操作 | 是。强制关闭模拟器必须输入 `YES` |
-| 日志位置 | `/tmp/【MacOS】📱双击初始化iOS模拟器.log` |
+| 日志位置 | `$TMPDIR/【MacOS】📱双击初始化iOS模拟器.log` |
 
 ## 三、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
@@ -41,7 +41,7 @@
 - 终端方式：
 
   ```shell
-  cd '/Users/jobs/Documents/Github/JobsGenesis/JobsCommand@iOS/其他/【MacOS】📱双击初始化iOS模拟器.command'
+  cd '.'
   chmod +x './【MacOS】📱双击初始化iOS模拟器.command'
   './【MacOS】📱双击初始化iOS模拟器.command'
   ```
@@ -126,7 +126,7 @@ graph TD
 
 - 日志在哪里看：
 
-  默认日志为 `/tmp/【MacOS】📱双击初始化iOS模拟器.log`，终端输出会同步写入该文件。
+  默认日志为 `$TMPDIR/【MacOS】📱双击初始化iOS模拟器.log`，终端输出会同步写入该文件。
 
 ## 九、风险边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
