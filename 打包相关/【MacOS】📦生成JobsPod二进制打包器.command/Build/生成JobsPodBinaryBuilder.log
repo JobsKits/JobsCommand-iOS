@@ -1,0 +1,8 @@
+生成器：【MacOS】📦生成JobsPod二进制打包器.command
+源码目录：/Users/jobs/Documents/Codex/2026-07-30/wo-m-2/outputs/【MacOS】📦生成JobsPod二进制打包器.command/JobsPodBinaryBuilder/Sources
+Swift 编译器：/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/swiftc
+暂存目录：/var/folders/r6/sb0vlrj92qg__pr4zcc4nznm0000gn/T//JobsPodBinaryBuilder.V0PEBv
+开始编译原生 macOS App…
+正在进行本机临时代码签名…
+/var/folders/r6/sb0vlrj92qg__pr4zcc4nznm0000gn/T//JobsPodBinaryBuilder.V0PEBv/JobsPodBinaryBuilder.app: replacing existing signature
+已生成：/Users/jobs/Documents/Codex/2026-07-30/wo-m-2/outputs/【MacOS】📦生成JobsPod二进制打包器.command/Build/JobsPodBinaryBuilder.app
