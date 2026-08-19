@@ -7,6 +7,8 @@ typeset -gr SCRIPT_PATH="${0:A}"
 typeset -gr SCRIPT_DIR="${SCRIPT_PATH:h}"
 typeset -gr SCRIPT_BASENAME="${SCRIPT_PATH:t}"
 typeset -gr SOURCE_DIR="${SCRIPT_DIR}/JobsPodBinaryBuilder/Sources"
+typeset -gr RESOURCE_DIR="${SCRIPT_DIR}/JobsPodBinaryBuilder/Resources"
+typeset -gr APP_ICON_SOURCE="${RESOURCE_DIR}/JobsPodBinaryBuilder.icns"
 typeset -gr BUILD_DIR="${SCRIPT_DIR}/Build"
 typeset -gr APP_BUNDLE="${BUILD_DIR}/JobsPodBinaryBuilder.app"
 typeset -gr LOG_FILE="${BUILD_DIR}/生成JobsPodBinaryBuilder.log"
@@ -57,6 +59,7 @@ check_environment() {
   /usr/bin/xcrun --find swiftc >/dev/null 2>&1 || die "Xcode 中没有可用的 swiftc。"
   local source_files=("${SOURCE_DIR}"/*.swift)
   [[ -e "${source_files[1]}" ]] || die "没有找到 Swift 源码：${SOURCE_DIR}"
+  [[ -f "${APP_ICON_SOURCE}" ]] || die "没有找到 App 图标：${APP_ICON_SOURCE}"
   log_line "Swift 编译器：$(/usr/bin/xcrun --find swiftc)"
 }
 
@@ -65,8 +68,15 @@ prepare_app_bundle() {
   STAGING_DIR="$(/usr/bin/mktemp -d "${TMPDIR:-/tmp}/JobsPodBinaryBuilder.XXXXXX")"
   /bin/mkdir -p "${STAGING_DIR}/JobsPodBinaryBuilder.app/Contents/MacOS"
   /bin/mkdir -p "${STAGING_DIR}/JobsPodBinaryBuilder.app/Contents/Resources"
+  install_app_resources
   write_info_plist
   log_line "暂存目录：${STAGING_DIR}"
+}
+
+# 把随包图标复制到标准 App Bundle 资源目录。
+install_app_resources() {
+  /bin/cp "${APP_ICON_SOURCE}" \
+    "${STAGING_DIR}/JobsPodBinaryBuilder.app/Contents/Resources/JobsPodBinaryBuilder.icns"
 }
 
 # 使用 plutil 生成 App 的 Info.plist，避免依赖额外模板工具。
@@ -79,6 +89,7 @@ write_info_plist() {
   /usr/bin/plutil -insert CFBundleInfoDictionaryVersion -string "6.0" "${plist_path}"
   /usr/bin/plutil -insert CFBundleName -string "JobsPodBinaryBuilder" "${plist_path}"
   /usr/bin/plutil -insert CFBundleDisplayName -string "Jobs Pod 二进制打包器" "${plist_path}"
+  /usr/bin/plutil -insert CFBundleIconFile -string "JobsPodBinaryBuilder.icns" "${plist_path}"
   /usr/bin/plutil -insert CFBundlePackageType -string "APPL" "${plist_path}"
   /usr/bin/plutil -insert CFBundleShortVersionString -string "1.0.0" "${plist_path}"
   /usr/bin/plutil -insert CFBundleVersion -string "1" "${plist_path}"

@@ -3,9 +3,22 @@
 <plist version="1.0">
 <dict>
 	<key>files</key>
-	<dict/>
+	<dict>
+		<key>Resources/JobsPodBinaryBuilder.icns</key>
+		<data>
+		Md8+hcJSKcIO/0SToWCJf7d2S7k=
+		</data>
+	</dict>
 	<key>files2</key>
-	<dict/>
+	<dict>
+		<key>Resources/JobsPodBinaryBuilder.icns</key>
+		<dict>
+			<key>hash2</key>
+			<data>
+			rtWMe5QciL1OphBSzPj3s2xVWMXleTXzT33TOXBBfaU=
+			</data>
+		</dict>
+	</dict>
 	<key>rules</key>
 	<dict>
 		<key>^Resources/</key>

@@ -250,6 +250,8 @@ struct PreparedBuildSession {
 struct CommandResult {
     let exitCode: Int32
     let output: String
+    let standardOutput: String
+    let standardError: String
 }
 
 enum BuilderError: LocalizedError {

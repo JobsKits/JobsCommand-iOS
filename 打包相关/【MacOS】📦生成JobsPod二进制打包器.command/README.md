@@ -1,6 +1,6 @@
-![Jobs出品，必属精品](https://picsum.photos/1500/400)
-
 # Jobs Pod 二进制打包器
+
+![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
 [toc]
 
@@ -14,17 +14,19 @@
 【MacOS】📦生成JobsPod二进制打包器.command
 ```
 
-双击后，脚本先打印固定说明并等待回车。确认后，它使用本机 Xcode 自带的 Swift 编译器，在同级 `Build` 目录生成并启动：
+双击后，脚本先打印固定说明并等待回车。确认后，它使用本机 [**Xcode**](https://developer.apple.com/xcode) 自带的 [**Swift**](https://www.swift.org/) 编译器，在同级 `Build` 目录生成并启动：
 
 ```text
 JobsPodBinaryBuilder.app
 ```
 
+生成的 App 自带专用 macOS 图标：主体使用 [**阿里巴巴矢量图标库 iconfont**](https://www.iconfont.cn/) 的“集成打包”图形，叠加 `01` 二进制标识。原始矢量、素材来源记录和最终 `.icns` 均随项目保存，生成器会自动写入 App Bundle。
+
 软件用于把一个 Jobs 自建 Pod 及其实际依赖闭包打包成可分发的 `XCFramework` 二进制 SDK，同时把本地来源、远程来源、版本、许可证、源码指纹和验证结果完整告知使用者。
 
 ## 二、核心来源规则
 
-### 2.1 本地索引是最高权威来源
+### 2.1、本地索引是最高权威来源
 
 把整个统一管理的 `JobsByPods` 目录拖入软件后，工具会扫描其中全部有效 `*.podspec`，建立：
 
@@ -32,13 +34,13 @@ JobsPodBinaryBuilder.app
 Pod 名 → 唯一本地 podspec → 唯一本地目录
 ```
 
-主 Pod 的某个依赖只要存在于本地索引中，就自动绑定本地 `:path`。即使 CocoaPods 网络源里存在同名 Pod，也不会静默替换本地代码。
+主 Pod 的某个依赖只要存在于本地索引中，就自动绑定本地 `:path`。即使 [**CocoaPods**](https://cocoapods.org/) 网络源里存在同名 Pod，也不会静默替换本地代码。
 
-### 2.2 本地同名不是选项，而是目录错误
+### 2.2、本地同名不是选项，而是目录错误
 
 扫描后如果出现两个同名本地 Pod，任务直接阻断并打印全部冲突路径。工具不会提供“二选一”，避免同一版本产生不可重复的二进制。
 
-### 2.3 只有本地不存在时才人工仲裁
+### 2.3、只有本地不存在时才人工仲裁
 
 缺失依赖会停留在界面中，提供：
 
@@ -120,19 +122,29 @@ JobsMain-BinarySDK-20260730-153000/
 - CocoaPods，且终端中 `pod --version` 可用。
 - 能够满足目标 Pod 远程依赖下载要求的网络环境。
 
-生成 GUI 本身不要求 Python、Node.js、Homebrew GUI 框架或额外运行时。CocoaPods 可以来自 Homebrew 或其它本机有效安装。
+生成 GUI 本身不要求 [**Python**](https://www.python.org)、[**Node.js**](https://nodejs.org)、[**Homebrew**](https://brew.sh/) GUI 框架或额外运行时。CocoaPods 可以来自 Homebrew 或其它本机有效安装。
+
+GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程统一补齐 UTF-8 locale，并分别采集标准输出与错误输出。即使 Finder 启动 App 时没有继承终端环境，`pod ipc spec` 的 JSON 也不会再被编码警告污染。
 
 ## 六、使用步骤
 
-1. 双击 `【MacOS】📦生成JobsPod二进制打包器.command`。
-2. 阅读终端中的固定说明，按 Enter 生成并启动 App。
-3. 拖入整个 `JobsByPods`，或点击“选择并扫描”。
-4. 在左侧选择真正需要打包的主 Pod。
-5. 只处理右侧当前依赖链中的缺失来源或版本冲突。
-6. 来源闭环后点击“1. 预编译验证”。
-7. 预编译通过后点击“2. 查看来源表并正式打包”。
-8. 核对最终表格，按 Enter 后开始正式打包。
-9. 在进度条和实时日志中观察任务；成功后 Finder 自动定位产物。
+1、双击 `【MacOS】📦生成JobsPod二进制打包器.command`。
+
+2、阅读终端中的固定说明，按 Enter 生成并启动 App。
+
+3、拖入整个 `JobsByPods`，或点击“选择并扫描”。
+
+4、在左侧选择真正需要打包的主 Pod。
+
+5、只处理右侧当前依赖链中的缺失来源或版本冲突。
+
+6、来源闭环后点击“1. 预编译验证”。
+
+7、预编译通过后点击“2. 查看来源表并正式打包”。
+
+8、核对最终表格，按 Enter 后开始正式打包。
+
+9、在进度条和实时日志中观察任务；成功后 Finder 自动定位产物。
 
 ## 七、安全与可重复性
 
@@ -142,6 +154,7 @@ JobsMain-BinarySDK-20260730-153000/
 - 所有本地 Pod 都使用显式绝对 `:path`。
 - 所有用户确认的远程 Pod 都使用精确版本。
 - `pod install` 固定使用 `--no-repo-update`，避免任务中静默更新 Specs。
+- CocoaPods 的 JSON 解析只读取标准输出；错误输出仍实时展示并保留到任务日志。
 - 正式构建前再次计算来源指纹；源码或 podspec 发生变化时必须重新预编译和确认。
 - 任务日志写入最终产物，便于复盘真实命令和失败原因。
 
@@ -153,6 +166,8 @@ JobsMain-BinarySDK-20260730-153000/
 - 远程查询先读取当前本机 CocoaPods Specs 中可见版本，最终版本冲突仍由 `pod install` 做权威校验。
 - ConsumerDemo 验证的是模块导入、链接和 CocoaPods 集成，不替代业务运行时测试。
 
+如果扫描阶段仍然没有任何 podspec 能被解析，错误弹窗会直接列出前三份失败样例，其余完整信息保留在界面实时日志中。优先检查 `pod --version`、podspec 内的 `require_relative` 路径以及 Ruby 报出的具体异常。
+
 ## 九、目录说明
 
 ```text
@@ -160,6 +175,11 @@ JobsMain-BinarySDK-20260730-153000/
 ├── 【MacOS】📦生成JobsPod二进制打包器.command
 ├── README.md
 ├── JobsPodBinaryBuilder/
+│   ├── Resources/
+│   │   ├── JobsPodBinaryBuilder-AppIcon.svg
+│   │   ├── JobsPodBinaryBuilder-AppIcon-1024.png
+│   │   ├── JobsPodBinaryBuilder.icns
+│   │   └── AppIconSource.json
 │   ├── Sources/
 │   │   ├── AppMain.swift
 │   │   ├── AppModel.swift

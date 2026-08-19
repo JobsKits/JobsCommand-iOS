@@ -14,6 +14,7 @@ enum SmokeMain {
         guard let podExecutable = ToolLocator.executable(named: "pod") else {
             throw BuilderError.environment("冒烟测试找不到 pod 命令。")
         }
+        let runner = CommandRunner()
         guard VersionRequirement.matches(
             version: "1.2.3",
             requirement: "~> 1.2"
@@ -29,12 +30,24 @@ enum SmokeMain {
         guard diagnosticCandidates == ["JobsMissingKit"] else {
             throw BuilderError.validation("缺失依赖诊断冒烟测试失败。")
         }
+        let streamResult = try await runner.run(
+            executable: "/bin/zsh",
+            arguments: [
+                "-c",
+                "print -r -- '{\"status\":\"ok\"}'; print -r -- '编码警告' >&2"
+            ],
+            onOutput: { _ in }
+        )
+        guard streamResult.standardOutput.contains("\"status\":\"ok\""),
+              streamResult.standardError.contains("编码警告"),
+              streamResult.output.contains("编码警告") else {
+            throw BuilderError.validation("子进程标准输出与错误输出分离失败。")
+        }
 
         let defaultPodDirectory = """
         /Users/jobs/Documents/Github/JobsBaseConfig/JobsBaseConfig@JobsSwiftBaseConfigDemo/JobsByPods/JobsSwiftPatch@Pods
         """.trimmingCharacters(in: .whitespacesAndNewlines)
         let podDirectory = CommandLine.arguments.dropFirst().first ?? defaultPodDirectory
-        let runner = CommandRunner()
         let service = PodspecService(
             runner: runner,
             podExecutable: podExecutable

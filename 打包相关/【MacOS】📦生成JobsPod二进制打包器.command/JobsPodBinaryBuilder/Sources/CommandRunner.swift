@@ -52,30 +52,55 @@ final class CommandRunner {
     ) async throws -> CommandResult {
         try await withCheckedThrowingContinuation { continuation in
             let process = Process()
-            let pipe = Pipe()
-            let capture = CommandCapture()
+            let standardOutputPipe = Pipe()
+            let standardErrorPipe = Pipe()
+            let standardOutputCapture = CommandCapture()
+            let standardErrorCapture = CommandCapture()
+            let combinedCapture = CommandCapture()
 
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = arguments
             process.currentDirectoryURL = currentDirectory
-            process.standardOutput = pipe
-            process.standardError = pipe
-            process.environment = ProcessInfo.processInfo.environment.merging(environment) { _, newValue in newValue }
+            process.standardOutput = standardOutputPipe
+            process.standardError = standardErrorPipe
+            var processEnvironment = ProcessInfo.processInfo.environment
+            processEnvironment["LANG"] = "en_US.UTF-8"
+            processEnvironment["LC_ALL"] = "en_US.UTF-8"
+            processEnvironment["LC_CTYPE"] = "en_US.UTF-8"
+            process.environment = processEnvironment.merging(environment) { _, newValue in newValue }
 
-            pipe.fileHandleForReading.readabilityHandler = { handle in
+            standardOutputPipe.fileHandleForReading.readabilityHandler = { handle in
                 let data = handle.availableData
                 guard data.isEmpty == false else { return }
                 let text = String(decoding: data, as: UTF8.self)
-                capture.append(text)
+                standardOutputCapture.append(text)
+                combinedCapture.append(text)
+                onOutput(text)
+            }
+            standardErrorPipe.fileHandleForReading.readabilityHandler = { handle in
+                let data = handle.availableData
+                guard data.isEmpty == false else { return }
+                let text = String(decoding: data, as: UTF8.self)
+                standardErrorCapture.append(text)
+                combinedCapture.append(text)
                 onOutput(text)
             }
 
             process.terminationHandler = { [weak self] terminatedProcess in
-                pipe.fileHandleForReading.readabilityHandler = nil
-                let remainingData = pipe.fileHandleForReading.readDataToEndOfFile()
-                if remainingData.isEmpty == false {
-                    let remainingText = String(decoding: remainingData, as: UTF8.self)
-                    capture.append(remainingText)
+                standardOutputPipe.fileHandleForReading.readabilityHandler = nil
+                standardErrorPipe.fileHandleForReading.readabilityHandler = nil
+                let remainingStandardOutput = standardOutputPipe.fileHandleForReading.readDataToEndOfFile()
+                if remainingStandardOutput.isEmpty == false {
+                    let remainingText = String(decoding: remainingStandardOutput, as: UTF8.self)
+                    standardOutputCapture.append(remainingText)
+                    combinedCapture.append(remainingText)
+                    onOutput(remainingText)
+                }
+                let remainingStandardError = standardErrorPipe.fileHandleForReading.readDataToEndOfFile()
+                if remainingStandardError.isEmpty == false {
+                    let remainingText = String(decoding: remainingStandardError, as: UTF8.self)
+                    standardErrorCapture.append(remainingText)
+                    combinedCapture.append(remainingText)
                     onOutput(remainingText)
                 }
 
@@ -84,14 +109,16 @@ final class CommandRunner {
                 self?.currentProcess = nil
                 self?.stateLock.unlock()
 
-                let finalOutput = capture.snapshot()
-                guard capture.beginFinishing() else { return }
+                let finalOutput = combinedCapture.snapshot()
+                guard combinedCapture.beginFinishing() else { return }
                 if wasCancelled {
                     continuation.resume(throwing: BuilderError.cancelled)
                 } else {
                     continuation.resume(returning: CommandResult(
                         exitCode: terminatedProcess.terminationStatus,
-                        output: finalOutput
+                        output: finalOutput,
+                        standardOutput: standardOutputCapture.snapshot(),
+                        standardError: standardErrorCapture.snapshot()
                     ))
                 }
             }
@@ -104,11 +131,12 @@ final class CommandRunner {
             do {
                 try process.run()
             } catch {
-                pipe.fileHandleForReading.readabilityHandler = nil
+                standardOutputPipe.fileHandleForReading.readabilityHandler = nil
+                standardErrorPipe.fileHandleForReading.readabilityHandler = nil
                 stateLock.lock()
                 currentProcess = nil
                 stateLock.unlock()
-                guard capture.beginFinishing() else { return }
+                guard combinedCapture.beginFinishing() else { return }
                 continuation.resume(throwing: error)
             }
         }
@@ -161,7 +189,6 @@ enum ToolLocator {
         let data = pipe.fileHandleForReading.readDataToEndOfFile()
         let path = String(decoding: data, as: UTF8.self)
             .trimmingCharacters(in: .whitespacesAndNewlines)
-        guard path.isEmpty == false, fileManager.isExecutableFile(atPath: path) else { return nil }
-        return path
+        guard path.isEmpty == false, fileManager.isExecutableFile(atPath: path) else { return nil };return path
     }
 }

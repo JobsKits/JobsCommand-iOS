@@ -75,9 +75,18 @@ final class PodspecService {
             )
         }
         guard parsedSpecs.isEmpty == false else {
-            throw BuilderError.scan("发现了 podspec，但没有任何文件可以被 CocoaPods 正确解析。")
-        }
-        return PodspecScanResult(
+            let failureSamples = warnings.prefix(3).map { warning in
+                guard warning.count > 700 else { return warning };return String(warning.prefix(700)) + "…"
+            }.joined(separator: "\n\n")
+            let remainingCount = max(0, warnings.count - 3)
+            let remainingMessage = remainingCount == 0
+                ? ""
+                : "\n\n另有 \(remainingCount) 份 podspec 解析失败，完整信息见实时日志。"
+            throw BuilderError.scan(
+                "发现了 podspec，但没有任何文件可以被 CocoaPods 正确解析。\n\n" +
+                failureSamples + remainingMessage
+            )
+        };return PodspecScanResult(
             specs: parsedSpecs.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending },
             warnings: warnings
         )
@@ -100,7 +109,7 @@ final class PodspecService {
                 result.output
             )
         }
-        let candidatePaths = result.output
+        let candidatePaths = result.standardOutput
             .split(whereSeparator: \.isNewline)
             .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
             .filter { FileManager.default.fileExists(atPath: $0) }
@@ -142,7 +151,7 @@ final class PodspecService {
                 result.output
             )
         }
-        guard let data = result.output.data(using: .utf8),
+        guard let data = result.standardOutput.data(using: .utf8),
               let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let name = json["name"] as? String,
               let version = json["version"] as? String else {
@@ -337,8 +346,7 @@ final class PodspecService {
     // 把 Pod 名转换为 Swift/Clang 可用的默认模块名。
     private func sanitizeModuleName(_ name: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
-        let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character(String($0)) : "_" }
-        return String(scalars)
+        let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character(String($0)) : "_" };return String(scalars)
     }
 }
 
@@ -350,8 +358,7 @@ enum VersionRequirement {
         let constraints = trimmed
             .split(separator: ",")
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { $0.isEmpty == false }
-        return constraints.allSatisfy { matchesSingle(version: version, constraint: $0) }
+            .filter { $0.isEmpty == false };return constraints.allSatisfy { matchesSingle(version: version, constraint: $0) }
     }
 
     // 判断一个比较操作符约束。

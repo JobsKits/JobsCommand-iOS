@@ -8,6 +8,8 @@
 	<string>Jobs Pod 二进制打包器</string>
 	<key>CFBundleExecutable</key>
 	<string>JobsPodBinaryBuilder</string>
+	<key>CFBundleIconFile</key>
+	<string>JobsPodBinaryBuilder.icns</string>
 	<key>CFBundleIdentifier</key>
 	<string>com.jobs.podbinarybuilder</string>
 	<key>CFBundleInfoDictionaryVersion</key>
