@@ -37,7 +37,48 @@ private final class CommandCapture: @unchecked Sendable {
     }
 }
 
-final class CommandRunner {
+private final class CommandOutputBatcher: @unchecked Sendable {
+    private let lock = NSLock()
+    private let flushInterval: TimeInterval
+    private var pendingOutput = ""
+    private var isFlushScheduled = false
+
+    init(flushInterval: TimeInterval = 0.25) {
+        self.flushInterval = flushInterval
+    }
+
+    // 子进程高频输出先在后台合并，避免每个管道分块都触发界面重绘。
+    func append(_ text: String, onOutput: @escaping (String) -> Void) {
+        lock.lock()
+        pendingOutput.append(text)
+        let shouldSchedule = isFlushScheduled == false
+        if shouldSchedule {
+            isFlushScheduled = true
+        }
+        lock.unlock()
+
+        guard shouldSchedule else { return }
+        DispatchQueue.global(qos: .utility).asyncAfter(
+            deadline: .now() + flushInterval
+        ) { [weak self] in
+            self?.flush(onOutput: onOutput)
+        }
+    }
+
+    // 命令结束时立即排空尾部输出，不丢失最后一批诊断。
+    func flush(onOutput: (String) -> Void) {
+        lock.lock()
+        let output = pendingOutput
+        pendingOutput = ""
+        isFlushScheduled = false
+        lock.unlock()
+
+        guard output.isEmpty == false else { return }
+        onOutput(output)
+    }
+}
+
+final class CommandRunner: @unchecked Sendable {
     private let stateLock = NSLock()
     private var currentProcess: Process?
     private var cancellationRequested = false
@@ -57,6 +98,7 @@ final class CommandRunner {
             let standardOutputCapture = CommandCapture()
             let standardErrorCapture = CommandCapture()
             let combinedCapture = CommandCapture()
+            let outputBatcher = CommandOutputBatcher()
 
             process.executableURL = URL(fileURLWithPath: executable)
             process.arguments = arguments
@@ -75,7 +117,7 @@ final class CommandRunner {
                 let text = String(decoding: data, as: UTF8.self)
                 standardOutputCapture.append(text)
                 combinedCapture.append(text)
-                onOutput(text)
+                outputBatcher.append(text, onOutput: onOutput)
             }
             standardErrorPipe.fileHandleForReading.readabilityHandler = { handle in
                 let data = handle.availableData
@@ -83,7 +125,7 @@ final class CommandRunner {
                 let text = String(decoding: data, as: UTF8.self)
                 standardErrorCapture.append(text)
                 combinedCapture.append(text)
-                onOutput(text)
+                outputBatcher.append(text, onOutput: onOutput)
             }
 
             process.terminationHandler = { [weak self] terminatedProcess in
@@ -94,15 +136,16 @@ final class CommandRunner {
                     let remainingText = String(decoding: remainingStandardOutput, as: UTF8.self)
                     standardOutputCapture.append(remainingText)
                     combinedCapture.append(remainingText)
-                    onOutput(remainingText)
+                    outputBatcher.append(remainingText, onOutput: onOutput)
                 }
                 let remainingStandardError = standardErrorPipe.fileHandleForReading.readDataToEndOfFile()
                 if remainingStandardError.isEmpty == false {
                     let remainingText = String(decoding: remainingStandardError, as: UTF8.self)
                     standardErrorCapture.append(remainingText)
                     combinedCapture.append(remainingText)
-                    onOutput(remainingText)
+                    outputBatcher.append(remainingText, onOutput: onOutput)
                 }
+                outputBatcher.flush(onOutput: onOutput)
 
                 self?.stateLock.lock()
                 let wasCancelled = self?.cancellationRequested ?? false

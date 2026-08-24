@@ -24,8 +24,7 @@ struct ContentView: View {
 
     private var filteredSpecs: [PodSpecRecord] {
         let keyword = searchText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard keyword.isEmpty == false else { return model.localSpecs }
-        return model.localSpecs.filter {
+        guard keyword.isEmpty == false else { return model.localSpecs };return model.localSpecs.filter {
             $0.name.localizedCaseInsensitiveContains(keyword) ||
                 $0.version.localizedCaseInsensitiveContains(keyword)
         }
@@ -116,6 +115,15 @@ struct ContentView: View {
                     action: model.chooseRootDirectory
                 )
                 directoryControl(
+                    title: "项目 CocoaPods（Pods）",
+                    path: model.cocoaPodsDirectoryPath,
+                    emptyText: "扫描 JobsByPods 时自动检测",
+                    actionTitle: model.cocoaPodsDirectoryPath.isEmpty
+                        ? "导入项目 Pods"
+                        : "更换 Pods",
+                    action: model.chooseCocoaPodsDirectory
+                )
+                directoryControl(
                     title: "产物输出目录",
                     path: model.outputDirectoryPath,
                     emptyText: "尚未选择输出目录",
@@ -183,18 +191,25 @@ struct ContentView: View {
     }
 
     private var workspace: some View {
-        VStack(spacing: 14) {
-            statusCard
-            if model.localSpecs.isEmpty {
-                emptyWorkspace
-            } else {
-                graphWorkspace
+        VSplitView {
+            VStack(spacing: 14) {
+                statusCard
+                if model.localSpecs.isEmpty {
+                    emptyWorkspace
+                } else {
+                    graphWorkspace
+                }
+                bottomBar
             }
-            bottomBar
+            .padding(18)
+            .frame(minHeight: 360, maxHeight: .infinity)
+
             logCard
-                .frame(height: 182)
+                .frame(minHeight: 112, idealHeight: 190, maxHeight: .infinity)
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 18)
         }
-        .padding(18)
     }
 
     private var statusCard: some View {
@@ -221,6 +236,9 @@ struct ContentView: View {
             VStack(alignment: .trailing, spacing: 7) {
                 HStack(spacing: 6) {
                     metricPill("本地 \(model.localSpecs.count)", color: .blue)
+                    if model.cocoaPodsSpecCount > 0 {
+                        metricPill("CocoaPods \(model.cocoaPodsSpecCount)", color: .green)
+                    }
                     metricPill(
                         model.selectedRootName.isEmpty
                             ? "未选主 Pod"
@@ -251,7 +269,7 @@ struct ContentView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            Text("本地唯一匹配自动绑定 · 本地同名立即阻断 · 本地缺失必须人工仲裁")
+            Text("JobsByPods 优先 · 自动导入项目 Pods / 本机缓存 · 仅冲突或缺失才人工介入")
                 .font(.caption)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -340,7 +358,7 @@ struct ContentView: View {
             tableHeader("依赖", width: 165)
             tableHeader("依赖方与约束", width: 165)
             tableHeader("状态与来源")
-            tableHeader("处理", width: 215)
+            tableHeader("处理", width: 250)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -389,7 +407,7 @@ struct ContentView: View {
             .frame(maxWidth: .infinity, alignment: .leading)
 
             rowActions(row)
-                .frame(width: 215, alignment: .leading)
+                .frame(width: 250, alignment: .leading)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
@@ -398,19 +416,22 @@ struct ContentView: View {
     private func rowActions(_ row: DependencyResolutionRow) -> some View {
         HStack(spacing: 7) {
             if row.state == .unresolved {
-                Button("查 CocoaPods") {
+                Button("重新自动解析") {
                     Task {
-                        await model.queryRemote(for: row)
+                        await model.retryAutomaticResolution(for: row)
                     }
                 }
-                Button("选本地") {
+                Button("人工补充") {
                     Task {
                         await model.chooseLocal(for: row)
                     }
                 }
             } else if row.state == .versionConflict {
-                Text("修改约束或版本后重新扫描")
-                    .font(.caption)
+                Button("更换项目 Pods") {
+                    model.chooseCocoaPodsDirectory()
+                }
+                Text("版本争议需人工处理")
+                    .font(.caption2)
                     .foregroundStyle(.red)
             } else {
                 Text("无需干预")
@@ -504,28 +525,22 @@ struct ContentView: View {
 
             Spacer()
 
-            if model.isPrepared {
-                Text("已通过双 SDK 预编译并冻结来源")
+            VStack(alignment: .trailing, spacing: 4) {
+                Text(packagingActionHint)
                     .font(.caption)
-                    .foregroundStyle(.green)
-            }
-
-            Button("预编译验证") {
-                Task {
-                    await model.prepareBuild()
+                    .foregroundStyle(model.canStartPackaging ? .green : .secondary)
+                Button("开始正式打包") {
+                    Task {
+                        await model.startFormalPackaging()
+                    }
                 }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.large)
+                .frame(minWidth: 230)
+                .disabled(model.canStartPackaging == false)
+                .keyboardShortcut(.return, modifiers: [.command])
+                .help(packagingActionHint)
             }
-            .disabled(model.canPrepare == false)
-            .keyboardShortcut("v", modifiers: [.command])
-
-            Button("核对来源并正式打包") {
-                Task {
-                    await model.confirmAndPackage()
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .disabled(model.canPackage == false)
-            .keyboardShortcut(.return, modifiers: [.command])
         }
     }
 
@@ -541,28 +556,37 @@ struct ContentView: View {
                 }
                 Spacer()
                 if model.finalOutputPath.isEmpty == false {
-                    Text(model.finalOutputPath)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .lineLimit(1)
-                        .truncationMode(.middle)
-                        .help(model.finalOutputPath)
+                    Button {
+                        model.openDirectory(model.finalOutputPath)
+                    } label: {
+                        Text(model.finalOutputPath)
+                            .font(.caption)
+                            .foregroundStyle(.blue)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                            .underline()
+                    }
+                    .buttonStyle(.plain)
+                    .help("在 Finder 中打开：\(model.finalOutputPath)")
                 }
+                Text("上下拖动分隔线调整高度")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
             Divider()
             ScrollViewReader { proxy in
                 ScrollView([.vertical, .horizontal]) {
-                    Text(model.logText.isEmpty ? "等待任务开始…" : model.logText)
+                    Text(model.visibleLogText.isEmpty ? "等待任务开始…" : model.visibleLogText)
                         .font(.system(size: 11, design: .monospaced))
-                        .foregroundStyle(model.logText.isEmpty ? .secondary : .primary)
+                        .foregroundStyle(model.visibleLogText.isEmpty ? .secondary : .primary)
                         .textSelection(.enabled)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(12)
                         .id("LOG_END")
                 }
-                .onChange(of: model.logText) {
+                .onChange(of: model.visibleLogText) {
                     proxy.scrollTo("LOG_END", anchor: .bottom)
                 }
             }
@@ -587,18 +611,34 @@ struct ContentView: View {
                     .buttonStyle(.link)
                     .disabled(model.isBusy)
             }
-            Text(path.isEmpty ? emptyText : compactPath(path))
-                .font(.subheadline)
-                .foregroundStyle(path.isEmpty ? .secondary : .primary)
-                .lineLimit(1)
-                .truncationMode(.middle)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .help(path)
+            if path.isEmpty {
+                Text(emptyText)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            } else {
+                Button {
+                    model.openDirectory(path)
+                } label: {
+                    Text(compactPath(path))
+                        .font(.subheadline)
+                        .foregroundStyle(.blue)
+                        .lineLimit(1)
+                        .truncationMode(.middle)
+                        .underline()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .help("在 Finder 中打开：\(path)")
+            }
         }
     }
 
     private func podRow(_ spec: PodSpecRecord) -> some View {
         let selected = model.selectedRootName == spec.name
+        let needsAttention = model.attentionRootNames.contains(spec.name)
         return HStack(spacing: 10) {
             RoundedRectangle(cornerRadius: 2)
                 .fill(selected ? Color.accentColor : Color.secondary.opacity(0.25))
@@ -613,6 +653,17 @@ struct ContentView: View {
                     .foregroundStyle(.secondary)
             }
             Spacer()
+            if needsAttention {
+                ZStack {
+                    Circle()
+                        .fill(Color.red)
+                        .frame(width: 17, height: 17)
+                    Text("!")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.white)
+                }
+                .help("此 Pod 的传递依赖仍有缺失或版本冲突，需要人工介入。")
+            }
             Text(spec.version)
                 .font(.caption)
                 .foregroundStyle(.secondary)
@@ -622,6 +673,21 @@ struct ContentView: View {
         .background(selected ? Color.accentColor.opacity(0.11) : Color.clear)
         .clipShape(RoundedRectangle(cornerRadius: 7))
         .contentShape(Rectangle())
+    }
+
+    private var packagingActionHint: String {
+        if model.selectedRootName.isEmpty {
+            return "先在左侧选择需要打包的主 Pod"
+        }
+        if model.unresolvedCount > 0 {
+            return "仍有 \(model.unresolvedCount) 项依赖未闭环，正式打包保持禁用"
+        }
+        if model.isBusy {
+            return "正在执行：\(model.stage.title)"
+        }
+        if model.isPrepared {
+            return "预编译已通过；点击后核对来源并正式打包"
+        };return "依赖已全部找到；点击后自动预编译并进入正式打包"
     }
 
     private func compactEmptyState(title: String, detail: String) -> some View {
@@ -665,10 +731,10 @@ struct ContentView: View {
         /// 本地来源已经自动绑定
         case .resolvedLocal:
             return .green
-        /// 用户已经确认远程来源
+        /// CocoaPods 已自动解析并锁定版本
         case .resolvedRemote:
             return .blue
-        /// 依赖需要人工判断来源
+        /// 三层自动来源均未命中
         case .unresolved:
             return .orange
         /// 已存在来源但版本约束不匹配
@@ -683,14 +749,12 @@ struct ContentView: View {
         }
         if workspaceTab == .provenance {
             return "预编译通过后生成；正式打包前还会再次核对指纹"
-        }
-        return "\(model.selectedRootName) · 只展示实际传递依赖，不处理目录内无关 Pod"
+        };return "\(model.selectedRootName) · 只展示实际传递依赖，不处理目录内无关 Pod"
     }
 
     private func compactPath(_ path: String) -> String {
         let components = URL(fileURLWithPath: path).pathComponents
-        guard components.count > 3 else { return path }
-        return "…/" + components.suffix(3).joined(separator: "/")
+        guard components.count > 3 else { return path };return "…/" + components.suffix(3).joined(separator: "/")
     }
 
     private enum StepState {

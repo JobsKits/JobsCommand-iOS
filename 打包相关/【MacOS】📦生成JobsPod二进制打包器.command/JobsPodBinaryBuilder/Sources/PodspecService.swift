@@ -5,6 +5,7 @@
 //  Created by Jobs on 2026年7月30日，星期四.
 //
 
+import CryptoKit
 import Foundation
 
 struct PodspecScanResult {
@@ -12,7 +13,15 @@ struct PodspecScanResult {
     let warnings: [String]
 }
 
-final class PodspecService {
+struct CocoaPodsSnapshotResult {
+    let podsDirectoryURL: URL
+    let lockfileURL: URL
+    let specs: [PodSpecRecord]
+    let warnings: [String]
+    let installedPodCount: Int
+}
+
+final class PodspecService: @unchecked Sendable {
     private let runner: CommandRunner
     private let podExecutable: String
     private let excludedDirectoryNames: Set<String> = [
@@ -92,6 +101,118 @@ final class PodspecService {
         )
     }
 
+    // 从 JobsByPods 附近自动寻找同一 Xcode 工程的 Pods 安装目录。
+    func detectCocoaPodsDirectory(near rootURL: URL) -> URL? {
+        var candidate = rootURL.standardizedFileURL
+        for _ in 0..<8 {
+            if isCocoaPodsDirectory(candidate) {
+                return candidate
+            }
+            let nestedPodsURL = candidate.appendingPathComponent("Pods", isDirectory: true)
+            if isCocoaPodsDirectory(nestedPodsURL) {
+                return nestedPodsURL
+            }
+            let parent = candidate.deletingLastPathComponent()
+            guard parent.path != candidate.path else { break }
+            candidate = parent
+        };return nil
+    }
+
+    // 导入 pod install 生成的项目 Pods 快照，并用锁文件、下载缓存和 Specs 自动建立外源 Pod 索引。
+    func scanCocoaPodsSnapshot(
+        podsDirectoryURL: URL,
+        onProgress: @escaping (Int, Int, String) -> Void
+    ) throws -> CocoaPodsSnapshotResult {
+        let standardizedPodsURL = podsDirectoryURL.standardizedFileURL
+        guard isCocoaPodsDirectory(standardizedPodsURL) else {
+            throw BuilderError.scan(
+                "所选目录不是有效的 CocoaPods Pods 目录：\(standardizedPodsURL.path)\n" +
+                "目录中必须存在 Manifest.lock，工程根目录中应存在 Podfile.lock。"
+            )
+        }
+        let manifestURL = standardizedPodsURL.appendingPathComponent("Manifest.lock")
+        let projectLockURL = standardizedPodsURL
+            .deletingLastPathComponent()
+            .appendingPathComponent("Podfile.lock")
+        let manifestData = try Data(contentsOf: manifestURL)
+        let lockfileURL: URL
+        if FileManager.default.fileExists(atPath: projectLockURL.path) {
+            let projectLockData = try Data(contentsOf: projectLockURL)
+            guard projectLockData == manifestData else {
+                throw BuilderError.scan(
+                    "Podfile.lock 与 Pods/Manifest.lock 不一致。\n" +
+                    "请先在原 Xcode 工程执行 pod install，让项目 Pods 快照恢复一致后再导入。"
+                )
+            }
+            lockfileURL = projectLockURL
+        } else {
+            lockfileURL = manifestURL
+        }
+        guard let lockContents = String(data: manifestData, encoding: .utf8) else {
+            throw BuilderError.scan("无法以 UTF-8 读取 CocoaPods 锁文件：\(manifestURL.path)")
+        }
+        let lockedPods = try parseLockedPods(lockContents)
+        guard lockedPods.isEmpty == false else {
+            throw BuilderError.scan("CocoaPods 锁文件中没有解析到任何已安装 Pod。")
+        }
+
+        var specs: [PodSpecRecord] = []
+        var warnings: [String] = []
+        for (index, lockedPod) in lockedPods.enumerated() {
+            onProgress(index + 1, lockedPods.count, lockedPod.name)
+            let source = installedSource(
+                name: lockedPod.name,
+                version: lockedPod.version,
+                podsDirectoryURL: standardizedPodsURL
+            )
+            if let podspecURL = metadataPodspecURL(
+                name: lockedPod.name,
+                version: lockedPod.version,
+                podsDirectoryURL: standardizedPodsURL
+            ) {
+                do {
+                    let data = try Data(contentsOf: podspecURL)
+                    let spec = try makePodSpecRecord(
+                        data: data,
+                        podspecURL: podspecURL,
+                        sourceKind: source.kind,
+                        directoryURL: source.directoryURL
+                    )
+                    guard spec.name == lockedPod.name,
+                          spec.version == lockedPod.version else {
+                        throw BuilderError.scan(
+                            "元数据为 \(spec.name) \(spec.version)，锁文件要求 \(lockedPod.name) \(lockedPod.version)。"
+                        )
+                    }
+                    specs.append(spec)
+                    continue
+                } catch {
+                    warnings.append(
+                        "\(lockedPod.name) \(lockedPod.version) 元数据读取失败：\(error.localizedDescription)"
+                    )
+                }
+            }
+            specs.append(fallbackLockedSpec(
+                lockedPod,
+                lockfileURL: lockfileURL,
+                sourceKind: source.kind,
+                directoryURL: source.directoryURL
+            ))
+            warnings.append(
+                "\(lockedPod.name) \(lockedPod.version) 未找到完整 podspec 元数据；" +
+                "已使用锁文件关系继续自动解析，许可证和系统依赖将在 pod install / 预编译阶段复核。"
+            )
+        };return CocoaPodsSnapshotResult(
+            podsDirectoryURL: standardizedPodsURL,
+            lockfileURL: lockfileURL,
+            specs: specs.sorted {
+                $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+            },
+            warnings: warnings,
+            installedPodCount: lockedPods.count
+        )
+    }
+
     // 查询 CocoaPods Specs 中的远程 Pod 元数据，但不执行正式打包。
     func queryRemote(
         dependency: PodDependency,
@@ -100,13 +221,16 @@ final class PodspecService {
         let result = try await runner.run(
             executable: podExecutable,
             arguments: ["spec", "which", dependency.rootName, "--no-ansi"],
-            onOutput: onOutput
+            onOutput: { _ in }
         )
+        if result.standardError.isEmpty == false {
+            onOutput(result.standardError)
+        }
         guard result.exitCode == 0 else {
             throw BuilderError.command(
                 "\(podExecutable) spec which \(dependency.rootName)",
                 result.exitCode,
-                result.output
+                commandDiagnostic(result)
             )
         }
         let candidatePaths = result.standardOutput
@@ -138,27 +262,63 @@ final class PodspecService {
         sourceKindOverride: PodSourceKind? = nil,
         onOutput: @escaping (String) -> Void
     ) async throws -> PodSpecRecord {
+        if podspecURL.lastPathComponent.lowercased().hasSuffix(".podspec.json") {
+            return try makePodSpecRecord(
+                data: Data(contentsOf: podspecURL),
+                podspecURL: podspecURL,
+                sourceKind: sourceKindOverride ?? classifyLocalSource(path: podspecURL.path),
+                directoryURL: podspecURL.deletingLastPathComponent()
+            )
+        }
         let result = try await runner.run(
             executable: podExecutable,
             arguments: ["ipc", "spec", podspecURL.path, "--no-ansi"],
             currentDirectory: podspecURL.deletingLastPathComponent(),
-            onOutput: onOutput
+            onOutput: { _ in }
         )
+        if result.standardError.isEmpty == false {
+            onOutput(result.standardError)
+        }
         guard result.exitCode == 0 else {
             throw BuilderError.command(
                 "\(podExecutable) ipc spec \(podspecURL.path)",
                 result.exitCode,
-                result.output
+                commandDiagnostic(result)
             )
         }
-        guard let data = result.standardOutput.data(using: .utf8),
-              let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+        guard let data = result.standardOutput.data(using: .utf8) else {
+            throw BuilderError.scan("无法读取 podspec 的 JSON 输出：\(podspecURL.path)")
+        };return try makePodSpecRecord(
+            data: data,
+            podspecURL: podspecURL,
+            sourceKind: sourceKindOverride ?? classifyLocalSource(path: podspecURL.path),
+            directoryURL: podspecURL.deletingLastPathComponent()
+        )
+    }
+
+    // CocoaPods 机器可读输出不进入 UI，失败时只保留有限的诊断文本。
+    private func commandDiagnostic(_ result: CommandResult) -> String {
+        let rawDiagnostic = result.standardError.isEmpty
+            ? result.standardOutput
+            : result.standardError
+        let maximumCharacterCount = 4_000
+        guard rawDiagnostic.count > maximumCharacterCount else { return rawDiagnostic };return String(
+            rawDiagnostic.suffix(maximumCharacterCount)
+        )
+    }
+
+    // 将 podspec JSON 统一转换为构建器使用的来源模型。
+    private func makePodSpecRecord(
+        data: Data,
+        podspecURL: URL,
+        sourceKind: PodSourceKind,
+        directoryURL: URL
+    ) throws -> PodSpecRecord {
+        guard let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
               let name = json["name"] as? String,
               let version = json["version"] as? String else {
             throw BuilderError.scan("无法读取 podspec 的 name/version：\(podspecURL.path)")
         }
-
-        let sourceKind = sourceKindOverride ?? classifyLocalSource(path: podspecURL.path)
         let moduleName = (json["module_name"] as? String) ?? sanitizeModuleName(name)
         let dependencies = collectDependencies(
             from: json,
@@ -177,7 +337,7 @@ final class PodspecService {
             version: version,
             moduleName: moduleName,
             podspecPath: podspecURL.path,
-            directoryPath: podspecURL.deletingLastPathComponent().path,
+            directoryPath: directoryURL.path,
             sourceKind: sourceKind,
             license: license,
             sourceURL: sourceURL,
@@ -186,6 +346,216 @@ final class PodspecService {
             frameworks: frameworks,
             libraries: libraries,
             resourceBundleNames: resourceBundleNames
+        )
+    }
+
+    // 判断目录是否为 pod install 生成并带有锁快照的 Pods 目录。
+    private func isCocoaPodsDirectory(_ url: URL) -> Bool {
+        var isDirectory: ObjCBool = false
+        return FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory) &&
+            isDirectory.boolValue &&
+            FileManager.default.fileExists(
+                atPath: url.appendingPathComponent("Manifest.lock").path
+            )
+    }
+
+    // 解析 Podfile.lock 的 PODS 区域，并合并根 Pod 与 subspec 的传递依赖。
+    private func parseLockedPods(_ contents: String) throws -> [LockedPod] {
+        var isReadingPods = false
+        var currentRootName = ""
+        var catalog: [String: LockedPod] = [:]
+        for line in contents.split(separator: "\n", omittingEmptySubsequences: false).map(String.init) {
+            if line == "PODS:" {
+                isReadingPods = true
+                continue
+            }
+            guard isReadingPods else { continue }
+            if line.isEmpty == false, line.first?.isWhitespace == false {
+                break
+            }
+            if line.hasPrefix("  - ") {
+                let item = parseLockItem(String(line.dropFirst(4)))
+                guard let version = item.value, version.isEmpty == false else { continue }
+                let rootName = rootPodName(item.name)
+                currentRootName = rootName
+                if let existing = catalog[rootName], existing.version != version {
+                    throw BuilderError.scan(
+                        "锁文件中的 \(rootName) 同时出现 \(existing.version) 与 \(version)，无法自动仲裁。"
+                    )
+                }
+                if catalog[rootName] == nil {
+                    catalog[rootName] = LockedPod(
+                        name: rootName,
+                        version: version,
+                        dependencies: []
+                    )
+                }
+                continue
+            }
+            guard line.hasPrefix("    - "), currentRootName.isEmpty == false else {
+                continue
+            }
+            let item = parseLockItem(String(line.dropFirst(6)))
+            let dependencyRootName = rootPodName(item.name)
+            guard dependencyRootName != currentRootName,
+                  var lockedPod = catalog[currentRootName] else { continue }
+            let dependency = PodDependency(
+                name: item.name,
+                requirement: item.value ?? "",
+                requestedBy: currentRootName
+            )
+            if lockedPod.dependencies.contains(where: { $0.id == dependency.id }) == false {
+                lockedPod.dependencies.append(dependency)
+                catalog[currentRootName] = lockedPod
+            }
+        };return catalog.values.sorted {
+            $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending
+        }
+    }
+
+    // 解析锁文件中的 `PodName (版本或约束)` 单项。
+    private func parseLockItem(_ rawValue: String) -> (name: String, value: String?) {
+        var value = rawValue.trimmingCharacters(in: .whitespacesAndNewlines)
+        if value.hasSuffix(":") {
+            value.removeLast()
+        }
+        if value.hasPrefix("\"") && value.hasSuffix("\"") {
+            value.removeFirst()
+            value.removeLast()
+        }
+        guard value.hasSuffix(")"),
+              let openingIndex = value.lastIndex(of: "(") else {
+            return (value, nil)
+        }
+        let name = value[..<openingIndex]
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        let requirementStart = value.index(after: openingIndex)
+        let requirementEnd = value.index(before: value.endIndex)
+        let requirement = String(value[requirementStart..<requirementEnd])
+            .trimmingCharacters(in: .whitespacesAndNewlines);return (name, requirement)
+    }
+
+    // 取 subspec 名称的根 Pod 部分。
+    private func rootPodName(_ name: String) -> String {
+        name.split(separator: "/", maxSplits: 1).first.map(String.init) ?? name
+    }
+
+    // 按项目 Pods、CocoaPods 下载缓存、最后 Specs 的顺序确定实际源码来源。
+    private func installedSource(
+        name: String,
+        version: String,
+        podsDirectoryURL: URL
+    ) -> (kind: PodSourceKind, directoryURL: URL) {
+        let projectSourceURL = podsDirectoryURL.appendingPathComponent(name, isDirectory: true)
+        if FileManager.default.fileExists(atPath: projectSourceURL.path) {
+            return (.projectPods, projectSourceURL)
+        }
+        if let cacheSourceURL = cocoaPodsCacheSourceURL(name: name, version: version) {
+            return (.cocoaPodsCache, cacheSourceURL)
+        };return (.remote, podsDirectoryURL)
+    }
+
+    // 查找与锁定版本严格一致的 podspec 元数据。
+    private func metadataPodspecURL(
+        name: String,
+        version: String,
+        podsDirectoryURL: URL
+    ) -> URL? {
+        let localPodspecURL = podsDirectoryURL
+            .appendingPathComponent("Local Podspecs", isDirectory: true)
+            .appendingPathComponent("\(name).podspec.json")
+        if FileManager.default.fileExists(atPath: localPodspecURL.path) {
+            return localPodspecURL
+        }
+        if let cachePodspecURL = cocoaPodsCachePodspecURL(name: name, version: version) {
+            return cachePodspecURL
+        };return specsRepositoryPodspecURL(name: name, version: version)
+    }
+
+    // 查找 CocoaPods 下载缓存中的精确版本 podspec。
+    private func cocoaPodsCachePodspecURL(name: String, version: String) -> URL? {
+        let directoryURL = cocoaPodsCacheRootURL()
+            .appendingPathComponent("Specs/Release", isDirectory: true)
+            .appendingPathComponent(name, isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil };return entries.filter {
+            $0.lastPathComponent.hasPrefix("\(version)-") &&
+                $0.lastPathComponent.hasSuffix(".podspec.json")
+        }.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).last
+    }
+
+    // 查找 CocoaPods 下载缓存中的精确版本源码备份。
+    private func cocoaPodsCacheSourceURL(name: String, version: String) -> URL? {
+        let directoryURL = cocoaPodsCacheRootURL()
+            .appendingPathComponent("Release", isDirectory: true)
+            .appendingPathComponent(name, isDirectory: true)
+        guard let entries = try? FileManager.default.contentsOfDirectory(
+            at: directoryURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil };return entries.filter {
+            $0.lastPathComponent.hasPrefix("\(version)-")
+        }.sorted(by: { $0.lastPathComponent < $1.lastPathComponent }).last
+    }
+
+    // 返回 CocoaPods 当前用户级下载缓存根目录。
+    private func cocoaPodsCacheRootURL() -> URL {
+        FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask)[0]
+            .appendingPathComponent("CocoaPods/Pods", isDirectory: true)
+    }
+
+    // 按 CocoaPods Specs 的名称哈希路径查找本机已有的精确版本元数据。
+    private func specsRepositoryPodspecURL(name: String, version: String) -> URL? {
+        let digest = Insecure.MD5.hash(data: Data(name.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
+        guard digest.count >= 3 else { return nil }
+        let repositoriesURL = FileManager.default.homeDirectoryForCurrentUser
+            .appendingPathComponent(".cocoapods/repos", isDirectory: true)
+        guard let repositories = try? FileManager.default.contentsOfDirectory(
+            at: repositoriesURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles]
+        ) else { return nil }
+        for repositoryURL in repositories.sorted(by: { $0.path < $1.path }) {
+            let podspecURL = repositoryURL
+                .appendingPathComponent("Specs", isDirectory: true)
+                .appendingPathComponent(String(digest.prefix(1)), isDirectory: true)
+                .appendingPathComponent(String(digest.dropFirst().prefix(1)), isDirectory: true)
+                .appendingPathComponent(String(digest.dropFirst(2).prefix(1)), isDirectory: true)
+                .appendingPathComponent(name, isDirectory: true)
+                .appendingPathComponent(version, isDirectory: true)
+                .appendingPathComponent("\(name).podspec.json")
+            if FileManager.default.fileExists(atPath: podspecURL.path) {
+                return podspecURL
+            }
+        };return nil
+    }
+
+    // 元数据缺失时仍以锁文件的精确版本和依赖关系构造可验证模型。
+    private func fallbackLockedSpec(
+        _ lockedPod: LockedPod,
+        lockfileURL: URL,
+        sourceKind: PodSourceKind,
+        directoryURL: URL
+    ) -> PodSpecRecord {
+        PodSpecRecord(
+            name: lockedPod.name,
+            version: lockedPod.version,
+            moduleName: sanitizeModuleName(lockedPod.name),
+            podspecPath: lockfileURL.path,
+            directoryPath: directoryURL.path,
+            sourceKind: sourceKind,
+            license: "未声明（待预编译复核）",
+            sourceURL: sourceKind == .remote ? "CocoaPods Specs" : directoryURL.path,
+            summary: "由 CocoaPods 锁文件自动导入。",
+            dependencies: lockedPod.dependencies,
+            frameworks: [],
+            libraries: [],
+            resourceBundleNames: []
         )
     }
 
@@ -347,6 +717,12 @@ final class PodspecService {
     private func sanitizeModuleName(_ name: String) -> String {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: "_"))
         let scalars = name.unicodeScalars.map { allowed.contains($0) ? Character(String($0)) : "_" };return String(scalars)
+    }
+
+    private struct LockedPod {
+        let name: String
+        let version: String
+        var dependencies: [PodDependency]
     }
 }
 

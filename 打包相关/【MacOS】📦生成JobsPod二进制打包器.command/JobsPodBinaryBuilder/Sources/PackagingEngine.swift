@@ -96,6 +96,13 @@ final class PackagingEngine {
             clean: true,
             onOutput: onOutput
         )
+        try await ensureFrameworkProducts(
+            allSpecs: allSpecs,
+            sessionURL: sessionURL,
+            deviceDataURL: preflightDeviceURL,
+            simulatorDataURL: preflightSimulatorURL,
+            onOutput: onOutput
+        )
 
         guard findFramework(
             moduleName: rootSpec.moduleName,
@@ -174,6 +181,13 @@ final class PackagingEngine {
             destination: "generic/platform=iOS Simulator",
             derivedDataURL: simulatorDataURL,
             clean: true,
+            onOutput: onOutput
+        )
+        try await ensureFrameworkProducts(
+            allSpecs: session.allSpecs,
+            sessionURL: session.sessionURL,
+            deviceDataURL: deviceDataURL,
+            simulatorDataURL: simulatorDataURL,
             onOutput: onOutput
         )
 
@@ -414,6 +428,261 @@ final class PackagingEngine {
         };return nil
     }
 
+    // 给 CocoaPods 识别为聚合 Target 的纯头文件 Pod 生成可分发静态 Framework 锚点。
+    private func ensureFrameworkProducts(
+        allSpecs: [PodSpecRecord],
+        sessionURL: URL,
+        deviceDataURL: URL,
+        simulatorDataURL: URL,
+        onOutput: @escaping (String) -> Void
+    ) async throws {
+        for spec in allSpecs {
+            if findFramework(
+                moduleName: spec.moduleName,
+                podName: spec.name,
+                within: deviceDataURL,
+                sdkMarker: "Release-iphoneos"
+            ) == nil {
+                try await writeHeaderOnlyFramework(
+                    spec: spec,
+                    sessionURL: sessionURL,
+                    derivedDataURL: deviceDataURL,
+                    sdk: "iphoneos",
+                    sdkMarker: "Release-iphoneos",
+                    onOutput: onOutput
+                )
+            }
+            if findFramework(
+                moduleName: spec.moduleName,
+                podName: spec.name,
+                within: simulatorDataURL,
+                sdkMarker: "Release-iphonesimulator"
+            ) == nil {
+                try await writeHeaderOnlyFramework(
+                    spec: spec,
+                    sessionURL: sessionURL,
+                    derivedDataURL: simulatorDataURL,
+                    sdk: "iphonesimulator",
+                    sdkMarker: "Release-iphonesimulator",
+                    onOutput: onOutput
+                )
+            }
+        }
+    }
+
+    // 用引用头文件和空锚点静态库补齐纯头文件 Pod 的 Framework 产物。
+    private func writeHeaderOnlyFramework(
+        spec: PodSpecRecord,
+        sessionURL: URL,
+        derivedDataURL: URL,
+        sdk: String,
+        sdkMarker: String,
+        onOutput: @escaping (String) -> Void
+    ) async throws {
+        let fileManager = FileManager.default
+        let publicHeadersRootURL = sessionURL
+            .appendingPathComponent("Pods/Headers/Public", isDirectory: true)
+            .appendingPathComponent(spec.name, isDirectory: true)
+        guard let publicHeadersURL = publicHeadersDirectory(
+            at: publicHeadersRootURL,
+            moduleName: spec.moduleName
+        ) else {
+            throw BuilderError.validation(
+                "没有找到 \(spec.name) 的 \(sdk) Framework 产物，也没有可分发的公开头文件。"
+            )
+        }
+        onOutput("\n检测到纯头文件 Pod：\(spec.name)，正在生成 \(sdk) 静态 Framework 锚点…\n")
+
+        let workURL = derivedDataURL
+            .appendingPathComponent("JobsPodBinaryBuilderHeaderOnly", isDirectory: true)
+            .appendingPathComponent(spec.moduleName, isDirectory: true)
+            .appendingPathComponent(sdk, isDirectory: true)
+        let frameworkURL = derivedDataURL
+            .appendingPathComponent("Build/Products", isDirectory: true)
+            .appendingPathComponent(sdkMarker, isDirectory: true)
+            .appendingPathComponent("\(spec.moduleName).framework", isDirectory: true)
+        let headersURL = frameworkURL.appendingPathComponent("Headers", isDirectory: true)
+        let modulesURL = frameworkURL.appendingPathComponent("Modules", isDirectory: true)
+        try fileManager.createDirectory(at: workURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: headersURL, withIntermediateDirectories: true)
+        try fileManager.createDirectory(at: modulesURL, withIntermediateDirectories: true)
+        let copiedHeaderNames = try copyPublicHeaders(
+            from: publicHeadersURL,
+            to: headersURL
+        )
+        guard copiedHeaderNames.isEmpty == false else {
+            throw BuilderError.validation("\(spec.name) 没有可复制的公开头文件。")
+        }
+        let umbrellaHeaderName = try writeUmbrellaHeaderIfNeeded(
+            moduleName: spec.moduleName,
+            copiedHeaderNames: copiedHeaderNames,
+            headersURL: headersURL
+        )
+        let moduleMap = """
+        framework module \(spec.moduleName) {
+          umbrella header "\(umbrellaHeaderName)"
+          export *
+          module * { export * }
+        }
+        """
+        try moduleMap.write(
+            to: modulesURL.appendingPathComponent("module.modulemap"),
+            atomically: true,
+            encoding: .utf8
+        )
+        try writeFrameworkInfoPlist(
+            spec: spec,
+            to: frameworkURL.appendingPathComponent("Info.plist")
+        )
+
+        let anchorSourceURL = workURL.appendingPathComponent("BinaryAnchor.c")
+        let anchorSymbol = spec.moduleName
+            .unicodeScalars
+            .map { CharacterSet.alphanumerics.contains($0) ? String($0) : "_" }
+            .joined()
+        try "void \(anchorSymbol)_JobsPodBinaryBuilderAnchor(void) {}\n".write(
+            to: anchorSourceURL,
+            atomically: true,
+            encoding: .utf8
+        )
+        let architectures = sdk == "iphoneos" ? ["arm64"] : ["arm64", "x86_64"]
+        var architectureLibraries: [URL] = []
+        for architecture in architectures {
+            let objectURL = workURL.appendingPathComponent("BinaryAnchor-\(architecture).o")
+            let libraryURL = workURL.appendingPathComponent("lib\(spec.moduleName)-\(architecture).a")
+            let target = sdk == "iphoneos"
+                ? "\(architecture)-apple-ios12.0"
+                : "\(architecture)-apple-ios12.0-simulator"
+            try await runChecked(
+                executable: "/usr/bin/xcrun",
+                arguments: [
+                    "--sdk", sdk,
+                    "clang",
+                    "-target", target,
+                    "-c", anchorSourceURL.path,
+                    "-o", objectURL.path
+                ],
+                currentDirectory: workURL,
+                label: "生成 \(spec.name) \(architecture) 头文件锚点",
+                onOutput: onOutput
+            )
+            try await runChecked(
+                executable: "/usr/bin/libtool",
+                arguments: ["-static", "-o", libraryURL.path, objectURL.path],
+                currentDirectory: workURL,
+                label: "组装 \(spec.name) \(architecture) 静态库",
+                onOutput: onOutput
+            )
+            architectureLibraries.append(libraryURL)
+        }
+        let frameworkBinaryURL = frameworkURL.appendingPathComponent(spec.moduleName)
+        if architectureLibraries.count == 1, let libraryURL = architectureLibraries.first {
+            try fileManager.copyItem(at: libraryURL, to: frameworkBinaryURL)
+        } else {
+            try await runChecked(
+                executable: "/usr/bin/lipo",
+                arguments: ["-create"] + architectureLibraries.flatMap { ["-arch", $0.deletingPathExtension().lastPathComponent.components(separatedBy: "-").last ?? "", $0.path] } + ["-output", frameworkBinaryURL.path],
+                currentDirectory: workURL,
+                label: "合并 \(spec.name) 模拟器架构",
+                onOutput: onOutput
+            )
+        }
+    }
+
+    // 优先使用 CocoaPods 按 module_name 生成的公开头文件目录。
+    private func publicHeadersDirectory(at rootURL: URL, moduleName: String) -> URL? {
+        let fileManager = FileManager.default
+        let moduleURL = rootURL.appendingPathComponent(moduleName, isDirectory: true)
+        if containsHeaderFiles(moduleURL) {
+            return moduleURL
+        }
+        if containsHeaderFiles(rootURL) {
+            return rootURL
+        }
+        guard let enumerator = fileManager.enumerator(
+            at: rootURL,
+            includingPropertiesForKeys: [.isDirectoryKey],
+            options: [.skipsHiddenFiles],
+            errorHandler: { _, _ in true }
+        ) else { return nil }
+        for case let url as URL in enumerator where containsHeaderFiles(url) {
+            return url
+        };return nil
+    }
+
+    // 检查目录层级中是否至少有一份公开头文件。
+    private func containsHeaderFiles(_ directoryURL: URL) -> Bool {
+        guard let enumerator = FileManager.default.enumerator(
+            at: directoryURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles],
+            errorHandler: { _, _ in true }
+        ) else { return false }
+        for case let url as URL in enumerator where url.pathExtension == "h" {
+            return true
+        };return false
+    }
+
+    // 解引用复制 CocoaPods 公开头文件，产物不保留指向原工程的符号链接。
+    private func copyPublicHeaders(from sourceURL: URL, to destinationURL: URL) throws -> [String] {
+        guard let enumerator = FileManager.default.enumerator(
+            at: sourceURL,
+            includingPropertiesForKeys: [.isRegularFileKey],
+            options: [.skipsHiddenFiles],
+            errorHandler: { _, _ in true }
+        ) else { return [] }
+        var copiedHeaderNames: [String] = []
+        for case let url as URL in enumerator where url.pathExtension == "h" {
+            let relativePath = String(url.path.dropFirst(sourceURL.path.count + 1))
+            let destinationHeaderURL = destinationURL.appendingPathComponent(relativePath)
+            try FileManager.default.createDirectory(
+                at: destinationHeaderURL.deletingLastPathComponent(),
+                withIntermediateDirectories: true
+            )
+            try Data(contentsOf: url).write(to: destinationHeaderURL, options: .atomic)
+            copiedHeaderNames.append(relativePath)
+        };return copiedHeaderNames.sorted()
+    }
+
+    // 源 Pod 没有同名伞头时，在隔离 Framework 中生成一份。
+    private func writeUmbrellaHeaderIfNeeded(
+        moduleName: String,
+        copiedHeaderNames: [String],
+        headersURL: URL
+    ) throws -> String {
+        let umbrellaHeaderName = "\(moduleName).h"
+        let umbrellaHeaderURL = headersURL.appendingPathComponent(umbrellaHeaderName)
+        guard FileManager.default.fileExists(atPath: umbrellaHeaderURL.path) == false else {
+            return umbrellaHeaderName
+        }
+        let contents = copiedHeaderNames
+            .filter { $0 != umbrellaHeaderName }
+            .map { "#import \"\($0)\"" }
+            .joined(separator: "\n") + "\n"
+        try contents.write(to: umbrellaHeaderURL, atomically: true, encoding: .utf8);return umbrellaHeaderName
+    }
+
+    // 写入 xcodebuild -create-xcframework 可识别的最小 Framework 信息。
+    private func writeFrameworkInfoPlist(spec: PodSpecRecord, to url: URL) throws {
+        let values: [String: Any] = [
+            "CFBundleDevelopmentRegion": "en",
+            "CFBundleExecutable": spec.moduleName,
+            "CFBundleIdentifier": "com.jobs.podbinarybuilder.\(spec.moduleName)",
+            "CFBundleInfoDictionaryVersion": "6.0",
+            "CFBundleName": spec.moduleName,
+            "CFBundlePackageType": "FMWK",
+            "CFBundleShortVersionString": spec.version,
+            "CFBundleVersion": "1",
+            "MinimumOSVersion": "12.0"
+        ]
+        let data = try PropertyListSerialization.data(
+            fromPropertyList: values,
+            format: .xml,
+            options: 0
+        )
+        try data.write(to: url, options: .atomic)
+    }
+
     // 收集 Release-iphoneos 中生成的资源 Bundle。
     private func copyResourceBundles(from deviceDataURL: URL, to destinationURL: URL) throws -> Int {
         let productsURL = deviceDataURL.appendingPathComponent("Build/Products")
@@ -572,9 +841,13 @@ final class PackagingEngine {
             encoding: .utf8
         )
 
+        let thirdPartySourceTypes = Set(
+            PodSourceKind.allCases
+                .filter(\.isThirdParty)
+                .map(\.displayName)
+        )
         let thirdPartyRows = rows.filter {
-            $0.sourceType == PodSourceKind.localManual.displayName ||
-                $0.sourceType == PodSourceKind.remote.displayName
+            thirdPartySourceTypes.contains($0.sourceType)
         }
         let notices = thirdPartyRows.isEmpty
             ? "# 第三方依赖告知\n\n本次产物未识别到第三方 Pod。\n"
@@ -610,8 +883,7 @@ final class PackagingEngine {
 
     // 对外报告隐藏本机绝对路径，只保留目录身份和源码指纹。
     private func publicSourceIdentity(_ row: ProvenanceRow) -> String {
-        guard row.sourceIdentity.hasPrefix("/") else { return row.sourceIdentity }
-        return "\(URL(fileURLWithPath: row.sourceIdentity).lastPathComponent) / \(row.fingerprint.prefix(12))"
+        guard row.sourceIdentity.hasPrefix("/") else { return row.sourceIdentity };return "\(URL(fileURLWithPath: row.sourceIdentity).lastPathComponent) / \(row.fingerprint.prefix(12))"
     }
 
     // 转义 HTML 单元格内容。
@@ -638,8 +910,7 @@ enum SourceFingerprint {
         if spec.sourceKind == .remote {
             let data = try Data(contentsOf: URL(fileURLWithPath: spec.podspecPath))
             return sha256(data)
-        }
-        return try directoryFingerprint(URL(fileURLWithPath: spec.directoryPath))
+        };return try directoryFingerprint(URL(fileURLWithPath: spec.directoryPath))
     }
 
     // 递归哈希源码目录，跳过 Git、Pods 和构建产物。

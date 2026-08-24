@@ -11,6 +11,8 @@ enum PodSourceKind: String, Codable, CaseIterable {
     case localJobs
     case localManual
     case localSupplement
+    case projectPods
+    case cocoaPodsCache
     case remote
 
     var displayName: String {
@@ -24,14 +26,42 @@ enum PodSourceKind: String, Codable, CaseIterable {
         /// 用户本次补充的本地 Pod
         case .localSupplement:
             return "补充本地"
-        /// CocoaPods 远程 Pod
+        /// 当前工程 pod install 生成的 Pods 快照
+        case .projectPods:
+            return "项目 Pods 自动导入"
+        /// CocoaPods 保存在当前用户目录中的下载缓存
+        case .cocoaPodsCache:
+            return "CocoaPods 本机缓存"
+        /// 本机 Specs 已知、需要由 pod install 自动下载的 Pod
         case .remote:
-            return "CocoaPods 远程"
+            return "CocoaPods Specs"
+        }
+    }
+
+    var usesPathDependency: Bool {
+        switch self {
+        /// Jobs 自建、本地托管和人工补充目录直接绑定 :path
+        case .localJobs, .localManual, .localSupplement:
+            return true
+        /// CocoaPods 管理的来源由锁定版本交给 pod install 复用或下载
+        case .projectPods, .cocoaPodsCache, .remote:
+            return false
         }
     }
 
     var isLocal: Bool {
         self != .remote
+    }
+
+    var isThirdParty: Bool {
+        switch self {
+        /// Jobs 自建 Pod 不进入第三方告知
+        case .localJobs:
+            return false
+        /// 其它来源均作为第三方或外源依赖告知
+        case .localManual, .localSupplement, .projectPods, .cocoaPodsCache, .remote:
+            return true
+        }
     }
 }
 
@@ -80,12 +110,12 @@ enum DependencyResolutionState: String, Codable {
         /// 已绑定本地路径
         case .resolvedLocal:
             return "本地已绑定"
-        /// 已经用户确认远程来源
+        /// 已由项目 Pods、缓存或 Specs 自动解析
         case .resolvedRemote:
-            return "远程已确认"
+            return "CocoaPods 已自动绑定"
         /// 尚未确认依赖来源
         case .unresolved:
-            return "等待来源确认"
+            return "自动解析未命中"
         /// 本地版本不满足约束
         case .versionConflict:
             return "版本冲突"
@@ -348,9 +378,17 @@ enum BuildDiagnostic {
             \(candidates.map { "• \($0)" }.joined(separator: "\n"))
 
             请检查相关 *.podspec 是否遗漏 spec.dependency。
-            如果它是自建 Pod，下次把对应本地目录一起导入；如果它是第三方 Pod，返回依赖表后确认从 CocoaPods 获取。
+            如果它是自建 Pod，请检查对应本地目录和 podspec；如果它是第三方 Pod，请重新导入原工程完整 Pods，工具会按锁文件、下载缓存和 Specs 自动解析。
             """
         }
+        let highlightedLines = actionableLines(from: output)
+        let highlightedBlock = highlightedLines.isEmpty
+            ? ""
+            : """
+
+            关键错误：
+            \(highlightedLines.joined(separator: "\n"))
+            """
         let tailLines = output
             .split(whereSeparator: \.isNewline)
             .suffix(28)
@@ -359,11 +397,38 @@ enum BuildDiagnostic {
         命令执行失败（\(exitCode)）：
         \(command)
         \(dependencyHint)
+        \(highlightedBlock)
 
         末尾日志：
         \(tailLines)
 
         完整输出仍保留在界面的实时构建日志中。
         """
+    }
+
+    // 从冗长调用栈中保留 CocoaPods、Git 和网络工具给出的真正失败原因。
+    private static func actionableLines(from output: String) -> [String] {
+        let lines = output
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
+        let markers = [
+            "[!]", "fatal:", "error:", "rpc failed", "could not", "unable to",
+            "timed out", "timeout", "ssl", "http/2", "curl:"
+        ]
+        var indexes: Set<Int> = []
+        for (index, line) in lines.enumerated() {
+            let lowercaseLine = line.lowercased()
+            guard markers.contains(where: { lowercaseLine.contains($0) }) else {
+                continue
+            }
+            for contextIndex in max(0, index - 1)...min(lines.count - 1, index + 1) {
+                indexes.insert(contextIndex)
+            }
+        }
+        var seen: Set<String> = []
+        return Array(indexes.sorted().compactMap { index in
+            let line = lines[index].trimmingCharacters(in: .whitespacesAndNewlines)
+            guard line.isEmpty == false, seen.insert(line).inserted else { return nil };return line
+        }.suffix(16))
     }
 }

@@ -26,7 +26,15 @@ enum ProjectGenerator {
             sourceFileType: "sourcecode.swift",
             deploymentTarget: "12.0"
         )
-        let podfile = packagingPodfile(rootSpec: rootSpec, allSpecs: allSpecs)
+        let importedPodPaths = try writeImportedPodSnapshots(
+            at: sessionURL,
+            allSpecs: allSpecs
+        )
+        let podfile = packagingPodfile(
+            rootSpec: rootSpec,
+            allSpecs: allSpecs,
+            importedPodPaths: importedPodPaths
+        )
         try podfile.write(
             to: sessionURL.appendingPathComponent("Podfile"),
             atomically: true,
@@ -112,7 +120,7 @@ enum ProjectGenerator {
             ? ""
             : "\n  spec.libraries = \(rubyArray(systemLibraries))"
         let resourcesBlock = hasResources
-            ? "\n  spec.resources = 'Resources/**/*'"
+            ? "\n  spec.resources = 'Resources/*.bundle'"
             : ""
 
         return """
@@ -134,21 +142,81 @@ enum ProjectGenerator {
         """
     }
 
-    // 生成打包宿主使用的 Podfile，强制所有本地 Pod 使用显式路径。
+    // 把已安装的外源 Pod 复制到会话沙盒，避免修改原 Pods 或再次联网下载。
+    private static func writeImportedPodSnapshots(
+        at sessionURL: URL,
+        allSpecs: [PodSpecRecord]
+    ) throws -> [String: String] {
+        let eligibleSpecs = allSpecs.filter {
+            $0.sourceKind == .projectPods || $0.sourceKind == .cocoaPodsCache
+        }
+        guard eligibleSpecs.isEmpty == false else { return [:] }
+
+        let fileManager = FileManager.default
+        let importedPodsURL = sessionURL.appendingPathComponent(
+            "ImportedPods",
+            isDirectory: true
+        )
+        var importedPodPaths: [String: String] = [:]
+        for spec in eligibleSpecs {
+            let sourceURL = URL(fileURLWithPath: spec.directoryPath, isDirectory: true)
+            let podspecURL = URL(fileURLWithPath: spec.podspecPath)
+            var sourceIsDirectory: ObjCBool = false
+            guard fileManager.fileExists(
+                atPath: sourceURL.path,
+                isDirectory: &sourceIsDirectory
+            ), sourceIsDirectory.boolValue,
+            fileManager.fileExists(atPath: podspecURL.path),
+            podspecURL.lastPathComponent.hasSuffix(".podspec.json") else {
+                continue
+            }
+
+            if fileManager.fileExists(atPath: importedPodsURL.path) == false {
+                try fileManager.createDirectory(
+                    at: importedPodsURL,
+                    withIntermediateDirectories: true
+                )
+            }
+            let directoryName = spec.name.replacingOccurrences(of: "/", with: "__")
+            let destinationURL = importedPodsURL.appendingPathComponent(
+                directoryName,
+                isDirectory: true
+            )
+            do {
+                try fileManager.copyItem(at: sourceURL, to: destinationURL)
+                let destinationPodspecURL = destinationURL.appendingPathComponent(
+                    "\(spec.name).podspec.json"
+                )
+                if fileManager.fileExists(atPath: destinationPodspecURL.path) {
+                    try fileManager.removeItem(at: destinationPodspecURL)
+                }
+                try fileManager.copyItem(at: podspecURL, to: destinationPodspecURL)
+                importedPodPaths[spec.name] = "ImportedPods/\(directoryName)"
+            } catch {
+                throw BuilderError.validation(
+                    "\(spec.name) \(spec.version) 本地快照导入失败：\(error.localizedDescription)"
+                )
+            }
+        };return importedPodPaths
+    }
+
+    // 生成打包宿主 Podfile：本地源和已安装快照绑定路径，只有本机无源码时才锁定版本下载。
     private static func packagingPodfile(
         rootSpec: PodSpecRecord,
-        allSpecs: [PodSpecRecord]
+        allSpecs: [PodSpecRecord],
+        importedPodPaths: [String: String]
     ) -> String {
         let sortedSpecs = allSpecs.sorted {
             if $0.name == rootSpec.name { return true }
-            if $1.name == rootSpec.name { return false }
-            return $0.name < $1.name
+            if $1.name == rootSpec.name { return false };return $0.name < $1.name
         }
         let podLines = sortedSpecs.map { spec -> String in
-            if spec.sourceKind.isLocal {
-                return "  pod '\(rubySingleQuoted(spec.name))', :path => '\(rubySingleQuoted(spec.directoryPath))'"
+            if let importedPath = importedPodPaths[spec.name] {
+                return "  pod '\(rubySingleQuoted(spec.name))', :path => '\(rubySingleQuoted(importedPath))'"
             }
-            return "  pod '\(rubySingleQuoted(spec.name))', '= \(rubySingleQuoted(spec.version))'"
+            if spec.sourceKind.usesPathDependency {
+                return "  pod '\(rubySingleQuoted(spec.name))', :path => '\(rubySingleQuoted(spec.directoryPath))'"
+            };return "  pod '\(rubySingleQuoted(spec.name))', '= \(rubySingleQuoted(spec.version))'"
         }.joined(separator: "\n")
 
         return """
