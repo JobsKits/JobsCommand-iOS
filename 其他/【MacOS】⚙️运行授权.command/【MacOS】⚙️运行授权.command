@@ -188,7 +188,7 @@ show_script_intro_and_wait() {
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
   echo ""
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行 run original logic 对应的独立业务步骤。
 run_original_logic() {
@@ -278,11 +278,11 @@ run_original_logic() {
   authorize_dragged_paths() {
     success_echo "🔧 正在处理拖入的路径："
     for raw_path in ${(z)input_paths}; do
-      local path=${raw_path:a}
-      if [[ -e "$path" ]]; then
-        chmod +x "$path" && success_echo "添加执行权限成功：$path" || error_echo "权限修改失败：$path"
+      local target_path=${raw_path:a}
+      if [[ -e "$target_path" ]]; then
+        chmod +x "$target_path" && success_echo "添加执行权限成功：$target_path" || error_echo "权限修改失败：$target_path"
       else
-        error_echo "❌ 无效路径：$path"
+        error_echo "❌ 无效路径：$target_path"
       fi
     done
 
@@ -316,14 +316,10 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  show_script_intro_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  run_original_logic "$@" # 执行 run_original_logic 对应的核心业务步骤。
+  success_echo "脚本执行结束。日志：$LOG_FILE" # 输出脚本执行结果、摘要和日志位置。
 }
 
 main "$@"

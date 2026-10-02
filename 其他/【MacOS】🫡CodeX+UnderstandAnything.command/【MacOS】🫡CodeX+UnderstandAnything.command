@@ -34,7 +34,7 @@ show_script_intro_and_wait() {
     print -u2 -r -- "当前没有可交互终端，请双击脚本或在 Terminal 中运行。"
     exit 1
   fi
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 
 # 在用户通过自述确认后再初始化严格选项与日志，避免确认前产生副作用。
@@ -87,9 +87,9 @@ normalize_user_path() {
 
 # 判断输入是否直接指向 Xcode workspace 或 project 包。
 is_xcode_item_path() {
-  local path="$1"
-  local lower="${path:l}"
-  [[ -d "$path" && ( "$lower" == *.xcworkspace || "$lower" == *.xcodeproj ) ]]
+  local target_path="$1"
+  local lower="${target_path:l}"
+  [[ -d "$target_path" && ( "$lower" == *.xcworkspace || "$lower" == *.xcodeproj ) ]]
 }
 
 # 只扫描候选目录第一层，避免误选 Pods、示例子工程或其它仓库。

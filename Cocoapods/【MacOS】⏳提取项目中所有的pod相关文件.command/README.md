@@ -27,6 +27,8 @@
 | 是否含高风险命令 | `否` |
 | zsh 静态检查 | `当前生成环境未执行，请在 macOS 上复核` |
 
+脚本统一由 macOS 预置的 `/bin/zsh` 执行。双击或直接执行脚本即可；显式指定解释器时使用 `zsh`，不要使用 `bash` 或 `sh`。运行后先显示内置自述，确认后才进入业务；无法读取确认输入时会退出。
+
 ## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 推荐双击 `.command` 运行。终端方式如下：

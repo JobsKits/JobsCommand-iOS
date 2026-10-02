@@ -380,14 +380,14 @@ run_download() {
 
   set +e
   DEVELOPER_DIR="$DEVELOPER_DIR_SELECTED" "$XCODEBUILD_BIN" "${args[@]}" 2>&1 | tee "$LOG_FILE"
-  local status=${pipestatus[1]}
+  local command_status=${pipestatus[1]}
   set -e
 
-  if (( status != 0 )); then
-    err "下载命令失败，退出码：$status"
+  if (( command_status != 0 )); then
+    err "下载命令失败，退出码：$command_status"
     warn "完整日志：$LOG_FILE"
     warn "常见原因：license 未同意、Xcode 未完成首次启动、网络 / CDN 异常、磁盘空间不足、Xcode 版本过旧。"
-    exit "$status"
+    exit "$command_status"
   fi
 
   ok "iOS Simulator Runtime 下载 / 补齐命令执行完成。"
@@ -415,38 +415,22 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_readme_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 require_macos 对应的独立业务步骤。
-  require_macos
-  # 执行 choose_xcode_app 对应的独立业务步骤。
-  choose_xcode_app
-  # 检查当前环境与执行条件是否满足脚本要求。
-  maybe_check_xcode_update
-  # 执行 prepare_developer_dir 对应的独立业务步骤。
-  prepare_developer_dir
-  # 执行 show_xcode_version 对应的独立业务步骤。
-  show_xcode_version
-  # 检查当前环境与执行条件是否满足脚本要求。
-  check_xcodebuild_support
-  # 检查当前环境与执行条件是否满足脚本要求。
-  ensure_first_launch
-  # 检查当前环境与执行条件是否满足脚本要求。
-  ensure_license
-  # 检查当前环境与执行条件是否满足脚本要求。
-  check_disk_space
-  # 检查当前环境与执行条件是否满足脚本要求。
-  check_network
-  # 执行 show_existing_runtimes 对应的核心业务步骤。
-  show_existing_runtimes
-  # 执行 run_download 对应的核心业务步骤。
-  run_download
-  # 执行 final_report 对应的独立业务步骤。
-  final_report
-  # 执行 pause_enter 对应的独立业务步骤。
-  pause_enter "按回车退出..."
+  show_readme_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  require_macos # 执行 require_macos 对应的独立业务步骤。
+  choose_xcode_app # 执行 choose_xcode_app 对应的独立业务步骤。
+  maybe_check_xcode_update # 检查当前环境与执行条件是否满足脚本要求。
+  prepare_developer_dir # 执行 prepare_developer_dir 对应的独立业务步骤。
+  show_xcode_version # 执行 show_xcode_version 对应的独立业务步骤。
+  check_xcodebuild_support # 检查当前环境与执行条件是否满足脚本要求。
+  ensure_first_launch # 检查当前环境与执行条件是否满足脚本要求。
+  ensure_license # 检查当前环境与执行条件是否满足脚本要求。
+  check_disk_space # 检查当前环境与执行条件是否满足脚本要求。
+  check_network # 检查当前环境与执行条件是否满足脚本要求。
+  show_existing_runtimes # 执行 show_existing_runtimes 对应的核心业务步骤。
+  run_download # 执行 run_download 对应的核心业务步骤。
+  final_report # 执行 final_report 对应的独立业务步骤。
+  pause_enter "按回车退出..." # 执行 pause_enter 对应的独立业务步骤。
 }
 
 main "$@"

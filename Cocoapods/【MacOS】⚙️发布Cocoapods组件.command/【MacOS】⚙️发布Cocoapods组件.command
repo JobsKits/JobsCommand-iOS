@@ -188,7 +188,7 @@ show_script_intro_and_wait() {
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
   echo ""
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
@@ -285,7 +285,7 @@ run_original_logic() {
   # 内容输入过滤
   pause_or_exit() {
       echo "按回车键继续，或者输入任意字符+回车，则终止操作:"
-      read -r -s -n 1 response
+      IFS= read -r response || exit 1
       if [ -z "$response" ]; then
           echo "继续操作..."
       else
@@ -310,12 +310,12 @@ run_original_logic() {
       echo "2. 次版本号递增：${major}.$((minor+1)).${patch}"
       echo "3. 补丁版本号递增：${major}.${minor}.$((patch+1))"
       echo "4. 自定义版本号。版本号格式为: x.x.x "
-      read -p "请选择版本号的递增方式（输入相应数字）: " selection
+      read "?请选择版本号的递增方式（输入相应数字）: " selection
       case $selection in
           1) next_version="$((major+1)).${minor}.${patch}" ;;
           2) next_version="${major}.$((minor+1)).${patch}" ;;
           3) next_version="${major}.${minor}.$((patch+1))" ;;
-          4) read -p "请输入自定义版本号: " next_version ;;
+          4) read "?请输入自定义版本号: " next_version ;;
           *) echo "无效的选择" && exit 1 ;;
       esac
     
@@ -330,11 +330,11 @@ run_original_logic() {
       # 检查是否已注册成功。如果注册成功，是不需要点击邮箱验证
       if ! pod trunk me &> /dev/null; then
           # 输入邮箱（用户名）
-          read -p "Enter email (default: $default_email): " email
+          read "?Enter email (default: $default_email): " email
           email=${email:-$default_email}
 
           # 输入Token（密码）
-          read -p "Enter token (default: $default_token): " token
+          read "?Enter token (default: $default_token): " token
           token=${token:-$default_token}
 
           # 注册 CocoaPods Trunk
@@ -352,7 +352,7 @@ run_original_logic() {
 
           # 添加本地提交代码操作
           echo -e "\n ------ 执行 git 本地提交代码操作 ------ \n"
-          read -p "Enter commit message (default: 基础的配置): " git_commit_des
+          read "?Enter commit message (default: 基础的配置): " git_commit_des
           git_commit_des=${git_commit_des:-"基础的配置"}  # 设置默认提交描述信息
           echo "git add ."
           git add .
@@ -416,14 +416,10 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  show_script_intro_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  run_original_logic "$@" # 执行 run_original_logic 对应的核心业务步骤。
+  success_echo "脚本执行结束。日志：$LOG_FILE" # 输出脚本执行结果、摘要和日志位置。
 }
 
 main "$@"

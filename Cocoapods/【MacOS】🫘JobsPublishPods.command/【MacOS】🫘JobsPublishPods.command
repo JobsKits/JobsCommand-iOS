@@ -188,7 +188,7 @@ show_script_intro_and_wait() {
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
   echo ""
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
@@ -256,7 +256,7 @@ run_original_logic() {
     warm_echo "3) 若之前从未注册过 trunk，本次可能需要进行一次 pod trunk register。"
     echo
 
-    read -r -p "按 [Enter] 继续执行，或按 Ctrl+C 终止脚本... " _
+    read -r "?按 [Enter] 继续执行，或按 Ctrl+C 终止脚本... " _
     echo
   }
   # ================================== 工具函数 ==================================
@@ -373,14 +373,14 @@ run_original_logic() {
     local search_dir="$SCRIPT_DIR"
     local podspec_files=("$search_dir"/*.podspec)
 
-    if [[ ! -e "${podspec_files[0]}" ]]; then
+    if [[ ! -e "${podspec_files[1]}" ]]; then
       warn_echo "在脚本目录($search_dir)下未找到任何 *.podspec 文件。"
       ask_podspec_from_user
       return
     fi
 
     if [[ ${#podspec_files[@]} -eq 1 ]]; then
-      PODSPEC_PATH="${podspec_files[0]}"
+      PODSPEC_PATH="${podspec_files[1]}"
       PODSPEC_BASENAME="$(basename "$PODSPEC_PATH")"
       success_echo "自动选中 podspec: $PODSPEC_BASENAME"
       return
@@ -626,7 +626,7 @@ RUBY
 
     # 执行 push，并通过 tee 显示 + 记录日志
     pod trunk push "$PODSPEC_PATH" --allow-warnings 2>&1 | tee "$tmp_log"
-    local exit_code=${PIPESTATUS[0]}   # 取 pipeline 中第一个命令（pod）的退出码
+    local exit_code=${pipestatus[1]}   # 取 pipeline 中第一个命令（pod）的退出码
 
     if [[ $exit_code -eq 0 ]]; then
       success_echo "✅ pod trunk push 成功 ($POD_NAME $POD_VERSION)"
@@ -708,14 +708,10 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  show_script_intro_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  run_original_logic "$@" # 执行 run_original_logic 对应的核心业务步骤。
+  success_echo "脚本执行结束。日志：$LOG_FILE" # 输出脚本执行结果、摘要和日志位置。
 }
 
 main "$@"

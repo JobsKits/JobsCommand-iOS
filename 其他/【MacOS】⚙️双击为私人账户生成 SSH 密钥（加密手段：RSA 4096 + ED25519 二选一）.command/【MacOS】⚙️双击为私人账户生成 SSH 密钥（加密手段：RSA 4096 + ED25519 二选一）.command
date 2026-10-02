@@ -188,7 +188,7 @@ show_script_intro_and_wait() {
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
   echo ""
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
@@ -262,7 +262,7 @@ run_original_logic() {
       echo "请选择 SSH 密钥类型 (默认: ED25519):"
       echo "1) ED25519"
       echo "2) RSA 4096"
-      read -p "请输入选择 (直接回车选择默认): " choice
+      read "?请输入选择 (直接回车选择默认): " choice
 
       case "$choice" in
           1|"" )
@@ -330,7 +330,7 @@ run_original_logic() {
       local prompt="$1"
       local default_email="$2"
       local email
-      read -p "请输入 $prompt (默认: $default_email): " email
+      read "?请输入 $prompt (默认: $default_email): " email
       if [[ -z "$email" ]]; then
           email="$default_email"
       fi
@@ -374,7 +374,7 @@ EOL
   # 测试与 GitHub 和 GitLab 的 SSH 连接
   test_ssh_connection() {
       _JobsPrint_Green "只有在网页上粘贴了账户公钥，下面的测试连接 ssh -T git@github.com 才会正常..."
-      read -p "按回车键继续，并测试与 GitHub 的 SSH 连接..."
+      read "?按回车键继续，并测试与 GitHub 的 SSH 连接..."
       ssh -T git@github.com
       _JobsPrint_Green " SSH 设置完成！"
   }
@@ -409,14 +409,10 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  show_script_intro_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  run_original_logic "$@" # 执行 run_original_logic 对应的核心业务步骤。
+  success_echo "脚本执行结束。日志：$LOG_FILE" # 输出脚本执行结果、摘要和日志位置。
 }
 
 main "$@"

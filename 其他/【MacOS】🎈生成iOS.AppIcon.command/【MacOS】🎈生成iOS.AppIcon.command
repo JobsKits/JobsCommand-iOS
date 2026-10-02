@@ -188,7 +188,7 @@ show_script_intro_and_wait() {
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
   print -r -- '============================================================================'
   echo ""
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
+  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
@@ -240,7 +240,7 @@ EOF
   check_dependencies() {
     if ! command -v sips >/dev/null 2>&1; then
       echo "❌ 未找到 macOS 自带的 sips，请检查系统。"
-      read -n1 -s -r -p "按任意键退出…"
+      read -k 1 -s -r "?按任意键退出…"
       exit 1
     fi
   }
@@ -366,14 +366,14 @@ EOF
     local sq="$OUT_DIR/tmp/_square.png"
     if ! prepare_square_png "$img" "$sq"; then
       echo "❌ 图片预处理失败，请重试。"
-      read -n1 -s -r -p "按任意键退出…"
+      read -k 1 -s -r "?按任意键退出…"
       exit 1
     fi
 
     local base="$OUT_DIR/tmp/_base_1024.png"
     if ! sips -Z 1024 "$sq" --out "$base" >/dev/null 2>&1; then
       echo "❌ 生成基准图失败。"
-      read -n1 -s -r -p "按任意键退出…"
+      read -k 1 -s -r "?按任意键退出…"
       exit 1
     fi
 
@@ -393,7 +393,7 @@ EOF
     echo "👉 文件命名：${PREFIX}{宽}x{高}.png（无 @2x/@3x 后缀）"
     open -R "$OUT_DIR"
     echo
-    read -n1 -s -r -p "按任意键关闭窗口…"
+    read -k 1 -s -r "?按任意键关闭窗口…" _
   }
   # ===============================================================
   # 🧭 main 入口
@@ -419,14 +419,10 @@ initialize_script_runtime() {
 }
 # 编排脚本的高层业务流程。
 main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  show_script_intro_and_wait # 展示脚本内置自述，并按运行入口完成防误触确认。
+  initialize_script_runtime # 初始化 Shell 选项、日志、依赖和入口运行状态。
+  run_original_logic "$@" # 执行 run_original_logic 对应的核心业务步骤。
+  success_echo "脚本执行结束。日志：$LOG_FILE" # 输出脚本执行结果、摘要和日志位置。
 }
 
 main "$@"
