@@ -9,7 +9,7 @@
 - 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
 
 
-## 用途
+## 用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 `pd` 用来检查一个本地 CocoaPods Pod 是否能在自己的 podspec 环境下独立编译通过。
 
@@ -32,7 +32,7 @@ PodsRoot/
 3. 把其他 podspec 作为 `--include-podspecs` 传给 `pod lib lint`
 4. 执行目标 Pod 的内部编译自检
 
-## 第一次使用
+## 第一次使用 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 双击运行：
 
@@ -58,7 +58,7 @@ export PATH="$HOME/.local/bin:$PATH"
 pd
 ```
 
-## CocoaPods 逻辑
+## CocoaPods 逻辑 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本会先检查 `pod` 命令：
 
@@ -75,7 +75,7 @@ sudo gem install cocoapods
 输入任意字符后回车：执行 sudo gem install cocoapods
 ```
 
-## lint 参数
+## lint 参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 默认执行：
 
@@ -89,7 +89,7 @@ pod lib lint Target.podspec \
   --include-podspecs=其他本地podspec
 ```
 
-## 常见失败方向
+## 常见失败方向 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 如果 lint 失败，优先看这些关键词：
 
@@ -111,7 +111,7 @@ The following build commands failed
 - 本地 Pod 之间存在循环依赖
 - 资源文件没有正确写入 `resources` / `resource_bundles`
 
-## 一、日志文件
+## 一、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 

@@ -11,7 +11,7 @@
 
 用途：在确认完整 **Xcode** 存在之后，检测并补齐执行 `xcodebuild -downloadPlatform iOS` 前需要的本地环境，然后下载 / 补齐 **iOS Simulator Runtime**
 
-## 一、做了什么
+## 一、做了什么 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - 检测是否为 **MacOS**
 - 检测是否存在完整 `Xcode.app`
@@ -38,7 +38,7 @@ graph TD
     H --> I
 ```
 
-## 二、核心下载命令
+## 二、核心下载命令 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本最终执行等效命令：
 
@@ -48,7 +48,7 @@ xcodebuild -downloadPlatform iOS -verbose
 
 说明：`xcodebuild` 常见官方参数是单横线 `-verbose`。如果当前 **Xcode** 的 help 明确支持 `--verbose`，脚本会自动改用 `--verbose`。
 
-## 三、交互规则
+## 三、交互规则 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 普通安装 / 更新 / 升级动作：
 
@@ -57,13 +57,13 @@ xcodebuild -downloadPlatform iOS -verbose
 
 **Xcode** 首次启动组件、license 这类会直接影响 `xcodebuild` 的必要项，脚本会明确提示原因，再让你继续。
 
-## 四、不做的事
+## 四、不做的事 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - 脚本不会为了这件事额外安装 **Homebrew**、**CocoaPods**、**Flutter**、**Ruby**、**Node** 等工具。它们不是 `xcodebuild -downloadPlatform iOS` 的必要前置条件
 
 - 脚本也不会在未检测到 **Xcode** 时强行安装 **Xcode**。**Xcode** 体积庞大、来源涉及 App Store / Apple Developer / Apple ID，不适合在这个 Runtime 下载脚本里硬塞自动安装逻辑。
 
-## 五、日志文件
+## 五、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 

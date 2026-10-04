@@ -27,13 +27,13 @@
 | 第三方依赖 | [**fzf**](https://formulae.brew.sh/formula/fzf) 可选；缺失时自动选择列表第一项 |
 | 当前不负责 | 编译、测试、Archive、Export、签名管理、版本号、TestFlight、App Store |
 
-### 1.1、适用场景
+### 1.1、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - 已经通过 Xcode 或其它流程生成了正确签名的真机 `.app`，只想快速封装成 `.ipa`。
 - 个人本机临时测试，接受使用本机现有 `DerivedData`。
 - 希望保留“双击运行、可视化选择、完成后在 Finder 定位产物”的轻量交互。
 
-### 1.2、不适用场景
+### 1.2、不适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - 需要保证“每次都从当前源码重新构建”的正式包。
 - 需要 `Development`、`Ad Hoc`、`Enterprise`、`App Store Connect` 等规范导出。
@@ -58,7 +58,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 
 脚本会先打印内置自述并等待回车确认；运行时不会读取或显示本 README。
 
-### 2.1、命令参数
+### 2.1、命令参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 ./【MacOS】📦双击自动生成ipa文件.command \
@@ -120,14 +120,14 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 | 依赖成本 | 低，主要依赖 macOS / Xcode | 较高，建议用 Bundler 和 `Gemfile` 锁定版本 |
 | 维护成本 | 功能越多，Shell 自维护成本越高 | 初始配置较多，后续发布流程更标准 |
 
-### 4.1、怎么选
+### 4.1、怎么选 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - **只想把已经构建并签名的 `.app` 临时封装成 IPA**：保留当前脚本更直接。
 - **想要真正的“一键从源码生成可分发 IPA”**：使用 fastlane `build_app`，或者补齐原生 `xcodebuild archive` + `-exportArchive`。
 - **要发 TestFlight / App Store、多人协作或接入 CI**：优先 fastlane。
 - **兼顾 Jobs 双击体验与发布能力**：推荐保留 `.command` 作为交互入口，由它调用 `bundle exec fastlane ios <lane>`；核心构建、签名和上传逻辑放进 `Fastfile`。
 
-### 4.2、当前结论
+### 4.2、当前结论 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 当前脚本是“已有 `.app` 的轻量 IPA 封装器”，fastlane 是“可扩展的构建与发布流水线”。两者不是同一级别的完整替代关系：
 
@@ -150,13 +150,13 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 - 失败时脚本会尝试自动打开日志。
 - 优先检查以下字段：`XCODEBUILD_LIST_EXIT`、`XCODEBUILD_SHOWBUILDSETTINGS_EXIT`、`DERIVED_MATCH_COUNT`、`app_path`、`ipa`。
 
-### 6.1、常见问题
+### 6.1、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-#### 6.1.1、生成了 IPA，但装不上
+#### 6.1.1、生成了 IPA，但装不上 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 `.ipa` 只是封装格式。先确认内部 `.app` 面向真机、签名有效、描述文件包含目标设备，并且导出方式符合用途。正式分发建议改用 Xcode Archive / Export 或 fastlane `build_app`。
 
-#### 6.1.2、选错了工程或 Scheme
+#### 6.1.2、选错了工程或 Scheme <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不要依赖自动回退，显式传入：
 
@@ -166,7 +166,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
   --scheme 'App'
 ```
 
-#### 6.1.3、找不到 `.app`
+#### 6.1.3、找不到 `.app` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 先在 Xcode 中为真机完成一次构建，再检查目标 Configuration 和 Scheme；或者改用 fastlane 直接从源码构建。
 

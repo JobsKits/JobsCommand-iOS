@@ -1,4 +1,4 @@
-# Jobs Pod 二进制打包器
+# <span id="前言">Jobs Pod 二进制打包器</span>
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
@@ -6,7 +6,7 @@
 
 ---
 
-## 一、它解决什么问题
+## 一、它解决什么问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 这是一个只面向 macOS 的原生 GUI 工具。入口是：
 
@@ -24,9 +24,9 @@ JobsPodBinaryBuilder.app
 
 软件用于把一个 Jobs 自建 Pod 及其实际依赖闭包打包成可分发的 `XCFramework` 二进制 SDK，同时把 Jobs 本地来源、项目 `Pods` 安装快照、[**CocoaPods**](https://cocoapods.org/) 本机缓存、Specs 来源、版本、许可证、源码指纹和验证结果完整告知使用者。
 
-## 二、核心来源规则
+## 二、核心来源规则 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 2.1、本地索引是最高权威来源
+### 2.1、本地索引是最高权威来源 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 把整个统一管理的 `JobsByPods` 目录拖入软件后，工具会在后台扫描其中全部有效 `*.podspec`，主线程只接收进度并刷新界面，建立：
 
@@ -36,11 +36,11 @@ Pod 名 → 唯一本地 podspec → 唯一本地目录
 
 主 Pod 的某个依赖只要存在于本地索引中，就自动绑定本地 `:path`。即使 CocoaPods 网络源里存在同名 Pod，也不会静默替换本地代码。
 
-### 2.2、本地同名不是选项，而是目录错误
+### 2.2、本地同名不是选项，而是目录错误 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 扫描后如果出现两个同名本地 Pod，任务直接阻断并打印全部冲突路径。工具不会提供“二选一”，避免同一版本产生不可重复的二进制。
 
-### 2.3、外源 Pod 默认全自动解析
+### 2.3、外源 Pod 默认全自动解析 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 导入 `JobsByPods` 后，工具会向上寻找同一 [**Xcode**](https://developer.apple.com/xcode) 工程的 `Pods/Manifest.lock` 与 `Podfile.lock`，自动导入 `pod install` 已经安装的外源 Pod，不再让用户逐项选择。来源优先级固定为：
 
@@ -54,7 +54,7 @@ Pod 名 → 唯一本地 podspec → 唯一本地目录
 
 版本约束冲突不会被网络最新版静默覆盖。工具会明确报告依赖方、要求版本和当前锁定版本，要求先修正原工程约束并执行 `pod install`，或人工导入正确的项目 `Pods`。
 
-## 三、完整闭环
+## 三、完整闭环 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```mermaid
 flowchart TD
@@ -86,7 +86,7 @@ flowchart TD
     U --> V["构建 ConsumerDemo 验证最终产物"]
 ```
 
-## 四、最终产物
+## 四、最终产物 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 一次成功任务会生成类似目录：
 
@@ -123,7 +123,7 @@ JobsMain-BinarySDK-20260730-153000/
 
 公开 HTML 报告不会泄露完整本机绝对路径，只保留目录身份和指纹前缀；本机 JSON 报告保留完整来源，便于内部追溯。
 
-## 五、运行环境
+## 五、运行环境 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - macOS 14 或更高版本。
 - 完整 Xcode，且 `xcrun --find swiftc`、`xcodebuild` 可用。
@@ -134,7 +134,7 @@ JobsMain-BinarySDK-20260730-153000/
 
 GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程统一补齐 UTF-8 locale，并分别采集标准输出与错误输出。即使 Finder 启动 App 时没有继承终端环境，`pod ipc spec` 的 JSON 也不会再被编码警告污染。
 
-## 六、使用步骤
+## 六、使用步骤 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 1、双击 `【MacOS】📦生成JobsPod二进制打包器.command`。
 
@@ -156,7 +156,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 
 10、打包成功后弹出“是否打开产物文件夹”对话框；选择打开才会调起 Finder，选择暂不打开则保留当前界面。左侧的 `JobsByPods`、项目 `Pods`、产物输出目录以及日志栏中的最终产物路径都可直接点击打开。
 
-## 七、安全与可重复性
+## 七、安全与可重复性 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - `.command` 在用户确认前不会创建目录、日志或 App。
 - 生成器只写入自身同级 `Build` 目录；重复运行只替换明确的 `JobsPodBinaryBuilder.app`。
@@ -172,7 +172,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 - 正式构建前再次计算来源指纹；源码或 podspec 发生变化时必须重新预编译和确认。
 - 任务日志写入最终产物，便于复盘真实命令和失败原因。
 
-## 八、当前边界
+## 八、当前边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 - 当前面向 iOS Pod，生成 iPhoneOS 与 iOS Simulator 两类切片。
 - 一个依赖必须能够由 CocoaPods 生成可定位的 Framework 产品；只有静态库、脚本生成物或特殊 vendored target 的 Pod 可能需要后续适配。
@@ -183,7 +183,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 
 如果扫描阶段仍然没有任何 podspec 能被解析，错误弹窗会直接列出前三份失败样例，其余完整信息保留在界面实时日志中。优先检查 `pod --version`、podspec 内的 `require_relative` 路径以及 Ruby 报出的具体异常。
 
-## 九、目录说明
+## 九、目录说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```text
 【MacOS】📦生成JobsPod二进制打包器.command/

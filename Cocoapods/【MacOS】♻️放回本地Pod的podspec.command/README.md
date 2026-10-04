@@ -137,11 +137,11 @@ graph TD
 
 ## 三、🧩 功能清单 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1、启动前置说明
+### 1、启动前置说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本双击运行后，会先显示内置说明，并等待用户按回车确认。这样可以避免误触后直接替换本地 Pod 文件。
 
-### 2、本地 Pod 管理目录选择
+### 2、本地 Pod 管理目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本第一步会要求拖入管理本地 Pod 的文件夹。
 
@@ -166,7 +166,7 @@ JobsByPods/AAA@Pods/AAA.podspec
 JobsByPods/AAA@Pods/SubDir/AAA.podspec
 ```
 
-### 3、待放回目录选择
+### 3、待放回目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本第二步会要求拖入装有 `.podspec` 的来源文件夹。
 
@@ -193,7 +193,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 └── Podfile.lock
 ```
 
-### 4、`.podspec` 同名替换
+### 4、`.podspec` 同名替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本以 `.podspec` 文件名作为唯一匹配依据。
 
@@ -208,7 +208,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 
 脚本不会按目录名匹配，也不会根据 Pod 内部 `spec.name` 推断目标。
 
-### 5、`JobsPodspecKit.rb` 同步
+### 5、`JobsPodspecKit.rb` 同步 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 如果来源 `.podspec` 同目录存在：
 
@@ -227,7 +227,7 @@ JobsPodspecKit.rb
 
 这个逻辑适合 `.podspec + JobsPodspecKit.rb` 的解耦结构，尤其适合每个 Pod 使用独立 Ruby 命名空间的方案。
 
-### 6、`Podfile` 三件套可选替换
+### 6、`Podfile` 三件套可选替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本会依次处理：
 
@@ -270,7 +270,7 @@ Podfile.lock
 
 默认位置不存在时，脚本会要求你手动拖入目标文件，或者拖入包含目标文件的文件夹。
 
-### 7、路径兼容能力
+### 7、路径兼容能力 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本支持以下输入情况：
 
@@ -285,7 +285,7 @@ Podfile.lock
 
 脚本会尽量把输入路径解析为真实路径后再执行替换。
 
-### 8、重复文件保护
+### 8、重复文件保护 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 如果来源目录中出现多个同名 `.podspec`，脚本会跳过该文件名。
 
@@ -293,7 +293,7 @@ Podfile.lock
 
 这个策略看起来保守，但对本地 Pod 批量替换更安全：宁可跳过，也不要猜。
 
-### 9、临时文件清理
+### 9、临时文件清理 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本运行过程中会在 `$TMPDIR` 下创建临时索引文件，用于记录来源、目标和已处理文件名。
 
@@ -301,7 +301,7 @@ Podfile.lock
 
 ## 四、📁 目录结构建议 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1、本地工程推荐结构
+### 1、本地工程推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```text
 JobsOCBaseConfigDemo/
@@ -320,7 +320,7 @@ JobsOCBaseConfigDemo/
         └── JobsPodspecKit.rb
 ```
 
-### 2、待放回目录推荐结构
+### 2、待放回目录推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```text
 PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
@@ -338,7 +338,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 └── Podfile.lock
 ```
 
-### 3、不推荐结构
+### 3、不推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不推荐把 `.podspec` 放到更深层级：
 
@@ -374,7 +374,7 @@ JobsPodspecKit.rb
 
 ## 五、🚀 使用方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1、双击运行
+### 1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 直接双击：
 
@@ -384,7 +384,7 @@ JobsPodspecKit.rb
 
 脚本会打开终端并显示说明。
 
-### 2、终端运行
+### 2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 如果系统提示没有执行权限，可以先执行：
 
@@ -398,7 +398,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 "./【MacOS】♻️放回本地Pod的podspec.command"
 ```
 
-### 3、第一步拖入本地 Pod 管理目录
+### 3、第一步拖入本地 Pod 管理目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 示例：
 
@@ -418,7 +418,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 已解析本地 Pod 管理目录：~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
-### 4、第二步拖入待放回目录
+### 4、第二步拖入待放回目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 示例：
 
@@ -438,7 +438,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 已解析待放回目录：~/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
 ```
 
-### 5、确认 `Podfile` 三件套
+### 5、确认 `Podfile` 三件套 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本会逐个询问：
 
@@ -456,13 +456,13 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 
 ## 六、🧪 常用自检命令 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1、检查目标 Pod 是否存在 `JobsPodspecKit.rb`
+### 1、检查目标 Pod 是否存在 `JobsPodspecKit.rb` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 find JobsByPods -name JobsPodspecKit.rb -print
 ```
 
-### 2、检查 podspec 是否还引用了缺失的 `JobsPodspecKit`
+### 2、检查 podspec 是否还引用了缺失的 `JobsPodspecKit` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 grep -R "require_relative ['\"]JobsPodspecKit['\"]" JobsByPods || true
@@ -470,7 +470,7 @@ grep -R "require_relative ['\"]JobsPodspecKit['\"]" JobsByPods || true
 
 如果有输出，说明对应 Pod 的 `.podspec` 依赖同级 `JobsPodspecKit.rb`。
 
-### 3、检查是否还有旧的公共命名空间
+### 3、检查是否还有旧的公共命名空间 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 如果你已经切换到每个 Pod 独立 Ruby 命名空间，可以检查是否还存在旧写法：
 
@@ -484,7 +484,7 @@ grep -R "module JobsPodspecKit$" JobsByPods || true
 module JobsPodspecKitForBRPickerViewExtra
 ```
 
-### 4、检查 podspec Ruby 语法
+### 4、检查 podspec Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 find JobsByPods -name "*.podspec" -print0 | while IFS= read -r -d '' file; do
@@ -492,7 +492,7 @@ find JobsByPods -name "*.podspec" -print0 | while IFS= read -r -d '' file; do
 done
 ```
 
-### 5、检查 JobsPodspecKit Ruby 语法
+### 5、检查 JobsPodspecKit Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 find JobsByPods -name "JobsPodspecKit.rb" -print0 | while IFS= read -r -d '' file; do
@@ -500,7 +500,7 @@ find JobsByPods -name "JobsPodspecKit.rb" -print0 | while IFS= read -r -d '' fil
 done
 ```
 
-### 6、检查 Git 修改内容
+### 6、检查 Git 修改内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 git status --short
@@ -508,7 +508,7 @@ git diff -- JobsByPods
 git diff -- Podfile Podfile.deps Podfile.lock
 ```
 
-### 7、重新安装 Pods
+### 7、重新安装 Pods <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ```shell
 pod install
@@ -518,31 +518,31 @@ pod install
 
 ## 七、⚠️ 常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1、为什么 `.podspec` 不存在时不自动创建？
+### 1、为什么 `.podspec` 不存在时不自动创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 因为这个脚本是“放回”和“替换”，不是“新增 Pod”。
 
 如果目标目录里没有同名 `.podspec`，脚本无法判断这个文件应该属于哪个本地 Pod。自动创建反而容易把文件放错位置。
 
-### 2、为什么来源或目标存在多个同名 `.podspec` 会跳过？
+### 2、为什么来源或目标存在多个同名 `.podspec` 会跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 因为同名重复代表匹配不唯一。
 
 本脚本不做猜测。只要来源或目标有歧义，就跳过，让用户手动处理。
 
-### 3、为什么 `JobsPodspecKit.rb` 可以创建，而 `.podspec` 不创建？
+### 3、为什么 `JobsPodspecKit.rb` 可以创建，而 `.podspec` 不创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 因为 `JobsPodspecKit.rb` 是跟随已经匹配成功的 `.podspec` 放回的。
 
 只要 `.podspec` 目标已经唯一确定，那么它的同级目录就是明确的，创建 `JobsPodspecKit.rb` 是安全的。
 
-### 4、为什么 `Podfile` 三件套默认跳过？
+### 4、为什么 `Podfile` 三件套默认跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 `Podfile`、`Podfile.deps`、`Podfile.lock` 影响的是整个工程依赖解析，不是单个 Pod。
 
 所以脚本不会默认替换，必须由用户逐个确认。
 
-### 5、替换前会自动备份吗？
+### 5、替换前会自动备份吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不会。
 
@@ -556,17 +556,17 @@ git status --short
 
 必要时先提交或手动备份。
 
-### 6、拖入路径带空格会不会出问题？
+### 6、拖入路径带空格会不会出问题？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 正常不会。
 
 脚本会处理空格、引号、反斜杠转义和 `~`，也会尽量解析 Unix 软链接与 Finder 替身。
 
-### 7、为什么只扫描到一级子目录？
+### 7、为什么只扫描到一级子目录？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 这是为了贴合本地 Pod 管理目录和导出目录的结构，避免递归太深误扫到历史备份、示例工程、Pods 产物或其他无关 podspec。
 
-### 8、替换后 `pod install` 还有 warning 怎么办？
+### 8、替换后 `pod install` 还有 warning 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 先检查是否仍然存在旧的公共 Ruby 命名空间：
 
@@ -584,7 +584,7 @@ module JobsPodspecKitForBRPickerViewExtra
 
 同时 `.podspec` 内也要调用对应模块名。
 
-### 9、替换后提示 `cannot load such file -- JobsPodspecKit` 怎么办？
+### 9、替换后提示 `cannot load such file -- JobsPodspecKit` 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 说明 `.podspec` 里存在：
 
@@ -643,7 +643,7 @@ find JobsByPods -name JobsPodspecKit.rb -print
 导出 podspec → 批量解耦 → 生成 .podspec + JobsPodspecKit.rb → 运行本脚本放回 → git diff 检查 → pod install 验证
 ```
 
-## 十、日志文件
+## 十、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 

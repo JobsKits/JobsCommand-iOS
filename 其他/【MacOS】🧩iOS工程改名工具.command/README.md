@@ -149,7 +149,7 @@ flowchart TD
 
 ## 九、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 9.1、为什么拖入路径后一直提示不正确？
+### 9.1、为什么拖入路径后一直提示不正确？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本只接受能识别出 iOS 工程特征的目录。目录内至少要能在两层深度内找到下面之一：
 
@@ -161,15 +161,15 @@ Podfile
 *.podspec
 ```
 
-### 9.2、复制开版会改原工程吗？
+### 9.2、复制开版会改原工程吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不会。复制开版会先复制出新目录，再对副本执行改名。原工程只会被读取。
 
-### 9.3、会不会改 `Pods` 里的第三方代码？
+### 9.3、会不会改 `Pods` 里的第三方代码？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 基础改名阶段不会。`Pods` 属于默认跳过目录。开版维护模块中如果输入 `YES`，会直接删除整个 `Pods` 目录并等待后续 `pod install` 重建。
 
-### 9.4、脚本会自动验证 Xcode 是否能编译吗？
+### 9.4、脚本会自动验证 Xcode 是否能编译吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不会。脚本只做改名和开版维护，不自动运行 `xcodebuild`。
 

@@ -87,7 +87,7 @@ fastlane ios beta
 
 ## 五、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 5.1、双击运行
+### 5.1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 1. 将 `【MacOS】📦Fastfile.command` 复制到目标工程目录。
 2. 双击脚本。
@@ -95,7 +95,7 @@ fastlane ios beta
 4. 脚本再次展示 fastlane 初始化说明后，按回车进入环境检查。
 5. 根据终端提示决定是否升级工具、创建 `Fastfile` 和选择编辑器。
 
-### 5.2、终端运行
+### 5.2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 以下命令需要在已经放入脚本的目标工程目录中执行：
 
@@ -178,27 +178,27 @@ flowchart TD
 
 ## 十、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 10.1、为什么运行结束后没有生成 `.ipa`？
+### 10.1、为什么运行结束后没有生成 `.ipa`？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 该脚本只初始化环境和 `Fastfile`。生成 `.ipa` 需要在 `lane` 中配置 `build_app` 等动作，再主动执行对应的 `fastlane` 命令。
 
-### 10.2、为什么提示无法识别工程类型？
+### 10.2、为什么提示无法识别工程类型？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 脚本只检查自身所在目录。原生 iOS 目录需要包含 `.xcodeproj` 或 `.xcworkspace`；Flutter 根目录需要同时包含 `pubspec.yaml` 和 `ios/`。
 
-### 10.3、Flutter 工程的 `Fastfile` 应该放在哪里？
+### 10.3、Flutter 工程的 `Fastfile` 应该放在哪里？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 推荐把脚本放到 Flutter 工程的 `./ios/` 后运行，最终文件位于 `./ios/fastlane/Fastfile`。
 
-### 10.4、已有 `Fastfile` 会被覆盖吗？
+### 10.4、已有 `Fastfile` 会被覆盖吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 不会。脚本检测到现有文件后会直接保留，并进入编辑器选择流程。
 
-### 10.5、没有安装 fzf 能否继续？
+### 10.5、没有安装 fzf 能否继续？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 可以。脚本会尝试通过 Homebrew 安装 fzf；如果安装失败或用户取消选择，会按可用编辑器优先级自动降级。
 
-### 10.6、在哪里查看日志？
+### 10.6、在哪里查看日志？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 查看系统临时目录中的 `【MacOS】📦Fastfile.log`。如果需要排查 Homebrew、fzf 或 fastlane 的详细输出，同时保留当前终端内容。
 
