@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】🎈双击打开系统配置文件.command'
-  print -r -- '核心用途：执行“🎈双击打开系统配置文件”对应的本机环境配置任务。'
-  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】🎈双击打开系统配置文件.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“🎈双击打开系统配置文件”对应的本机环境配置任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行已经拆分完成的独立业务步骤。
@@ -226,15 +249,15 @@ run_original_logic() {
   underline_echo() { log "\033[4m$1\033[0m"; }
   # ✅ 自述信息
   show_intro() {
-    echo ""
-    success_echo "📜 脚本用途说明"
-    gray_echo "--------------------------------------------"
-    info_echo  "1️⃣ 自动检测并安装 brew 与 fzf 工具（如未安装）"
-    info_echo  "2️⃣ 通过 fzf 选择要打开的配置文件，支持多选"
-    info_echo  "3️⃣ 默认回车代表“全部文件”，可按需选择"
-    info_echo  "4️⃣ 自动打开文件，并自动执行 source 加载"
-    gray_echo "--------------------------------------------"
-    echo ""
+    echo "" | jobs_intro_style body
+    success_echo "📜 脚本用途说明" | jobs_intro_style body
+    gray_echo "--------------------------------------------" | jobs_intro_style body
+    info_echo  "1️⃣ 自动检测并安装 brew 与 fzf 工具（如未安装）" | jobs_intro_style body
+    info_echo  "2️⃣ 通过 fzf 选择要打开的配置文件，支持多选" | jobs_intro_style body
+    info_echo  "3️⃣ 默认回车代表“全部文件”，可按需选择" | jobs_intro_style body
+    info_echo  "4️⃣ 自动打开文件，并自动执行 source 加载" | jobs_intro_style body
+    gray_echo "--------------------------------------------" | jobs_intro_style body
+    echo "" | jobs_intro_style body
     read "?👉 按回车开始，输入任意字符退出： " go
     if [[ -n "$go" ]]; then
       error_echo "❌ 用户取消执行，已退出。"

@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】🫘JobsPublishPods.command'
-  print -r -- '核心用途：执行“🫘JobsPublishPods”对应的移动端项目自动化任务。'
-  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】🫘JobsPublishPods.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“🫘JobsPublishPods”对应的移动端项目自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _ || exit 1
 }
 # 执行已经拆分完成的独立业务步骤。
@@ -232,32 +255,32 @@ run_original_logic() {
   }
   # ================================== 自述 & 确认 ==================================
   show_intro_and_wait() {
-    bold_echo "========== CocoaPods 发布辅助脚本 (${SCRIPT_BASENAME}) =========="
-    gray_echo "脚本路径: $SCRIPT_PATH"
-    gray_echo "日志文件: $LOG_FILE"
-    echo
+    bold_echo "========== CocoaPods 发布辅助脚本 (${SCRIPT_BASENAME}) ==========" | jobs_intro_style title
+    gray_echo "脚本路径: $SCRIPT_PATH" | jobs_intro_style body
+    gray_echo "日志文件: $LOG_FILE" | jobs_intro_style body
+    echo | jobs_intro_style body
 
-    note_echo "本脚本将执行以下步骤："
-    note_echo "1) 自检 Homebrew，如无则安装；可选更新。"
-    note_echo "2) 通过 Homebrew 安装/升级 fzf。"
-    note_echo "3) 在脚本当前目录查找 *.podspec，多文件时用 fzf 选择；没有就循环让你输入路径。"
-    note_echo "4) 如果检测到 Git 仓库且当前 HEAD 有 tag，则把该 tag 写入 podspec 的 version 字段。"
-    note_echo "5) 解析选中的 podspec，读取 name 和 version，仅作为信息展示。"
-    note_echo "6) 执行 pod lib lint --allow-warnings，仅 lint 通过才继续（可选）。"
-    note_echo "7) 检测是否已经登录 CocoaPods trunk："
-    note_echo "   - 已登录：跳过 pod trunk register，不再询问。"
-    note_echo "   - 未登录：只在首次时询问是否执行 pod trunk register。"
-    note_echo "8) 执行 pod trunk push <podspec> --allow-warnings，把 Pod 推到 trunk。"
-    note_echo "9) 最后执行 pod trunk info <name> 查看远端信息。"
-    echo
-    warm_echo "建议先确认："
-    warm_echo "1) 当前 git 分支正确，代码已提交。"
-    warm_echo "2) 如需用 Git tag 控制版本号，HEAD 已打好 tag。"
-    warm_echo "3) 若之前从未注册过 trunk，本次可能需要进行一次 pod trunk register。"
-    echo
+    note_echo "本脚本将执行以下步骤：" | jobs_intro_style title
+    note_echo "1) 自检 Homebrew，如无则安装；可选更新。" | jobs_intro_style body
+    note_echo "2) 通过 Homebrew 安装/升级 fzf。" | jobs_intro_style body
+    note_echo "3) 在脚本当前目录查找 *.podspec，多文件时用 fzf 选择；没有就循环让你输入路径。" | jobs_intro_style body
+    note_echo "4) 如果检测到 Git 仓库且当前 HEAD 有 tag，则把该 tag 写入 podspec 的 version 字段。" | jobs_intro_style body
+    note_echo "5) 解析选中的 podspec，读取 name 和 version，仅作为信息展示。" | jobs_intro_style body
+    note_echo "6) 执行 pod lib lint --allow-warnings，仅 lint 通过才继续（可选）。" | jobs_intro_style body
+    note_echo "7) 检测是否已经登录 CocoaPods trunk：" | jobs_intro_style body
+    note_echo "   - 已登录：跳过 pod trunk register，不再询问。" | jobs_intro_style body
+    note_echo "   - 未登录：只在首次时询问是否执行 pod trunk register。" | jobs_intro_style body
+    note_echo "8) 执行 pod trunk push <podspec> --allow-warnings，把 Pod 推到 trunk。" | jobs_intro_style body
+    note_echo "9) 最后执行 pod trunk info <name> 查看远端信息。" | jobs_intro_style body
+    echo | jobs_intro_style body
+    warm_echo "建议先确认：" | jobs_intro_style title
+    warm_echo "1) 当前 git 分支正确，代码已提交。" | jobs_intro_style body
+    warm_echo "2) 如需用 Git tag 控制版本号，HEAD 已打好 tag。" | jobs_intro_style body
+    warm_echo "3) 若之前从未注册过 trunk，本次可能需要进行一次 pod trunk register。" | jobs_intro_style body
+    echo | jobs_intro_style body
 
     read -r "?按 [Enter] 继续执行，或按 Ctrl+C 终止脚本... " _
-    echo
+    echo | jobs_intro_style body
   }
   # ================================== 工具函数 ==================================
   get_cpu_arch() {

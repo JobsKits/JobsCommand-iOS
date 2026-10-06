@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 输出 show readme and wait 对应的说明与结果。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】⏬下载配置系统环境变量.command'
-  print -r -- '核心用途：执行“⏬下载配置系统环境变量”对应的本机环境配置任务。'
-  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】⏬下载配置系统环境变量.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“⏬下载配置系统环境变量”对应的本机环境配置任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行 run original logic 对应的独立业务步骤。
@@ -227,11 +250,11 @@ run_original_logic() {
   # ✅ 自述信息
   print_intro() {
     SCRIPT_NAME=$(basename "$0" .command)
-    echo ""
-    success_echo "🛠️ 脚本功能："
-    success_echo "1️⃣ 自动打开 GitHub 项目：https://github.com/JobsKits/MacEnvVarConfig"
-    success_echo "2️⃣ 克隆仓库到本脚本同级目录中，文件夹名称与脚本文件同名：$SCRIPT_NAME"
-    echo ""
+    echo "" | jobs_intro_style body
+    success_echo "🛠️ 脚本功能：" | jobs_intro_style title
+    success_echo "1️⃣ 自动打开 GitHub 项目：https://github.com/JobsKits/MacEnvVarConfig" | jobs_intro_style body
+    success_echo "2️⃣ 克隆仓库到本脚本同级目录中，文件夹名称与脚本文件同名：$SCRIPT_NAME" | jobs_intro_style body
+    echo "" | jobs_intro_style body
     read "?👉 按下回车键开始执行，或按 Ctrl+C 取消..."
   }
   # ✅ 获取目录信息

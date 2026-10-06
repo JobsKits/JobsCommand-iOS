@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】♻️双击Git（识别子Git） 提交回退.command'
-  print -r -- '核心用途：执行“♻️双击Git（识别子Git） 提交回退”对应的 Git 自动化操作。'
-  print -r -- '影响范围：可能修改当前仓库、工作区、分支或 Git 索引。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】♻️双击Git（识别子Git） 提交回退.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“♻️双击Git（识别子Git） 提交回退”对应的 Git 自动化操作。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改当前仓库、工作区、分支或 Git 索引。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行已经拆分完成的独立业务步骤。
@@ -240,18 +263,18 @@ run_original_logic() {
   bold_echo()      { log "\033[1m$1\033[0m"; }
   # =============== 自述 ===============
   print_git_reset_intro() {
-    echo ""
-    bold_echo "==============================================="
-    bold_echo "  🧰 Git 提交回退助手（支持多种模式 & 子 Git）"
-    bold_echo "==============================================="
-    echo ""
-    info_echo "本工具支持："
-    echo "  1️⃣ soft 回退到远端（提交打回到“待提交”，已暂存）"
-    echo "  2️⃣ hard 回退到远端（丢弃本地提交 + 修改）"
-    echo "  3️⃣ 通过 fzf 选择任意提交回退"
-    echo "  4️⃣ 通过 tag 回退"
-    echo "  5️⃣ 通过 reflog 回退到任意历史状态"
-    echo ""
+    echo "" | jobs_intro_style body
+    bold_echo "===============================================" | jobs_intro_style title
+    bold_echo "  🧰 Git 提交回退助手（支持多种模式 & 子 Git）" | jobs_intro_style title
+    bold_echo "===============================================" | jobs_intro_style title
+    echo "" | jobs_intro_style body
+    info_echo "本工具支持：" | jobs_intro_style title
+    echo "  1️⃣ soft 回退到远端（提交打回到“待提交”，已暂存）" | jobs_intro_style body
+    echo "  2️⃣ hard 回退到远端（丢弃本地提交 + 修改）" | jobs_intro_style body
+    echo "  3️⃣ 通过 fzf 选择任意提交回退" | jobs_intro_style body
+    echo "  4️⃣ 通过 tag 回退" | jobs_intro_style body
+    echo "  5️⃣ 通过 reflog 回退到任意历史状态" | jobs_intro_style body
+    echo "" | jobs_intro_style body
   }
   # =============== 基础工具 ===============
   get_cpu_arch() {

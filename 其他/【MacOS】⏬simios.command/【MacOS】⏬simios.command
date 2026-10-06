@@ -6,6 +6,29 @@
 # - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 C_RESET='\033[0m'
 C_BOLD='\033[1m'
 C_BLUE='\033[34m'
@@ -83,34 +106,34 @@ run_root() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_wait() {
   clear || true
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】⏬simios.command'
-  print -r -- '核心用途：执行“⏬simios”对应的自动化任务。'
-  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  cecho "$C_BOLD$C_CYAN" "        simios.command"
-  cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-  cecho "$C_BLUE" "用途：检测 Xcode 环境，然后下载 / 补齐 iOS Simulator Runtime。"
-  echo ""
-  cecho "$C_GREEN" "执行顺序："
-  cecho "$C_GRAY" "  1) 检测 macOS / Xcode.app 是否存在"
-  cecho "$C_GRAY" "  2) 检测 xcodebuild 是否来自完整 Xcode，而不是只有 Command Line Tools"
-  cecho "$C_GRAY" "  3) 检测 xcode-select 指向；不强制永久改系统，可临时使用 DEVELOPER_DIR"
-  cecho "$C_GRAY" "  4) 检测 Xcode 首次启动组件 / license / 磁盘空间 / 网络连通"
-  cecho "$C_GRAY" "  5) 最后由你决定是否执行 iOS 模拟器下载"
-  echo ""
-  cecho "$C_YELLOW" "交互规则："
-  cecho "$C_GRAY" "  - 普通安装 / 更新动作：回车跳过，输入任意字符后回车执行"
-  cecho "$C_GRAY" "  - 必须修复项：脚本会明确说明原因，再让你继续"
-  echo ""
-  cecho "$C_GREEN" "核心下载命令："
-  cecho "$C_GRAY" "  xcodebuild -downloadPlatform iOS -verbose"
-  echo ""
-  cecho "$C_YELLOW" "说明："
-  cecho "$C_GRAY" "  xcodebuild 官方帮助里通常是单横线 -verbose；如果你的版本支持 --verbose，脚本会自动使用 --verbose。"
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】⏬simios.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“⏬simios”对应的自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | jobs_intro_style title
+  cecho "$C_BOLD$C_CYAN" "        simios.command" | jobs_intro_style title
+  cecho "$C_BOLD$C_CYAN" "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" | jobs_intro_style title
+  cecho "$C_BLUE" "用途：检测 Xcode 环境，然后下载 / 补齐 iOS Simulator Runtime。" | jobs_intro_style body
+  echo "" | jobs_intro_style body
+  cecho "$C_GREEN" "执行顺序：" | jobs_intro_style title
+  cecho "$C_GRAY" "  1) 检测 macOS / Xcode.app 是否存在" | jobs_intro_style body
+  cecho "$C_GRAY" "  2) 检测 xcodebuild 是否来自完整 Xcode，而不是只有 Command Line Tools" | jobs_intro_style body
+  cecho "$C_GRAY" "  3) 检测 xcode-select 指向；不强制永久改系统，可临时使用 DEVELOPER_DIR" | jobs_intro_style body
+  cecho "$C_GRAY" "  4) 检测 Xcode 首次启动组件 / license / 磁盘空间 / 网络连通" | jobs_intro_style body
+  cecho "$C_GRAY" "  5) 最后由你决定是否执行 iOS 模拟器下载" | jobs_intro_style body
+  echo "" | jobs_intro_style body
+  cecho "$C_YELLOW" "交互规则：" | jobs_intro_style title
+  cecho "$C_GRAY" "  - 普通安装 / 更新动作：回车跳过，输入任意字符后回车执行" | jobs_intro_style body
+  cecho "$C_GRAY" "  - 必须修复项：脚本会明确说明原因，再让你继续" | jobs_intro_style body
+  echo "" | jobs_intro_style body
+  cecho "$C_GREEN" "核心下载命令：" | jobs_intro_style title
+  cecho "$C_GRAY" "  xcodebuild -downloadPlatform iOS -verbose" | jobs_intro_style body
+  echo "" | jobs_intro_style body
+  cecho "$C_YELLOW" "说明：" | jobs_intro_style title
+  cecho "$C_GRAY" "  xcodebuild 官方帮助里通常是单横线 -verbose；如果你的版本支持 --verbose，脚本会自动使用 --verbose。" | jobs_intro_style body
+  echo "" | jobs_intro_style body
   pause_enter "按回车开始体检..."
 }
 # 封装 require_macos 对应的独立处理逻辑。

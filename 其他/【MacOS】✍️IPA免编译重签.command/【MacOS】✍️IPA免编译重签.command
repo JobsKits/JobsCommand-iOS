@@ -5,6 +5,29 @@
 # - 不登录 Apple、不刷新描述文件、不编译；新包验证后替换原 IPA，回车确认后安装到已选设备。
 # - 双击后先确认；过期、设备未授权、权限不匹配或缺少私钥时停止。
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 typeset -g SCRIPT_DIR SCRIPT_PATH SCRIPT_BASENAME LOG_FILE WORK_ROOT REPLACEMENT_DIR IPA_PATH TARGET_UDID
 typeset -g OTOOL_PATH FZF_PATH PROJECT_FOLDER IPA_BUNDLE_ID
 typeset -g IPA_REPLACED=0 FINISH_WAIT=1
@@ -35,20 +58,20 @@ display_line() {
 }
 # 打印内置说明，确认前不写文件或修改环境。
 show_script_intro_and_wait() {
-  display_line 'Jobs · 通用 IPA 免编译重签'
-  display_line '用途：对已有 IPA 重新签名；不重新编译源码。'
-  display_line '需要：有效描述文件、对应证书私钥，以及描述文件已授权的设备。'
-  display_line '免费 Personal Team 的描述文件通常只有 7 天；本工具不能续期。'
-  display_line '支持：自有未加密 iOS IPA，保持原团队与 Bundle ID，主 App 和扩展分别签名。'
-  display_line '不支持：App Store 加密包、跨团队迁移、Watch App、macOS / tvOS 包。'
-  display_line '工程目录：回车从 IPA 向上寻找工程根目录并校验；也可手动拖入。再次回车会重新查找。'
-  display_line '材料不足时强提示打开 Xcode，人工刷新后在本窗口复检，最多复检三轮。'
-  display_line '范围：在临时副本中重签，完整验证成功后替换原 IPA；失败保留原包，不生成桌面报告或结果目录。'
-  display_line '安装：替换成功后，直接回车安装到已选设备；输入任意字符（包括空格）结束脚本。不自动卸载旧 App。'
-  display_line '日志：系统临时目录/IPA免编译重签.时间戳.进程号.log；结束时显示完整路径。'
-  display_line '可选参数：第一个参数为 IPA 绝对路径，第二个参数为设备 UDID。'
-  display_line '未指定 UDID 时自动检测：单台自动选中，多台使用 fzf 选择；无设备可重扫或手动输入。'
-  display_line '遇到钥匙串授权提示，只授权本次 codesign 使用所选证书。Ctrl+C 可取消。'
+  display_line 'Jobs · 通用 IPA 免编译重签' | jobs_intro_style body
+  display_line '用途：对已有 IPA 重新签名；不重新编译源码。' | jobs_intro_style body
+  display_line '需要：有效描述文件、对应证书私钥，以及描述文件已授权的设备。' | jobs_intro_style body
+  display_line '免费 Personal Team 的描述文件通常只有 7 天；本工具不能续期。' | jobs_intro_style body
+  display_line '支持：自有未加密 iOS IPA，保持原团队与 Bundle ID，主 App 和扩展分别签名。' | jobs_intro_style body
+  display_line '不支持：App Store 加密包、跨团队迁移、Watch App、macOS / tvOS 包。' | jobs_intro_style body
+  display_line '工程目录：回车从 IPA 向上寻找工程根目录并校验；也可手动拖入。再次回车会重新查找。' | jobs_intro_style body
+  display_line '材料不足时强提示打开 Xcode，人工刷新后在本窗口复检，最多复检三轮。' | jobs_intro_style body
+  display_line '范围：在临时副本中重签，完整验证成功后替换原 IPA；失败保留原包，不生成桌面报告或结果目录。' | jobs_intro_style body
+  display_line '安装：替换成功后，直接回车安装到已选设备；输入任意字符（包括空格）结束脚本。不自动卸载旧 App。' | jobs_intro_style body
+  display_line '日志：系统临时目录/IPA免编译重签.时间戳.进程号.log；结束时显示完整路径。' | jobs_intro_style body
+  display_line '可选参数：第一个参数为 IPA 绝对路径，第二个参数为设备 UDID。' | jobs_intro_style body
+  display_line '未指定 UDID 时自动检测：单台自动选中，多台使用 fzf 选择；无设备可重扫或手动输入。' | jobs_intro_style body
+  display_line '遇到钥匙串授权提示，只授权本次 codesign 使用所选证书。Ctrl+C 可取消。' | jobs_intro_style body
   [[ -t 0 ]] || { print -u2 -- '请双击或在交互式终端运行。'; exit 2; }
   read -r '?按回车继续，Ctrl+C 取消：' || exit 2
 }

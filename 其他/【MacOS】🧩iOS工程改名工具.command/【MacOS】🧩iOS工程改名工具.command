@@ -6,6 +6,29 @@
 # - 影响范围：会修改目标工程内文本、文件名、目录名；复制开版模式会创建新工程副本。
 # - 运行提示：运行后会先打印内置自述并等待确认；删除、安装依赖等高风险动作会单独确认。
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_PATH="${0:A}"
 SCRIPT_DIR="${SCRIPT_PATH:h}"
 SCRIPT_BASENAME="${SCRIPT_PATH:t:r}"
@@ -116,18 +139,18 @@ clear_screen_if_possible() {
 show_script_intro_and_wait() {
   prepare_runtime_log
   clear_screen_if_possible
-  highlight_echo "══════════════════════════════ 脚本自述 ══════════════════════════════"
-  note_echo "当前脚本：${SCRIPT_PATH}"
-  note_echo "核心用途：iOS 工程改名；支持原地改名，也支持复制新副本后开版改名。"
-  warn_echo "影响范围：会修改目标工程内文本、文件名、目录名，必要时重命名工程根目录。"
-  warn_echo "开版模块：复制副本、清 Pods / lock / workspace、pod install、workspace 快捷方式均为可选。"
-  warn_echo "跳过目录：.git、Pods、node_modules、.dart_tool、build、DerivedData。"
-  gray_echo "备份策略：直接回车跳过；输入任意字符后回车会先打包 zip。"
-  gray_echo "危险策略：删除类维护动作必须输入 YES 才会执行。"
-  gray_echo "日志位置：${LOG_FILE}"
-  gray_echo "取消方式：确认前或真实改名前按 Ctrl+C 终止。"
-  highlight_echo "═════════════════════════════════════════════════════════════════════"
-  echo ""
+  highlight_echo "══════════════════════════════ 脚本自述 ══════════════════════════════" | jobs_intro_style title
+  note_echo "当前脚本：${SCRIPT_PATH}" | jobs_intro_style body
+  note_echo "核心用途：iOS 工程改名；支持原地改名，也支持复制新副本后开版改名。" | jobs_intro_style body
+  warn_echo "影响范围：会修改目标工程内文本、文件名、目录名，必要时重命名工程根目录。" | jobs_intro_style body
+  warn_echo "开版模块：复制副本、清 Pods / lock / workspace、pod install、workspace 快捷方式均为可选。" | jobs_intro_style body
+  warn_echo "跳过目录：.git、Pods、node_modules、.dart_tool、build、DerivedData。" | jobs_intro_style body
+  gray_echo "备份策略：直接回车跳过；输入任意字符后回车会先打包 zip。" | jobs_intro_style body
+  gray_echo "危险策略：删除类维护动作必须输入 YES 才会执行。" | jobs_intro_style body
+  gray_echo "日志位置：${LOG_FILE}" | jobs_intro_style body
+  gray_echo "取消方式：确认前或真实改名前按 Ctrl+C 终止。" | jobs_intro_style body
+  highlight_echo "═════════════════════════════════════════════════════════════════════" | jobs_intro_style title
+  echo "" | jobs_intro_style body
   if [[ ! -t 0 ]]; then
     error_echo "当前没有可交互输入，请在终端中双击或手动运行本脚本。"
     exit 1

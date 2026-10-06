@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 输出 show readme and wait 对应的说明与结果。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】⚙️双击任何来源安装.command'
-  print -r -- '核心用途：执行“⚙️双击任何来源安装”对应的本机环境配置任务。'
-  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】⚙️双击任何来源安装.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“⚙️双击任何来源安装”对应的本机环境配置任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行 run original logic 对应的独立业务步骤。
@@ -226,21 +249,21 @@ run_original_logic() {
   underline_echo() { log "\033[4m$1\033[0m"; }           # 🔗 下划线
   # ✅ 自述信息
   print_intro() {
-    echo ""
-    info_echo  "=============================="
-    info_echo  "   Jobs Gatekeeper 解锁器 🛡️ "
-    info_echo  "=============================="
-    echo ""
-    info_echo "📌 本脚本用于启用 macOS 的『任何来源』安装权限。"
-    echo ""
-    warn_echo "⚠ macOS 13+ 需先关闭 SIP（系统完整性保护）后才能启用。"
-    echo ""
-    success_echo "✔ 如果你尚未关闭 SIP，请重启进入『恢复模式』执行："
-    echo "   csrutil disable"
-    echo ""
-    gray_echo "✅ 验证方式：正常进入系统后，终端执行：csrutil status"
-    gray_echo "👉 应输出：System Integrity Protection status: disabled."
-    echo ""
+    echo "" | jobs_intro_style body
+    info_echo  "==============================" | jobs_intro_style title
+    info_echo  "   Jobs Gatekeeper 解锁器 🛡️ " | jobs_intro_style title
+    info_echo  "==============================" | jobs_intro_style title
+    echo "" | jobs_intro_style body
+    info_echo "📌 本脚本用于启用 macOS 的『任何来源』安装权限。" | jobs_intro_style body
+    echo "" | jobs_intro_style body
+    warn_echo "⚠ macOS 13+ 需先关闭 SIP（系统完整性保护）后才能启用。" | jobs_intro_style body
+    echo "" | jobs_intro_style body
+    success_echo "✔ 如果你尚未关闭 SIP，请重启进入『恢复模式』执行：" | jobs_intro_style title
+    echo "   csrutil disable" | jobs_intro_style body
+    echo "" | jobs_intro_style body
+    gray_echo "✅ 验证方式：正常进入系统后，终端执行：csrutil status" | jobs_intro_style body
+    gray_echo "👉 应输出：System Integrity Protection status: disabled." | jobs_intro_style body
+    echo "" | jobs_intro_style body
   }
   # ✅  用户确认继续执行
   wait_for_confirmation() {

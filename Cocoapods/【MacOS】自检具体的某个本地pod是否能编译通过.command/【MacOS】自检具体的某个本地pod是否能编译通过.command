@@ -20,6 +20,29 @@
 # ==============================================================================
 
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 
 
@@ -444,59 +467,59 @@ repair_x_command_wait_prompt_if_possible() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_readme_and_block() {
     clear 2>/dev/null || true
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】自检具体的某个本地pod是否能编译通过.command'
-  print -r -- '核心用途：执行“自检具体的某个本地pod是否能编译通过”对应的自动化任务。'
-  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】自检具体的某个本地pod是否能编译通过.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“自检具体的某个本地pod是否能编译通过”对应的自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
 
-    echo ""
-    bold_echo "====================== 本地 Pod 编译自检工具 ======================"
-    echo ""
+    echo "" | jobs_intro_style body
+    bold_echo "====================== 本地 Pod 编译自检工具 ======================" | jobs_intro_style title
+    echo "" | jobs_intro_style body
 
-    info_echo "用途：检查某个本地 CocoaPods Pod 是否能在自己的 podspec 环境下独立编译通过。"
-    info_echo "执行方式：直接双击本 .command 文件运行；不需要额外输入 pd。"
-    echo ""
+    info_echo "用途：检查某个本地 CocoaPods Pod 是否能在自己的 podspec 环境下独立编译通过。" | jobs_intro_style body
+    info_echo "执行方式：直接双击本 .command 文件运行；不需要额外输入 pd。" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
-    highlight_echo "本工具会执行以下流程："
-    gray_echo "1. 自动检查并修复 x.command 等待文案：按回车继续执行 ..."
-    gray_echo "2. 打印本自述，并等待你按回车继续"
-    gray_echo "3. 自检 pod 命令是否存在"
-    gray_echo "4. 如果 pod 不存在，则执行：sudo gem install cocoapods"
-    gray_echo "5. 如果 pod 已存在，则询问是否升级 CocoaPods：回车跳过，输入任意字符后回车执行升级"
-    gray_echo "6. 询问本地 Pod 根目录（会记住上次输入；下次回车直接沿用）"
-    gray_echo "7. 询问需要自检的目标 Pod 名"
-    gray_echo "8. 智能分析目标 Pod 依赖，只收集真实依赖到的本地 podspec"
-    gray_echo "9. 执行 pod lib lint，并区分源码编译结果与 podspec 校验结果"
-    gray_echo "10. 如果智能依赖解析仍缺本地依赖，自动切换全量兼容模式重试一次"
-    gray_echo "11. 单个 Pod 自检结束后不关闭窗口，可直接进入下一个 Pod 的自检流程"
-    echo ""
+    highlight_echo "本工具会执行以下流程：" | jobs_intro_style title
+    gray_echo "1. 自动检查并修复 x.command 等待文案：按回车继续执行 ..." | jobs_intro_style body
+    gray_echo "2. 打印本自述，并等待你按回车继续" | jobs_intro_style body
+    gray_echo "3. 自检 pod 命令是否存在" | jobs_intro_style body
+    gray_echo "4. 如果 pod 不存在，则执行：sudo gem install cocoapods" | jobs_intro_style body
+    gray_echo "5. 如果 pod 已存在，则询问是否升级 CocoaPods：回车跳过，输入任意字符后回车执行升级" | jobs_intro_style body
+    gray_echo "6. 询问本地 Pod 根目录（会记住上次输入；下次回车直接沿用）" | jobs_intro_style body
+    gray_echo "7. 询问需要自检的目标 Pod 名" | jobs_intro_style body
+    gray_echo "8. 智能分析目标 Pod 依赖，只收集真实依赖到的本地 podspec" | jobs_intro_style body
+    gray_echo "9. 执行 pod lib lint，并区分源码编译结果与 podspec 校验结果" | jobs_intro_style body
+    gray_echo "10. 如果智能依赖解析仍缺本地依赖，自动切换全量兼容模式重试一次" | jobs_intro_style body
+    gray_echo "11. 单个 Pod 自检结束后不关闭窗口，可直接进入下一个 Pod 的自检流程" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
-    warn_echo "x.command 文案说明："
-    gray_echo "• 如果本工具是被旧 x.command 外层执行器启动的，外层已打印的旧文案本次无法撤回"
-    gray_echo "• 本工具会在运行后自动修复能定位到的 x.command，下一次执行时生效"
-    echo ""
+    warn_echo "x.command 文案说明：" | jobs_intro_style title
+    gray_echo "• 如果本工具是被旧 x.command 外层执行器启动的，外层已打印的旧文案本次无法撤回" | jobs_intro_style body
+    gray_echo "• 本工具会在运行后自动修复能定位到的 x.command，下一次执行时生效" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
-    warn_echo "本地 Pod 根目录说明："
-    gray_echo "• 这个目录下面通常有多个兄弟文件夹"
-    gray_echo "• 每个兄弟文件夹里面通常都有自己的 *.podspec"
-    gray_echo "• 目标 Pod 会被 lint；真实依赖到的兄弟 podspec 会作为本地依赖参与解析"
-    echo ""
+    warn_echo "本地 Pod 根目录说明：" | jobs_intro_style title
+    gray_echo "• 这个目录下面通常有多个兄弟文件夹" | jobs_intro_style body
+    gray_echo "• 每个兄弟文件夹里面通常都有自己的 *.podspec" | jobs_intro_style body
+    gray_echo "• 目标 Pod 会被 lint；真实依赖到的兄弟 podspec 会作为本地依赖参与解析" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
-    warn_echo "注意事项："
-    gray_echo "• 安装或升级 CocoaPods 时可能要求输入系统密码"
-    gray_echo "• pod lib lint 会暴露 public_header_files、source_files、frameworks、resources、subspec 依赖等问题"
-    gray_echo "• 如果日志中出现 BUILD SUCCEEDED，但随后出现 lint ERROR，本工具会明确标记为：编译通过，podspec 校验失败"
-    gray_echo "• 默认不再把所有兄弟 podspec 全量塞给 --include-podspecs，避免无关 Pod 污染本次自检"
-    gray_echo "• 本工具默认使用：--platforms=ios --private --verbose --no-clean --allow-warnings"
-    gray_echo "• --no-clean 会保留 CocoaPods 临时目录，方便你排查编译错误"
-    gray_echo "• 每次自检结束后：回车继续检查下一个 Pod；输入 r 可更换根目录；输入 q 退出"
-    echo ""
+    warn_echo "注意事项：" | jobs_intro_style title
+    gray_echo "• 安装或升级 CocoaPods 时可能要求输入系统密码" | jobs_intro_style body
+    gray_echo "• pod lib lint 会暴露 public_header_files、source_files、frameworks、resources、subspec 依赖等问题" | jobs_intro_style body
+    gray_echo "• 如果日志中出现 BUILD SUCCEEDED，但随后出现 lint ERROR，本工具会明确标记为：编译通过，podspec 校验失败" | jobs_intro_style body
+    gray_echo "• 默认不再把所有兄弟 podspec 全量塞给 --include-podspecs，避免无关 Pod 污染本次自检" | jobs_intro_style body
+    gray_echo "• 本工具默认使用：--platforms=ios --private --verbose --no-clean --allow-warnings" | jobs_intro_style body
+    gray_echo "• --no-clean 会保留 CocoaPods 临时目录，方便你排查编译错误" | jobs_intro_style body
+    gray_echo "• 每次自检结束后：回车继续检查下一个 Pod；输入 r 可更换根目录；输入 q 退出" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
-    warm_echo "当前脚本：${SCRIPT_PATH}"
-    warm_echo "日志文件：${LOG_FILE}"
-    echo ""
+    warm_echo "当前脚本：${SCRIPT_PATH}" | jobs_intro_style body
+    warm_echo "日志文件：${LOG_FILE}" | jobs_intro_style body
+    echo "" | jobs_intro_style body
 
     print_divider
     repair_x_command_wait_prompt_if_possible

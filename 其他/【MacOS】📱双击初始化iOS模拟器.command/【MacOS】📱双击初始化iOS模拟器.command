@@ -6,6 +6,29 @@
 # - 运行提示：运行后会先打印内置自述；确认后继续，强制关闭模拟器必须输入 YES。
 
 # ✅ 日志输出函数
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
@@ -30,16 +53,16 @@ underline_echo() { log "\033[4m$1\033[0m"; }            # 🔗 下划线
 show_script_intro_and_wait() {
   : > "$LOG_FILE"
   clear
-  highlight_echo "══════════════════════════════ 脚本自述 ══════════════════════════════"
-  note_echo "当前脚本：${SCRIPT_PATH}"
-  note_echo "核心用途：使用 fzf 选择 iPhone 设备与 iOS 系统版本，创建并启动新模拟器。"
-  warn_echo "影响范围：会探测 Xcode 构建状态和已启动模拟器；默认不关闭正在使用的模拟器。"
-  warn_echo "清理策略：仅在无 Booted 设备但 Simulator 残留时，温和退出 Simulator.app。"
-  warn_echo "强制清场：只有输入 YES 才会执行 shutdown all / quit / pkill。"
-  gray_echo "日志位置：${LOG_FILE}"
-  gray_echo "取消方式：按 Ctrl+C 终止，不会继续执行后续业务。"
-  highlight_echo "═════════════════════════════════════════════════════════════════════"
-  echo ""
+  highlight_echo "══════════════════════════════ 脚本自述 ══════════════════════════════" | jobs_intro_style title
+  note_echo "当前脚本：${SCRIPT_PATH}" | jobs_intro_style body
+  note_echo "核心用途：使用 fzf 选择 iPhone 设备与 iOS 系统版本，创建并启动新模拟器。" | jobs_intro_style body
+  warn_echo "影响范围：会探测 Xcode 构建状态和已启动模拟器；默认不关闭正在使用的模拟器。" | jobs_intro_style body
+  warn_echo "清理策略：仅在无 Booted 设备但 Simulator 残留时，温和退出 Simulator.app。" | jobs_intro_style body
+  warn_echo "强制清场：只有输入 YES 才会执行 shutdown all / quit / pkill。" | jobs_intro_style body
+  gray_echo "日志位置：${LOG_FILE}" | jobs_intro_style body
+  gray_echo "取消方式：按 Ctrl+C 终止，不会继续执行后续业务。" | jobs_intro_style body
+  highlight_echo "═════════════════════════════════════════════════════════════════════" | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 

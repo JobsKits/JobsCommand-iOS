@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】⏳提取项目中所有的podspec.command'
-  print -r -- '核心用途：执行“⏳提取项目中所有的podspec”对应的自动化任务。'
-  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】⏳提取项目中所有的podspec.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“⏳提取项目中所有的podspec”对应的自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改当前项目、用户环境或脚本指定的目标。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行已经拆分完成的独立业务步骤。
@@ -209,24 +232,24 @@ run_original_logic() {
   COPIED_SOURCE_LIST=''
   # 展示脚本用途和影响范围，并在执行前等待用户确认。
   print_intro() {
-      printf "${BLUE}============================================================${NC}\n"
-      printf "${BLUE} 提取项目中的 CocoaPods 相关文件${NC}\n"
-      printf "${BLUE}============================================================${NC}\n"
-      printf "\n"
-      printf "功能说明：\n"
-      printf "1. 从你拖入的 Xcode 工程目录中递归查找并复制所有 .podspec 文件。\n"
-      printf "2. 只从你拖入的工程根目录复制 Podfile.deps、Podfile、Podfile.lock。\n"
-      printf "3. Podfile.deps、Podfile、Podfile.lock 不会递归查找子目录，避免把 Pods、Example、Demo 里的 Podfile 全复制出来。\n"
-      printf "4. 复制结果会放到桌面新建的 PodspecFiles_时间戳 文件夹中。\n"
-      printf "5. 如果 Podfile.deps、Podfile、Podfile.lock 不存在，只会用红字提示，不会影响脚本继续执行。\n"
-      printf "6. 如果出现同名文件，会自动追加 _1、_2 等序号，避免覆盖。\n"
-      printf "7. 支持拖入 Finder 替身、软链接，会尽量解析到背后的真实目录。\n"
-      printf "8. 支持 .podspec、Podfile.deps、Podfile、Podfile.lock 本身是 Finder 替身或软链接，会复制其真正指向的文件。\n"
-      printf "9. 支持 Finder 默认生成的 podspec 替身文件名，例如 xxx.podspec 替身、xxx.podspec alias。\n"
-      printf "\n"
-      printf "${YELLOW}按回车开始执行...${NC}"
+      printf "${BLUE}============================================================${NC}\n" | jobs_intro_style title
+      printf "${BLUE} 提取项目中的 CocoaPods 相关文件${NC}\n" | jobs_intro_style title
+      printf "${BLUE}============================================================${NC}\n" | jobs_intro_style title
+      printf "\n" | jobs_intro_style body
+      printf "功能说明：\n" | jobs_intro_style body
+      printf "1. 从你拖入的 Xcode 工程目录中递归查找并复制所有 .podspec 文件。\n" | jobs_intro_style body
+      printf "2. 只从你拖入的工程根目录复制 Podfile.deps、Podfile、Podfile.lock。\n" | jobs_intro_style body
+      printf "3. Podfile.deps、Podfile、Podfile.lock 不会递归查找子目录，避免把 Pods、Example、Demo 里的 Podfile 全复制出来。\n" | jobs_intro_style body
+      printf "4. 复制结果会放到桌面新建的 PodspecFiles_时间戳 文件夹中。\n" | jobs_intro_style body
+      printf "5. 如果 Podfile.deps、Podfile、Podfile.lock 不存在，只会用红字提示，不会影响脚本继续执行。\n" | jobs_intro_style body
+      printf "6. 如果出现同名文件，会自动追加 _1、_2 等序号，避免覆盖。\n" | jobs_intro_style body
+      printf "7. 支持拖入 Finder 替身、软链接，会尽量解析到背后的真实目录。\n" | jobs_intro_style body
+      printf "8. 支持 .podspec、Podfile.deps、Podfile、Podfile.lock 本身是 Finder 替身或软链接，会复制其真正指向的文件。\n" | jobs_intro_style body
+      printf "9. 支持 Finder 默认生成的 podspec 替身文件名，例如 xxx.podspec 替身、xxx.podspec alias。\n" | jobs_intro_style body
+      printf "\n" | jobs_intro_style body
+      printf "${YELLOW}按回车开始执行...${NC}" | jobs_intro_style body
       read -r _
-      printf "\n"
+      printf "\n" | jobs_intro_style body
   }
   # 封装 normalize_dragged_path 对应的独立处理逻辑。
   normalize_dragged_path() {

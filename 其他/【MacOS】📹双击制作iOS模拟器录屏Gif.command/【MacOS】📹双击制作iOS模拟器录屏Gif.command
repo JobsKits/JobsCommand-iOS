@@ -9,6 +9,29 @@
 # 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
 # =====================================================================
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
 SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
 SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
@@ -181,13 +204,13 @@ brew_install_or_upgrade() {
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 show_script_intro_and_wait() {
   clear
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】📹双击制作iOS模拟器录屏Gif.command'
-  print -r -- '核心用途：执行“📹双击制作iOS模拟器录屏Gif”对应的移动端项目自动化任务。'
-  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
-  echo ""
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】📹双击制作iOS模拟器录屏Gif.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“📹双击制作iOS模拟器录屏Gif”对应的移动端项目自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 # 执行已经拆分完成的独立业务步骤。
@@ -227,14 +250,14 @@ run_original_logic() {
   # ✅ 自述信息
   print_intro() {
       clear
-      echo ""
-      info_echo "🎬 本脚本用于录制 iOS 模拟器视频"
-      echo "👉 流程如下："
-      echo "1️⃣ 选择要启动的 iOS 模拟器（fzf）"
-      echo "2️⃣ 自动关闭旧模拟器防止假后台"
-      echo "3️⃣ 自动启动模拟器并录屏"
-      echo "4️⃣ 再次回车停止录屏，然后可选是否转 GIF"
-      echo "======================================="
+      echo "" | jobs_intro_style body
+      info_echo "🎬 本脚本用于录制 iOS 模拟器视频" | jobs_intro_style body
+      echo "👉 流程如下：" | jobs_intro_style title
+      echo "1️⃣ 选择要启动的 iOS 模拟器（fzf）" | jobs_intro_style body
+      echo "2️⃣ 自动关闭旧模拟器防止假后台" | jobs_intro_style body
+      echo "3️⃣ 自动启动模拟器并录屏" | jobs_intro_style body
+      echo "4️⃣ 再次回车停止录屏，然后可选是否转 GIF" | jobs_intro_style body
+      echo "=======================================" | jobs_intro_style title
       read "?📎 按回车继续..."
   }
   # ✅ 写入 Homebrew shellenv

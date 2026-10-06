@@ -6,6 +6,29 @@
 # - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 RED='\033[31m'
 GREEN='\033[32m'
 YELLOW='\033[33m'
@@ -28,23 +51,23 @@ PODFILE_REPLACED_COUNT=0
 PODFILE_SKIPPED_COUNT=0
 # 展示脚本用途和影响范围，并在执行前等待用户确认。
 print_intro() {
-    printf "${BLUE}============================================================${NC}\n"
-    printf "${BLUE} 放回本地 Pod 的 CocoaPods 相关文件${NC}\n"
-    printf "${BLUE}============================================================${NC}\n"
-    printf "\n"
-    printf "功能说明：\n"
-    printf "1. 第一步拖入管理本地 Pod 的文件夹。脚本会在该目录下最多向下一层查找 .podspec。\n"
-    printf "2. 第二步拖入装有 .podspec 的文件夹。脚本会读取该目录直接包含的 .podspec，以及一级子文件夹里的 .podspec。\n"
-    printf "3. 脚本会按 .podspec 文件名精确匹配，把来源 .podspec 放回本地 Pod 目录中已有的同名 .podspec。\n"
-    printf "4. 如果来源 .podspec 同目录存在 JobsPodspecKit.rb，会同步放回到目标 .podspec 同目录：目标已有则覆盖，目标没有则创建。\n"
-    printf "5. 不会创建新的 .podspec、Podfile、Podfile.deps、Podfile.lock；这些文件只替换已经存在的同名目标文件。\n"
-    printf "6. Podfile、Podfile.deps、Podfile.lock 会逐个询问：直接回车跳过，输入任意字符后回车才替换。\n"
-    printf "7. Podfile 三件套默认从本地 Pod 管理目录的上层目录寻找；默认位置不存在时，会要求你拖入目标文件或包含目标文件的文件夹。\n"
-    printf "8. 支持拖入路径中的空格、引号、反斜杠转义、~，并会尽量解析 Finder 替身和 Unix 软链接。\n"
-    printf "\n"
-    printf "${YELLOW}按回车开始执行...${NC}"
+    printf "${BLUE}============================================================${NC}\n" | jobs_intro_style title
+    printf "${BLUE} 放回本地 Pod 的 CocoaPods 相关文件${NC}\n" | jobs_intro_style title
+    printf "${BLUE}============================================================${NC}\n" | jobs_intro_style title
+    printf "\n" | jobs_intro_style body
+    printf "功能说明：\n" | jobs_intro_style body
+    printf "1. 第一步拖入管理本地 Pod 的文件夹。脚本会在该目录下最多向下一层查找 .podspec。\n" | jobs_intro_style body
+    printf "2. 第二步拖入装有 .podspec 的文件夹。脚本会读取该目录直接包含的 .podspec，以及一级子文件夹里的 .podspec。\n" | jobs_intro_style body
+    printf "3. 脚本会按 .podspec 文件名精确匹配，把来源 .podspec 放回本地 Pod 目录中已有的同名 .podspec。\n" | jobs_intro_style body
+    printf "4. 如果来源 .podspec 同目录存在 JobsPodspecKit.rb，会同步放回到目标 .podspec 同目录：目标已有则覆盖，目标没有则创建。\n" | jobs_intro_style body
+    printf "5. 不会创建新的 .podspec、Podfile、Podfile.deps、Podfile.lock；这些文件只替换已经存在的同名目标文件。\n" | jobs_intro_style body
+    printf "6. Podfile、Podfile.deps、Podfile.lock 会逐个询问：直接回车跳过，输入任意字符后回车才替换。\n" | jobs_intro_style body
+    printf "7. Podfile 三件套默认从本地 Pod 管理目录的上层目录寻找；默认位置不存在时，会要求你拖入目标文件或包含目标文件的文件夹。\n" | jobs_intro_style body
+    printf "8. 支持拖入路径中的空格、引号、反斜杠转义、~，并会尽量解析 Finder 替身和 Unix 软链接。\n" | jobs_intro_style body
+    printf "\n" | jobs_intro_style body
+    printf "${YELLOW}按回车开始执行...${NC}" | jobs_intro_style body
     read -r USER_CONFIRM
-    printf "\n"
+    printf "\n" | jobs_intro_style body
 }
 # 检查当前运行条件是否满足后续流程要求。
 is_blank_input() {
@@ -699,12 +722,12 @@ print_result() {
 }
 # 打印脚本内置自述，并按运行入口决定是否等待用户确认。
 show_script_intro_and_wait() {
-  print -r -- '============================== 脚本内置自述 =============================='
-  print -r -- '脚本名称：【MacOS】♻️放回本地Pod的podspec.command'
-  print -r -- '核心用途：执行“♻️放回本地Pod的podspec”对应的移动端项目自动化任务。'
-  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。'
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。'
-  print -r -- '============================================================================'
+  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
+  print -r -- '脚本名称：【MacOS】♻️放回本地Pod的podspec.command' | jobs_intro_style title
+  print -r -- '核心用途：执行“♻️放回本地Pod的podspec”对应的移动端项目自动化任务。' | jobs_intro_style body
+  print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。' | jobs_intro_style body
+  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
+  print -r -- '============================================================================' | jobs_intro_style title
   if [[ ! -t 0 ]]; then
     print -u2 -r -- '当前没有可交互输入，请在终端中重新运行。'
     return 1

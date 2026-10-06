@@ -5,6 +5,29 @@
 # - 影响范围：会在 ~/.xcode-build-timer 目录生成 Swift 源码、App Bundle 和运行日志，不修改 Xcode 与项目文件。
 # - 运行提示：运行后会先打印内置自述；确认后检查 Xcode/Swift 环境，随后编译并打开菜单栏工具。
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 setopt NO_NOMATCH
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
@@ -49,20 +72,20 @@ show_script_intro_and_wait() {
   local current_arch=""
   current_arch="$(uname -m)"
   clear
-  highlight_echo "============================== 脚本自述 =============================="
-  note_echo "当前脚本：${SCRIPT_PATH}"
-  note_echo "核心用途：生成并启动 Xcode 编译耗时菜单栏工具。"
-  note_echo "主要能力：通过 Xcode Scheme Pre/Post Action 精准识别编译开始/结束，并在菜单栏与悬浮窗动态显示当前耗时。"
-  note_echo "兜底能力：未配置 Scheme Hook 时，仍会自动读取 DerivedData 的 .xcactivitylog 展示最近构建记录。"
-  note_echo "兼容策略：脚本会按当前 Mac 芯片原生编译，Apple Silicon 编译 arm64，Intel Mac 编译 x86_64。"
-  note_echo "兼容边界：公开资料显示 macOS Tahoe 26 是 Intel Mac 最后一个大版本；当前脚本按 macOS 13.0+ 部署目标编译，覆盖 Intel 最后支持线。"
-  note_echo "运行策略：确认后会先结束内存里可能已开启的 ${APP_NAME}，清理旧 App Bundle，再重新编译并启动。"
-  warn_echo "影响范围：仅写入 ${WORK_DIR} 与 ${LOG_FILE}，不修改 Xcode、不修改工程、不安装系统插件。"
-  gray_echo "Hook 脚本：${HOOK_SCRIPT}"
-  gray_echo "当前机器架构：${current_arch}"
-  gray_echo "取消方式：按 Ctrl+C 终止；确认前不会生成或更新工具。"
-  highlight_echo "======================================================================="
-  echo ""
+  highlight_echo "============================== 脚本自述 ==============================" | jobs_intro_style title
+  note_echo "当前脚本：${SCRIPT_PATH}" | jobs_intro_style body
+  note_echo "核心用途：生成并启动 Xcode 编译耗时菜单栏工具。" | jobs_intro_style body
+  note_echo "主要能力：通过 Xcode Scheme Pre/Post Action 精准识别编译开始/结束，并在菜单栏与悬浮窗动态显示当前耗时。" | jobs_intro_style body
+  note_echo "兜底能力：未配置 Scheme Hook 时，仍会自动读取 DerivedData 的 .xcactivitylog 展示最近构建记录。" | jobs_intro_style body
+  note_echo "兼容策略：脚本会按当前 Mac 芯片原生编译，Apple Silicon 编译 arm64，Intel Mac 编译 x86_64。" | jobs_intro_style body
+  note_echo "兼容边界：公开资料显示 macOS Tahoe 26 是 Intel Mac 最后一个大版本；当前脚本按 macOS 13.0+ 部署目标编译，覆盖 Intel 最后支持线。" | jobs_intro_style body
+  note_echo "运行策略：确认后会先结束内存里可能已开启的 ${APP_NAME}，清理旧 App Bundle，再重新编译并启动。" | jobs_intro_style body
+  warn_echo "影响范围：仅写入 ${WORK_DIR} 与 ${LOG_FILE}，不修改 Xcode、不修改工程、不安装系统插件。" | jobs_intro_style body
+  gray_echo "Hook 脚本：${HOOK_SCRIPT}" | jobs_intro_style body
+  gray_echo "当前机器架构：${current_arch}" | jobs_intro_style body
+  gray_echo "取消方式：按 Ctrl+C 终止；确认前不会生成或更新工具。" | jobs_intro_style body
+  highlight_echo "=======================================================================" | jobs_intro_style title
+  echo "" | jobs_intro_style body
   read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
 }
 

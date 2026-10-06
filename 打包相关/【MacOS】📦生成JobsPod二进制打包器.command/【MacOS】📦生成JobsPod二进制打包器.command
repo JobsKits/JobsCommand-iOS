@@ -3,6 +3,29 @@
 # Jobs Pod 二进制打包器生成器：在本机把随包 Swift 源码编译成原生 macOS GUI App。
 # 运行前先展示完整说明并等待回车；确认后仅写入本脚本同级 Build 目录。
 
+# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
+jobs_intro_style() {
+  local intro_color=0
+  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
+     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
+     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
+    intro_color=1
+  fi
+  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
+    BEGIN { esc = sprintf("%c", 27) }
+    {
+      gsub(esc "\\[[0-9;]*m", "")
+      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
+      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
+      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
+      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
+      title = (!numbered && (role == "title" || heading))
+      if (role == "auto" && !seen && !numbered) title = 1
+      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
+      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
+    }
+  '
+}
 typeset -gr SCRIPT_PATH="${0:A}"
 typeset -gr SCRIPT_DIR="${SCRIPT_PATH:h}"
 typeset -gr SCRIPT_BASENAME="${SCRIPT_PATH:t}"
@@ -17,29 +40,29 @@ typeset -g STAGING_DIR=""
 # 打印固定自述，并在产生任何文件前等待用户确认。
 show_intro_and_confirm() {
   /usr/bin/clear
-  print -r -- "============================================================"
-  print -r -- "Jobs Pod 二进制打包器（原生 macOS GUI）"
-  print -r -- "============================================================"
-  print -r -- ""
-  print -r -- "本脚本会做什么："
-  print -r -- "1. 使用本机 Xcode Swift 编译器编译随包 SwiftUI/AppKit 源码。"
-  print -r -- "2. 在同级 Build 目录生成 JobsPodBinaryBuilder.app。"
-  print -r -- "3. 进行临时代码签名，并自动启动 GUI 软件。"
-  print -r -- ""
-  print -r -- "GUI 软件的工作原则："
-  print -r -- "• 在后台扫描整个 JobsByPods，主线程持续响应；只打包用户选择主 Pod 的依赖闭包。"
-  print -r -- "• 已导入的本地 Pod 是最高权威来源，并自动绑定唯一 :path。"
-  print -r -- "• 自动导入同工程 Pods，按 Podfile.lock 锁定外源 Pod 的精确版本。"
-  print -r -- "• 已安装的外源 Pod 复制到会话沙盒后本地引用，原 Pods 只读且不重复下载。"
-  print -r -- "• 项目 Pods 缺失时继续复用 CocoaPods 下载缓存与本机 Specs；只有冲突才人工介入。"
-  print -r -- "• 依赖全部找到后才启用醒目的“开始正式打包”；点击后自动预编译并展示来源表。"
-  print -r -- "• 左侧红色感叹号标记仍有缺失或版本冲突的主 Pod。"
-  print -r -- "• 正式阶段实时显示进度和日志，最终验证二进制消费 Demo。"
-  print -r -- ""
-  print -r -- "环境要求：macOS、完整 Xcode、CocoaPods（pod 命令）。"
-  print -r -- "写入范围：${BUILD_DIR}"
-  print -r -- "重复运行会替换该目录中的 JobsPodBinaryBuilder.app。"
-  print -r -- ""
+  print -r -- "============================================================" | jobs_intro_style title
+  print -r -- "Jobs Pod 二进制打包器（原生 macOS GUI）" | jobs_intro_style title
+  print -r -- "============================================================" | jobs_intro_style title
+  print -r -- "" | jobs_intro_style body
+  print -r -- "本脚本会做什么：" | jobs_intro_style title
+  print -r -- "1. 使用本机 Xcode Swift 编译器编译随包 SwiftUI/AppKit 源码。" | jobs_intro_style body
+  print -r -- "2. 在同级 Build 目录生成 JobsPodBinaryBuilder.app。" | jobs_intro_style body
+  print -r -- "3. 进行临时代码签名，并自动启动 GUI 软件。" | jobs_intro_style body
+  print -r -- "" | jobs_intro_style body
+  print -r -- "GUI 软件的工作原则：" | jobs_intro_style title
+  print -r -- "• 在后台扫描整个 JobsByPods，主线程持续响应；只打包用户选择主 Pod 的依赖闭包。" | jobs_intro_style body
+  print -r -- "• 已导入的本地 Pod 是最高权威来源，并自动绑定唯一 :path。" | jobs_intro_style body
+  print -r -- "• 自动导入同工程 Pods，按 Podfile.lock 锁定外源 Pod 的精确版本。" | jobs_intro_style body
+  print -r -- "• 已安装的外源 Pod 复制到会话沙盒后本地引用，原 Pods 只读且不重复下载。" | jobs_intro_style body
+  print -r -- "• 项目 Pods 缺失时继续复用 CocoaPods 下载缓存与本机 Specs；只有冲突才人工介入。" | jobs_intro_style body
+  print -r -- "• 依赖全部找到后才启用醒目的“开始正式打包”；点击后自动预编译并展示来源表。" | jobs_intro_style body
+  print -r -- "• 左侧红色感叹号标记仍有缺失或版本冲突的主 Pod。" | jobs_intro_style body
+  print -r -- "• 正式阶段实时显示进度和日志，最终验证二进制消费 Demo。" | jobs_intro_style body
+  print -r -- "" | jobs_intro_style body
+  print -r -- "环境要求：macOS、完整 Xcode、CocoaPods（pod 命令）。" | jobs_intro_style body
+  print -r -- "写入范围：${BUILD_DIR}" | jobs_intro_style body
+  print -r -- "重复运行会替换该目录中的 JobsPodBinaryBuilder.app。" | jobs_intro_style body
+  print -r -- "" | jobs_intro_style body
   print -n -r -- "按 Enter 确认并生成；按 Control+C 取消："
   IFS= read -r
 }
