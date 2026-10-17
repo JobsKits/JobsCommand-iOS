@@ -4,78 +4,55 @@
 
 [toc]
 
+---
+
 ## 🔥 <font id=前言>前言</font>
 
-- 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
+本入口在识别出的项目目录调用 [**CocoaPods**](https://cocoapods.org/)，由目标 `Podfile` 自己加载网络适配与公共 Specs 选源；包装器不再使用旧镜像缓存改写全局源。
 
-- 本自述文件对应脚本：`【MacOS】⬆️双击更新Cocoapods本地仓库.command`。
-- 脚本原始位置：`JobsGenesis@JobsCommand.iOS/Cocoapods`。
-- 脚本定位：处理 CocoaPods 安装、更新、Podfile 或 Pods 工程相关流程。
-- 本次已按 Jobs 标准升级：`# shell: zsh`、README 防误触、彩色日志、结构化入口、`main "$@"` 收口。
-- 普通安装 / 更新 / 升级交互统一为：**回车跳过，输入任意字符后回车执行**。
-- 危险操作不应该靠回车默认执行；涉及破坏性修改时，应单独输入 `YES` 确认。
+| 原行为 | 当前调用 | 实际边界 |
+| --- | --- | --- |
+| 先删除 workspace / Pods / lock，再依次执行 install、setup 与无参数全仓 repo update | `pod install --repo-update`，只启动一次安装 / 更新进程 | 网络探测、Specs 选择和后续下载在同一个 pod 进程中完成；目标 Podfile 必须已接入相应脚本包 |
 
-## 一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## 一、用途与项目路径 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-| 项目 | 说明 |
-|---|---|
-| 脚本名称 | `【MacOS】⬆️双击更新Cocoapods本地仓库.command` |
-| 所属目录 | `JobsGenesis@JobsCommand.iOS/Cocoapods` |
-| 主要标签 | `CocoaPods` |
-| 是否涉及 Homebrew | `否` |
-| 是否可能联网 | `是` |
-| 是否含高风险命令 | `是` |
-| zsh 静态检查 | `当前生成环境未执行，请在 macOS 上复核` |
+主脚本是 [【MacOS】⬆️双击更新Cocoapods本地仓库.command](<./【MacOS】⬆️双击更新Cocoapods本地仓库.command>)。沿用原来的定位方式，以脚本自身所在目录识别原生项目的 `Podfile`，或 Flutter 项目的 `ios/Podfile`；不要将启动时的终端目录当作脚本已经接受的目标参数。请在实际工程对应位置使用入口，或使用工程已有的手动安装脚本。
 
-## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+保留原有项目识别与当前目录文件执行权限设置，随后执行同一次安装与规格刷新。现有 `.xcworkspace`、`Pods` 和 `Podfile.lock` 保留，供 CocoaPods 复用锁定版本与安装缓存，并由正常安装流程维护；入口不主动删除或清空这些路径。安装失败返回非零，不继续宣称成功。
 
-推荐双击 `.command` 运行。终端方式如下：
+## 二、网络适配边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-```shell
-chmod +x './【MacOS】⬆️双击更新Cocoapods本地仓库.command'
-'./【MacOS】⬆️双击更新Cocoapods本地仓库.command'
+运行前只检查目标工程是否具有以下入口与文件，不执行探测脚本、不注入代码，也不修改任何未知工程的 Podfile：
+
+- `Podfile` 中调用 `JobsCocoaPodsNetwork.apply!` 和 `JobsCocoaPodsSource.apply!`。
+- `ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/` 中的网络与归档 Ruby 模块。
+- `ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command/jobs_cocoapods_source.rb`。
+
+文件与调用标记齐备时输出已发现接入入口；实际链路仍由 Podfile 加载的实现验证。未确认接入时明确告警后继续原生 CocoaPods：本包装器不自带选路，不会假装网络已恢复。未知、第三方工程保持自己的配置。
+
+已接入工程由同次 pod 进程执行真实网络验证、Specs 选择及下载；当前代理环境不会经由已退出的 Ruby 子进程传回父 Shell，因此不再另起 `pod setup` 或无参数 `pod repo update`。包装器不读写 `.cocoapods_mirror_config`，也不删除或重建全局 `trunk`；保留既有私有源与其它全局源配置。项目内部网络模块的开关、超时、可用代理和归档白名单以目标工程说明为准。
+
+## 三、运行方式与交互 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+
+脚本保留原内置自述和回车确认；按 `Ctrl+C` 取消。确认前先核对用途和项目路径，确认后才进入原业务流程；脚本不读取或展示本 README。
+
+```zsh
+/bin/zsh './【MacOS】⬆️双击更新Cocoapods本地仓库.command'
 ```
 
-脚本启动后会先显示本 README，并等待回车继续，避免误触执行。
+需要现有可用的 zsh、CocoaPods 及其 Ruby 环境；本项目安装 / 更新路径不自动修复全局工具链。网络失败仍可能导致安装失败，不能将发现接入文件或返回某个 Specs 地址视为安装成功。
 
-## 三、本次升级内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## 四、日志与迁移 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-- 统一脚本解释器为 `# shell: zsh`。
-- 增加 README 展示与回车阻塞，防止双击误操作。
-- 增加 Jobs 标准彩色日志函数，日志路径为 `$TMPDIR/脚本名.log`。
-- 增加 `SCRIPT_DIR` / `SCRIPT_PATH` 标准路径变量。
-- 使用 `main "$@"` 作为统一入口。
-- 原业务逻辑保留在 `run_original_logic` 模块内，方便后续继续拆分重构。
+包装器日志保存在系统临时目录中的 `【MacOS】⬆️双击更新Cocoapods本地仓库.log`，终端会输出业务日志。目标工程的网络与 Specs 摘要继续由其 Podfile 模块输出；完整 CocoaPods 输出仍以终端为准。迁移本包装器不等于迁移工程网络能力，目标 Podfile 与两个完整脚本包需要一起保留。
 
-## 四、Homebrew 标准 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## 五、验证 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-- 已有 Homebrew 时保留原有维护交互，不因目录只读而自动另装。
-- [**Homebrew**](https://brew.sh/) 安装路径由用户选择：已有可运行安装时复用；确实需要安装时先强提示，只有精确输入大写 `YES` 才选择系统标准目录，其它输入或直接回车选择当前用户的 `.local/homebrew`。`YES` 只表示选择路径，权限与密码由官方安装器实际处理；有管理员权限也可以选用户目录。选定路径失败立即停止，不自动切换；`Ctrl+C` / 输入结束取消整个任务。
-- 用户目录安装需要可用 Git 与 curl；后续系统级软件仍可能要求管理员权限。
-
-## 五、注意事项 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
-
-- 我没有在生成阶段执行脚本里的 macOS 专属命令，例如 `brew`、`pod`、`flutter`、`xcodebuild`、`osascript`、`sudo`、模拟器控制等。
-- 首次运行前建议先阅读本 README，再执行脚本。
-- 如果脚本涉及工程目录，请确认当前目录或拖入路径正确。
-- 如果脚本涉及 Git / CocoaPods / Flutter 依赖更新，建议先提交或备份本地改动。
-- 运行日志默认写入：`$TMPDIR/【MacOS】⬆️双击更新Cocoapods本地仓库.log`。
-
-## 六、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
-
-```mermaid
-graph TD
-    A([开始]) --> B[显示 README 并等待回车]
-    B --> C[初始化脚本路径与日志]
-    C --> D{是否涉及 Homebrew 或依赖工具}
-    D --> |是| E[执行标准自检 / 可选升级]
-    D --> |否| F[进入业务逻辑]
-    E --> F[进入业务逻辑]
-    F --> G{是否存在危险操作}
-    G --> |是| H[要求明确确认]
-    G --> |否| I[执行任务]
-    H --> I[执行任务]
-    I --> J([结束])
+```zsh
+/bin/zsh -n './【MacOS】⬆️双击更新Cocoapods本地仓库.command'
+/usr/bin/ruby './Tests/cocoapods_route_test.rb'
 ```
+
+隔离测试提取真实安装函数与主流程，以假 pod、arch、uname 及权限入口替身验证调用目录、一次调用、参数、未知工程提示和失败传播，并放置已有锁文件 / Pods / 工作空间，断言正常与失败路径都不调用 rm 或清理函数，文件内容保持。测试不执行真实权限变更、工具链安装或依赖下载。已进行语法与隔离验证，未对真实工程执行安装、更新或构建。
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

@@ -24,6 +24,16 @@ JobsPodBinaryBuilder.app
 
 软件用于把一个 Jobs 自建 Pod 及其实际依赖闭包打包成可分发的 `XCFramework` 二进制 SDK，同时把 Jobs 本地来源、项目 `Pods` 安装快照、[**CocoaPods**](https://cocoapods.org/) 本机缓存、Specs 来源、版本、许可证、源码指纹和验证结果完整告知使用者。
 
+生成的两个安装入口均自带网络包：
+
+| 入口 | 生成的真实行为 |
+| --- | --- |
+| 临时会话根目录的 `Podfile`，宿主为 `PackagingHost` | 网络链路验证 → 已审核源码归档回退 → 公共 Specs 测试选源 → 原精确版本 / 本地路径依赖 |
+| `ConsumerDemo/Podfile` | 相同网络顺序 → 原二进制 SDK 相对路径依赖 |
+| `pod ipc` 等查询 | 不发送这两个网络包的探测，不注册归档下载回退 |
+
+例如公共源原来固定 `source 'https://cdn.cocoapods.org/'`；当前 Podfile 在 `platform` 和 target 前调用 `JobsCocoaPodsNetwork.apply!`、`JobsCocoaPodsDownloadFallback.install!`、`JobsCocoaPodsSource.apply!`。网络包随 App Bundle 与生成工程复制，移动消费 Demo 后仍从自己的 `ScriptsByPods` 读取，不引用来源仓库。
+
 ## 二、核心来源规则 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
 ### 2.1、本地索引是最高权威来源 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
@@ -165,6 +175,9 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 - 项目 `Pods` 与 CocoaPods 缓存中的外源 Pod 使用锁文件精确版本，并复制到一次性 `ImportedPods` 会话沙盒；原第三方目录始终只读。
 - `Podfile.lock` 与 `Pods/Manifest.lock` 不一致时立即阻断，避免把过期 `Pods` 当成当前安装结果。
 - `pod install` 固定使用 `--no-repo-update`，避免任务中静默更新 Specs。
+- 临时宿主与消费 Demo 在安装前同步验证当前链路和已启用系统手工代理，后续 Specs 与源码下载继承本次环境；不写系统代理或全局 Git 配置。
+- 公共 Specs 选择只适配官方源，保留私有来源、原有 `:path` 与精确版本。已审核的源码归档回退只覆盖 `AMPopTip 4.12.0` 的官方固定提交，未知依赖沿用官方下载器；不能据此保证任意受限网络都能安装成功。
+- 网络资源不完整时阻止生成安装工程；App 必须重新运行生成器，才会带上最新资源。既有 `Build` 产物不会被静默改写。
 - CocoaPods 的 JSON 解析只读取标准输出，不把机器可读 JSON 推送到界面；错误输出经合并后展示并保留到任务日志。
 - JobsByPods 遍历、项目 Pods 快照解析和 CocoaPods Specs 查询都在后台任务执行；子进程输出在后台批量合并，主线程只低频更新进度、可见日志尾部与按钮状态。
 - 外部命令失败时，状态卡只显示精简摘要，详细堆栈放在有固定高度的可滚动区域，不会再把界面撑出屏幕。
@@ -181,6 +194,16 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 - 外源 Pod 优先采用原工程锁定版本；项目 `Pods` 没有源码时再读下载缓存，缓存也没有时由 `pod install` 按本机 Specs 中的精确版本自动下载。
 - ConsumerDemo 验证的是模块导入、链接和 CocoaPods 集成，不替代业务运行时测试。
 
+网络变量、代理限制与日志分别见随包[网络适配说明](<./JobsPodBinaryBuilder/Resources/CocoaPods/ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/README.md>)和[公共源说明](<./JobsPodBinaryBuilder/Resources/CocoaPods/ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command/README.md>)。自动网络摘要进入原任务日志，源探测另写系统临时目录中的工程独立日志。迁移生成的安装工程时一起保留 `Podfile`、`ScriptsByPods`、已有锁文件及实际 SDK / 依赖路径。
+
+从本 README 所在目录运行隔离生成回归：
+
+```zsh
+/usr/bin/ruby ./JobsPodBinaryBuilder/Tests/network_generation_test.rb
+```
+
+该回归使用 Swift 解释器在系统临时目录生成假 Pod 工程，检查两入口的加载顺序、模块随包复制、查询离线、移动目录后可解析、原版本 / 私有快照保留、资源缺失阻断与已有文件不覆盖。测试不运行真实 `pod install`、GUI 或 Xcode 构建，不能替代设备上的实际安装与打包验收。
+
 如果扫描阶段仍然没有任何 podspec 能被解析，错误弹窗会直接列出前三份失败样例，其余完整信息保留在界面实时日志中。优先检查 `pod --version`、podspec 内的 `require_relative` 路径以及 Ruby 报出的具体异常。
 
 ## 九、目录说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
@@ -191,6 +214,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 ├── README.md
 ├── JobsPodBinaryBuilder/
 │   ├── Resources/
+│   │   ├── CocoaPods/          # 两安装入口的网络 hook 与两个 ScriptsByPods 运行包
 │   │   ├── JobsPodBinaryBuilder-AppIcon.svg
 │   │   ├── JobsPodBinaryBuilder-AppIcon-1024.png
 │   │   ├── JobsPodBinaryBuilder.icns
@@ -205,6 +229,8 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 │   │   ├── PodspecService.swift
 │   │   └── ProjectGenerator.swift
 │   └── Tests/
+│       ├── network_generation_test.rb
+│       ├── NetworkGenerationMain.swift
 │       ├── ImportedPodsInstallMain.swift
 │       ├── SmokeMain.swift
 │       └── PackageSmokeMain.swift

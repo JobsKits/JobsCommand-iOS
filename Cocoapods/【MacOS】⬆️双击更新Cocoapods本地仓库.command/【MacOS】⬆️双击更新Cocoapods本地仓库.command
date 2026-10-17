@@ -1,8 +1,8 @@
 #!/bin/zsh
 # 脚本自述：
 # - 脚本名称：【MacOS】⬆️双击更新Cocoapods本地仓库.command
-# - 核心用途：执行“⬆️双击更新Cocoapods本地仓库”对应的 Git / Sourcetree 自动化操作。
-# - 影响范围：可能修改当前仓库、工作区、分支、菜单配置或 Git 索引。
+# - 核心用途：在目标 Podfile 所在目录以同一次安装刷新规格，网络选择由工程自己的适配入口负责。
+# - 影响范围：按锁定版本刷新规格与安装依赖，保留已有工作空间、Pods 和锁文件供 CocoaPods 正常维护。
 # - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
 # Jobs 标准化脚本外壳
@@ -383,8 +383,8 @@ show_script_intro_and_wait() {
   clear
   print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
   print -r -- '脚本名称：【MacOS】⬆️双击更新Cocoapods本地仓库.command' | jobs_intro_style title
-  print -r -- '核心用途：执行“⬆️双击更新Cocoapods本地仓库”对应的 Git 自动化操作。' | jobs_intro_style body
-  print -r -- '影响范围：可能修改当前仓库、工作区、分支或 Git 索引。' | jobs_intro_style body
+  print -r -- '核心用途：在目标 Podfile 所在目录以同一次安装刷新规格，网络选择由工程自己的适配入口负责。' | jobs_intro_style body
+  print -r -- '影响范围：刷新规格与安装依赖，复用工作空间、Pods 和锁文件，不清空缓存。' | jobs_intro_style body
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
   print -r -- '============================================================================' | jobs_intro_style title
   echo "" | jobs_intro_style body
@@ -434,8 +434,8 @@ run_original_logic() {
     clear
     success_echo "🛠️ 脚本功能：" | jobs_intro_style title
     success_echo "1️⃣ 给当前目录所有文件添加可执行权限" | jobs_intro_style body
-    success_echo "2️⃣ 自动删除 .xcworkspace、Pods、Podfile.lock" | jobs_intro_style body
-    success_echo "3️⃣ 自动执行 pod install / pod repo update" | jobs_intro_style body
+    success_echo "2️⃣ 复用现有工作空间、Pods 与锁文件，不清空安装缓存" | jobs_intro_style body
+    success_echo "3️⃣ 同一次 pod install --repo-update 交由工程选路、刷新规格与安装依赖" | jobs_intro_style body
     success_echo "🧩 同时兼容 Flutter 与原生 iOS 项目" | jobs_intro_style body
     echo "" | jobs_intro_style body
     read "?👉 按下回车键继续执行，或按 Ctrl+C 取消..."
@@ -449,26 +449,20 @@ run_original_logic() {
       fi
     done
   }
-  # ✅ 清理 CocoaPods 缓存
-  clean_pod_cache() {
-    project_file=$(find "$basedir" -maxdepth 1 -name "*.xcodeproj" | head -n 1)
-    if [[ -z "$project_file" ]]; then
-      error_echo "❌ 未找到 .xcodeproj 文件，请确认项目路径正确"
-      exit 1
+  # 只确认目标工程已有接入，不注入或修改未知 Podfile。
+  jobs_describe_project_network() {
+    local project_root="$1"
+    local network_dir="$project_root/ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command"
+    local source_dir="$project_root/ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command"
+    if [[ -f "$network_dir/jobs_cocoapods_network.rb" &&
+          -f "$network_dir/jobs_cocoapods_download_fallback.rb" &&
+          -f "$source_dir/jobs_cocoapods_source.rb" ]] &&
+       /usr/bin/grep -Fq 'JobsCocoaPodsNetwork.apply!' "$project_root/Podfile" &&
+       /usr/bin/grep -Fq 'JobsCocoaPodsSource.apply!' "$project_root/Podfile"; then
+      info_echo "🌐 已找到目标 Podfile 网络适配与选源入口；由同次 pod 进程验证链路并供后续下载继承。"
+    else
+      warn_echo "⚠ 未确认目标 Podfile 已接入 Jobs 网络适配与选源包；本包装器只执行原生 CocoaPods，不自带选路，也不会自动改写该工程。"
     fi
-
-    ProjName=$(basename "$project_file" .xcodeproj)
-    success_echo "✅ 当前工程名称为：$ProjName"
-
-    local xcworkspace="$basedir/${ProjName}.xcworkspace"
-    local pods_dir="$basedir/Pods"
-    local podfile_lock="$basedir/Podfile.lock"
-
-    [[ -d "$xcworkspace" ]] && warn_echo "🗑️ 删除：$xcworkspace" && rm -rf "$xcworkspace"
-    [[ -d "$pods_dir" ]] && warn_echo "🗑️ 删除：$pods_dir" && rm -rf "$pods_dir"
-    [[ -f "$podfile_lock" ]] && warn_echo "🗑️ 删除：$podfile_lock" && rm -f "$podfile_lock"
-
-    success_echo "✅ 工程 $ProjName 的旧缓存清理完毕"
   }
   # ✅ 执行 CocoaPods 安装
   run_pod_install() {
@@ -480,9 +474,8 @@ run_original_logic() {
     fi
 
     info_echo "🚀 正在执行 pod install..."
-    pod install
-    pod setup
-    pod repo update --verbose
+    jobs_describe_project_network "$PWD"
+    pod install --repo-update || { error_echo "❌ CocoaPods 安装与刷新失败：$PWD"; return 1; }
     success_echo "🎉 CocoaPods 安装与更新完成"
   }
   # ✅ 主函数入口
@@ -490,7 +483,6 @@ run_original_logic() {
       init_basedir                           # 初始化项目根路径
       print_intro                            # 自述信息
       make_files_executable                  # 🔐 添加当前目录所有文件的执行权限
-      clean_pod_cache                        # 🧹 清除 Pods 缓存、workspace 和 lock
       run_pod_install                        # ⚙️ 执行 pod install 相关流程
   }
 
@@ -510,7 +502,7 @@ main() {
   # 初始化 Shell 选项、日志、依赖和入口运行状态。
   initialize_script_runtime
   # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
+  run_original_logic "$@" || return $?
   # 输出脚本执行结果、摘要和日志位置。
   success_echo "脚本执行结束。日志：$LOG_FILE"
 }

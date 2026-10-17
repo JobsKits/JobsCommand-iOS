@@ -15,6 +15,7 @@
 - iOS 项目初始化、依赖安装、Pod 更新和本地 Pod 排查。
 - 打包、模拟器、缓存清理、证书环境辅助检查。
 - Git 分支、提交回退、资料恢复等项目维护操作。
+- [代码地图安装器](./配置相关/【MacOS】⚙️安装代码地图CodeGraph.command/README.md)：逐层体检系统工具、Homebrew、Node/npm，再安装或复用官方 [**CodeGraph**](https://github.com/colbymchenry/codegraph)，通过临时样例验证真实建图能力。
 
 ## 二、运行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 

@@ -1,7 +1,7 @@
 #!/bin/zsh
 # 脚本自述：
 # - 脚本名称：【MacOS】⚙️Pod_Install.command
-# - 核心用途：执行“⚙️Pod_Install”对应的移动端项目自动化任务。
+# - 核心用途：在目标 Podfile 所在目录执行一次依赖安装，网络选择由工程自己的适配入口负责。
 # - 影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。
 # - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
 # =====================================================================
@@ -383,7 +383,7 @@ show_script_intro_and_wait() {
   clear
   print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
   print -r -- '脚本名称：【MacOS】⚙️Pod_Install.command' | jobs_intro_style title
-  print -r -- '核心用途：执行“⚙️Pod_Install”对应的移动端项目自动化任务。' | jobs_intro_style body
+  print -r -- '核心用途：在目标 Podfile 所在目录执行一次依赖安装，网络选择由工程自己的适配入口负责。' | jobs_intro_style body
   print -r -- '影响范围：可能修改项目依赖、生成文件、构建产物或开发工具配置。' | jobs_intro_style body
   print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
   print -r -- '============================================================================' | jobs_intro_style title
@@ -432,54 +432,20 @@ run_original_logic() {
     BASE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
     cd "$BASE_DIR"
     info_echo "📌 当前起点路径: $BASE_DIR"
-
-    CONFIG_FILE="$HOME/.cocoapods_mirror_config"
   }
-  # ✅ CocoaPods CDN 可用性检查
-  check_cdn_available() {
-    info_echo "🌐 检查 cdn.cocoapods.org 是否可访问..."
-    if curl -I --max-time 3 https://cdn.cocoapods.org/all_pods_versions_c_0_4.txt 2>/dev/null | grep -q "200 OK"; then
-      success_echo "CDN 可用"
-      return 0
+  # 只确认目标工程已有接入，不注入或修改未知 Podfile。
+  jobs_describe_project_network() {
+    local project_root="$1"
+    local network_dir="$project_root/ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command"
+    local source_dir="$project_root/ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command"
+    if [[ -f "$network_dir/jobs_cocoapods_network.rb" &&
+          -f "$network_dir/jobs_cocoapods_download_fallback.rb" &&
+          -f "$source_dir/jobs_cocoapods_source.rb" ]] &&
+       /usr/bin/grep -Fq 'JobsCocoaPodsNetwork.apply!' "$project_root/Podfile" &&
+       /usr/bin/grep -Fq 'JobsCocoaPodsSource.apply!' "$project_root/Podfile"; then
+      info_echo "🌐 已找到目标 Podfile 网络适配与选源入口；由同次 pod 进程验证链路并供后续下载继承。"
     else
-      error_echo "🚫 CDN 不可用"
-      return 1
-    fi
-  }
-  # ✅ 切换镜像源并保存
-  switch_cocoapods_source() {
-    local sources=(
-      "清华源|https://mirrors.tuna.tsinghua.edu.cn/git/CocoaPods/Specs.git"
-      "华为源|https://repo.huaweicloud.com/repository/CocoaPods/"
-    )
-    local selected_source url
-
-    selected_source=$(printf "%s\n" "${sources[@]}" | fzf --prompt="🎯 选择 CocoaPods 镜像源：") || return 1
-    url="${${selected_source}#*|}"
-
-    info_echo "🧩 正在切换镜像源为: $url"
-    pod repo remove trunk >/dev/null 2>&1 || true
-    pod repo add trunk "$url"
-    echo "$url" > "$CONFIG_FILE"
-    success_echo "📦 已记住镜像源: $url"
-  }
-  # ✅ 应用缓存或选择镜像源
-  auto_apply_cached_source() {
-    if [[ -f "$CONFIG_FILE" ]]; then
-      local url
-      url=$(cat "$CONFIG_FILE")
-      info_echo "📄 检测到已缓存镜像源: $url"
-
-      if ! pod repo list | grep -q "$url"; then
-        info_echo "🔁 当前未配置该源，自动切换中..."
-        pod repo remove trunk >/dev/null 2>&1 || true
-        pod repo add trunk "$url"
-        success_echo "📦 镜像源已应用: $url"
-      else
-        success_echo "🧠 镜像源已是缓存设置，无需变更"
-      fi
-    else
-      check_cdn_available || switch_cocoapods_source
+      warn_echo "⚠ 未确认目标 Podfile 已接入 Jobs 网络适配与选源包；本包装器只执行原生 CocoaPods，不自带选路，也不会自动改写该工程。"
     fi
   }
   # ✅ 执行 pod install 操作
@@ -489,6 +455,7 @@ run_original_logic() {
     cd "$dir" || { error_echo "❌ 无法进入目录: $dir"; exit 1; }
 
     local arch="$(uname -m)"
+    jobs_describe_project_network "$dir"
     local POD_CMD="pod install --repo-update --verbose"
     info_echo "🧠 当前架构: $arch"
 
@@ -508,7 +475,7 @@ run_original_logic() {
     fi
 
     info_echo "⚙️ 执行命令: $POD_CMD"
-    eval "$POD_CMD"
+    eval "$POD_CMD" || { error_echo "❌ Pod 安装失败：$dir"; return 1; }
     success_echo "🎉 Pod 安装完成"
 
     create_desktop_shortcut_if_needed
@@ -536,12 +503,10 @@ run_original_logic() {
   detect_project_type_and_install() {
     if [[ -f "$BASE_DIR/Podfile" ]]; then
       info_echo "📱 检测到 iOS 工程"
-      auto_apply_cached_source
       install_pod "$BASE_DIR"
 
     elif [[ -f "$BASE_DIR/pubspec.yaml" && -f "$BASE_DIR/ios/Podfile" ]]; then
       info_echo "🧩 检测到 Flutter 工程，进入 ios 目录执行 pod install"
-      auto_apply_cached_source
       install_pod "$BASE_DIR/ios"
 
     else
@@ -571,7 +536,7 @@ main() {
   # 初始化 Shell 选项、日志、依赖和入口运行状态。
   initialize_script_runtime
   # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
+  run_original_logic "$@" || return $?
   # 输出脚本执行结果、摘要和日志位置。
   success_echo "脚本执行结束。日志：$LOG_FILE"
 }

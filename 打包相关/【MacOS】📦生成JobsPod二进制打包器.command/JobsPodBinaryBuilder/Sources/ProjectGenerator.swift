@@ -12,12 +12,14 @@ enum ProjectGenerator {
     static func writePackagingWorkspace(
         at sessionURL: URL,
         rootSpec: PodSpecRecord,
-        allSpecs: [PodSpecRecord]
+        allSpecs: [PodSpecRecord],
+        cocoaPodsResourceRoot: URL? = nil
     ) throws {
         try FileManager.default.createDirectory(
             at: sessionURL,
             withIntermediateDirectories: true
         )
+        let networkHook = try writeCocoaPodsSupport(at: sessionURL, resourceRoot: cocoaPodsResourceRoot)
         try writeHostProject(
             at: sessionURL,
             projectName: "PackagingHost",
@@ -33,7 +35,8 @@ enum ProjectGenerator {
         let podfile = packagingPodfile(
             rootSpec: rootSpec,
             allSpecs: allSpecs,
-            importedPodPaths: importedPodPaths
+            importedPodPaths: importedPodPaths,
+            networkHook: networkHook
         )
         try podfile.write(
             to: sessionURL.appendingPathComponent("Podfile"),
@@ -46,12 +49,14 @@ enum ProjectGenerator {
     static func writeConsumerDemo(
         at consumerURL: URL,
         rootSpec: PodSpecRecord,
-        binarySDKURL: URL
+        binarySDKURL: URL,
+        cocoaPodsResourceRoot: URL? = nil
     ) throws {
         try FileManager.default.createDirectory(
             at: consumerURL,
             withIntermediateDirectories: true
         )
+        let networkHook = try writeCocoaPodsSupport(at: consumerURL, resourceRoot: cocoaPodsResourceRoot)
         let source = """
         import UIKit
         import \(rootSpec.moduleName)
@@ -82,6 +87,7 @@ enum ProjectGenerator {
         )
         let relativePath = relativePath(from: consumerURL, to: binarySDKURL)
         let podfile = """
+        \(networkHook)
         platform :ios, '12.0'
         project 'ConsumerDemo.xcodeproj'
         use_frameworks! :linkage => :static
@@ -95,6 +101,56 @@ enum ProjectGenerator {
             atomically: true,
             encoding: .utf8
         )
+    }
+
+    // App 与源码测试共用随包资源，生成的工程离开本机目录后仍可安装。
+    static func writeCocoaPodsSupport(
+        at projectURL: URL,
+        resourceRoot: URL? = nil
+    ) throws -> String {
+        let sourceResources = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("Resources/CocoaPods", isDirectory: true)
+        let bundledResources = Bundle.main.resourceURL?
+            .appendingPathComponent("CocoaPods", isDirectory: true)
+        let candidates = resourceRoot.map { [$0] }
+            ?? [bundledResources, sourceResources].compactMap { $0 }
+        let fileManager = FileManager.default
+        let requiredFiles = [
+            "podfile_network_hook.rb",
+            "ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/README.md",
+            "ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/【MacOS】🌐CocoaPods网络适配.command",
+            "ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/jobs_cocoapods_network.rb",
+            "ScriptsByPods/【MacOS】🌐CocoaPods网络适配.command/jobs_cocoapods_download_fallback.rb",
+            "ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command/README.md",
+            "ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command/jobs_cocoapods_source.rb",
+            "ScriptsByPods/【MacOS】🌐CocoaPods源自动选择.command/【MacOS】🌐CocoaPods源自动选择.command"
+        ]
+        guard let resources = candidates.first(where: { candidate in
+            requiredFiles.allSatisfy { relative in
+                fileManager.isReadableFile(atPath: candidate.appendingPathComponent(relative).path)
+            }
+        }) else {
+            throw BuilderError.environment("CocoaPods 网络资源不完整，请重新运行随包生成器。")
+        }
+        let hook = try String(
+            contentsOf: resources.appendingPathComponent("podfile_network_hook.rb"),
+            encoding: .utf8
+        )
+        let destination = projectURL.appendingPathComponent("ScriptsByPods", isDirectory: true)
+        try fileManager.createDirectory(at: destination, withIntermediateDirectories: true)
+        for package in ["【MacOS】🌐CocoaPods网络适配.command", "【MacOS】🌐CocoaPods源自动选择.command"] {
+            let target = destination.appendingPathComponent(package, isDirectory: true)
+            guard fileManager.fileExists(atPath: target.path) == false else {
+                throw BuilderError.validation("生成目录已有 CocoaPods 网络包，拒绝覆盖：\(target.path)")
+            }
+            try fileManager.copyItem(
+                at: resources.appendingPathComponent("ScriptsByPods/\(package)", isDirectory: true),
+                to: target
+            )
+        }
+        return hook
     }
 
     // 生成面向二进制 SDK 的本地 podspec。
@@ -204,7 +260,8 @@ enum ProjectGenerator {
     private static func packagingPodfile(
         rootSpec: PodSpecRecord,
         allSpecs: [PodSpecRecord],
-        importedPodPaths: [String: String]
+        importedPodPaths: [String: String],
+        networkHook: String
     ) -> String {
         let sortedSpecs = allSpecs.sorted {
             if $0.name == rootSpec.name { return true }
@@ -220,7 +277,7 @@ enum ProjectGenerator {
         }.joined(separator: "\n")
 
         return """
-        source 'https://cdn.cocoapods.org/'
+        \(networkHook)
         platform :ios, '12.0'
         project 'PackagingHost.xcodeproj'
         install! 'cocoapods', :deterministic_uuids => true

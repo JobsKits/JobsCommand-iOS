@@ -55,6 +55,7 @@ show_intro_and_confirm() {
   print -r -- "• 自动导入同工程 Pods，按 Podfile.lock 锁定外源 Pod 的精确版本。" | jobs_intro_style body
   print -r -- "• 已安装的外源 Pod 复制到会话沙盒后本地引用，原 Pods 只读且不重复下载。" | jobs_intro_style body
   print -r -- "• 项目 Pods 缺失时继续复用 CocoaPods 下载缓存与本机 Specs；只有冲突才人工介入。" | jobs_intro_style body
+  print -r -- "• 临时宿主与消费 Demo 自带网络适配，安装前验证代理、源码归档回退与公共 Specs。" | jobs_intro_style body
   print -r -- "• 依赖全部找到后才启用醒目的“开始正式打包”；点击后自动预编译并展示来源表。" | jobs_intro_style body
   print -r -- "• 左侧红色感叹号标记仍有缺失或版本冲突的主 Pod。" | jobs_intro_style body
   print -r -- "• 正式阶段实时显示进度和日志，最终验证二进制消费 Demo。" | jobs_intro_style body
@@ -85,6 +86,7 @@ check_environment() {
   local source_files=("${SOURCE_DIR}"/*.swift)
   [[ -e "${source_files[1]}" ]] || die "没有找到 Swift 源码：${SOURCE_DIR}"
   [[ -f "${APP_ICON_SOURCE}" ]] || die "没有找到 App 图标：${APP_ICON_SOURCE}"
+  [[ -f "${RESOURCE_DIR}/CocoaPods/podfile_network_hook.rb" ]] || die "没有找到 CocoaPods 网络资源。"
   log_line "Swift 编译器：$(/usr/bin/xcrun --find swiftc)"
 }
 
@@ -98,10 +100,12 @@ prepare_app_bundle() {
   log_line "暂存目录：${STAGING_DIR}"
 }
 
-# 把随包图标复制到标准 App Bundle 资源目录。
+# 把图标与安装网络资源复制到标准 App Bundle 资源目录。
 install_app_resources() {
   /bin/cp "${APP_ICON_SOURCE}" \
     "${STAGING_DIR}/JobsPodBinaryBuilder.app/Contents/Resources/JobsPodBinaryBuilder.icns"
+  /bin/cp -R "${RESOURCE_DIR}/CocoaPods" \
+    "${STAGING_DIR}/JobsPodBinaryBuilder.app/Contents/Resources/CocoaPods"
 }
 
 # 使用 plutil 生成 App 的 Info.plist，避免依赖额外模板工具。
