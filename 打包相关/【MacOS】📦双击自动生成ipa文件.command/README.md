@@ -2,18 +2,43 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、脚本用途](#jobs-toc-heading-2)
+  - [1.1、适用场景](#jobs-toc-heading-3)
+  - [1.2、不适用场景](#jobs-toc-heading-4)
+- [二、运行方式](#jobs-toc-heading-5)
+  - [2.1、命令参数](#jobs-toc-heading-6)
+- [三、实际执行流程](#jobs-toc-heading-7)
+- [四、🆚 fastlane](#jobs-toc-heading-8)
+  - [4.1、怎么选](#jobs-toc-heading-9)
+  - [4.2、当前结论](#jobs-toc-heading-10)
+- [五、已知风险与限制](#jobs-toc-heading-11)
+- [六、日志与排查](#jobs-toc-heading-12)
+  - [6.1、常见问题](#jobs-toc-heading-13)
+    - [6.1.1、生成了 IPA，但装不上](#jobs-toc-heading-14)
+    - [6.1.2、选错了工程或 Scheme](#jobs-toc-heading-15)
+    - [6.1.3、找不到 .app](#jobs-toc-heading-16)
+- [七、流程图](#jobs-toc-heading-17)
+- [八、验证状态](#jobs-toc-heading-18)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 - 本文档对应脚本：`./【MacOS】📦双击自动生成ipa文件.command`。
 - 脚本当前定位是：从 [**Xcode**](https://developer.apple.com/xcode) 已经生成的真机 `.app` 中选择目标，并封装为 `Payload/*.ipa`。
 - **能力边界**：脚本当前不会从源码执行编译、`archive`、`-exportArchive`、分发签名、证书同步或上传；它不是完整的 iOS 发布流水线。
 - 脚本使用 macOS 原生 `zsh` 和系统命令完成本地封装，不依赖 [**Ruby**](https://www.ruby-lang.org)；如需可复现构建、签名、TestFlight、App Store 或 CI，应优先采用 [**fastlane**](https://fastlane.tools)。
 
-## 一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 当前行为 |
 | --- | --- |
@@ -27,20 +52,20 @@
 | 第三方依赖 | [**fzf**](https://formulae.brew.sh/formula/fzf) 可选；缺失时自动选择列表第一项 |
 | 当前不负责 | 编译、测试、Archive、Export、签名管理、版本号、TestFlight、App Store |
 
-### 1.1、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-3" data-jobs-toc="v2">1.1、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 已经通过 Xcode 或其它流程生成了正确签名的真机 `.app`，只想快速封装成 `.ipa`。
 - 个人本机临时测试，接受使用本机现有 `DerivedData`。
 - 希望保留“双击运行、可视化选择、完成后在 Finder 定位产物”的轻量交互。
 
-### 1.2、不适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-4" data-jobs-toc="v2">1.2、不适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 需要保证“每次都从当前源码重新构建”的正式包。
 - 需要 `Development`、`Ad Hoc`、`Enterprise`、`App Store Connect` 等规范导出。
 - 需要自动管理证书、描述文件、Bundle ID、Entitlements 或多 Target 签名。
 - 需要上传 TestFlight / App Store、提交审核、管理商店元数据或接入 CI。
 
-## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 运行前确认：
 
@@ -58,7 +83,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 
 脚本会先打印内置自述并等待回车确认；运行时不会读取或显示本 README。
 
-### 2.1、命令参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-6" data-jobs-toc="v2">2.1、命令参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 ./【MacOS】📦双击自动生成ipa文件.command \
@@ -78,7 +103,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 | `--confirm` | 封装前再次确认工程、Scheme、配置和输出目录 | 不影响最外层防误触确认 |
 | `--target` | 当前仅解析和记录 | **尚未参与选择或打包，不应依赖** |
 
-## 三、实际执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">三、实际执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1. 打印脚本内置自述，等待回车确认。
 2. 解析命令参数，初始化输出目录和日志。
@@ -92,7 +117,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 
 > 注意：第 6 步只是读取构建设置，不会触发 Build；第 7 步可能命中旧产物。文件扩展名是 `.ipa`，不等于它已经符合目标分发方式的签名和导出要求。
 
-## 四、🆚 fastlane <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-8" data-jobs-toc="v2">四、🆚 fastlane <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 [**fastlane**](https://fastlane.tools) 是移动端构建与发布自动化工具集。它不替代 Xcode 编译器，而是通过 `Fastfile` 中的 Lane 编排 `xcodebuild`、测试、签名、版本号、截图、TestFlight、App Store 和通知等动作。
 
@@ -120,21 +145,21 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 | 依赖成本 | 低，主要依赖 macOS / Xcode | 较高，建议用 Bundler 和 `Gemfile` 锁定版本 |
 | 维护成本 | 功能越多，Shell 自维护成本越高 | 初始配置较多，后续发布流程更标准 |
 
-### 4.1、怎么选 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-9" data-jobs-toc="v2">4.1、怎么选 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - **只想把已经构建并签名的 `.app` 临时封装成 IPA**：保留当前脚本更直接。
 - **想要真正的“一键从源码生成可分发 IPA”**：使用 fastlane `build_app`，或者补齐原生 `xcodebuild archive` + `-exportArchive`。
 - **要发 TestFlight / App Store、多人协作或接入 CI**：优先 fastlane。
 - **兼顾 Jobs 双击体验与发布能力**：推荐保留 `.command` 作为交互入口，由它调用 `bundle exec fastlane ios <lane>`；核心构建、签名和上传逻辑放进 `Fastfile`。
 
-### 4.2、当前结论 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-10" data-jobs-toc="v2">4.2、当前结论 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 当前脚本是“已有 `.app` 的轻量 IPA 封装器”，fastlane 是“可扩展的构建与发布流水线”。两者不是同一级别的完整替代关系：
 
 - 本地临时封装：当前脚本更轻。
 - 正式构建与发布：fastlane 明显更完整、更可复现。
 
-## 五、已知风险与限制 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-11" data-jobs-toc="v2">五、已知风险与限制 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - **不是干净构建**：脚本不会执行 `clean`、`build` 或 `archive`，可能封装旧 `.app`。
 - **不是规范导出**：脚本没有 `ExportOptions.plist`，也不执行 `xcodebuild -exportArchive`。
@@ -144,19 +169,19 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 - **同名 IPA 可能被增量更新**：`zip` 没有先删除旧 IPA，旧压缩包中的历史文件可能残留。
 - **`--target` 尚未生效**：当前只记录参数，没有参与 Target 或 Scheme 选择。
 
-## 六、日志与排查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-12" data-jobs-toc="v2">六、日志与排查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 日志文件：系统 `/tmp` 目录中的 `【MacOS】📦双击自动生成ipa文件.command.log`。
 - 失败时脚本会尝试自动打开日志。
 - 优先检查以下字段：`XCODEBUILD_LIST_EXIT`、`XCODEBUILD_SHOWBUILDSETTINGS_EXIT`、`DERIVED_MATCH_COUNT`、`app_path`、`ipa`。
 
-### 6.1、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-13" data-jobs-toc="v2">6.1、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-#### 6.1.1、生成了 IPA，但装不上 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+#### <span id="jobs-toc-heading-14" data-jobs-toc="v2">6.1.1、生成了 IPA，但装不上 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 `.ipa` 只是封装格式。先确认内部 `.app` 面向真机、签名有效、描述文件包含目标设备，并且导出方式符合用途。正式分发建议改用 Xcode Archive / Export 或 fastlane `build_app`。
 
-#### 6.1.2、选错了工程或 Scheme <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+#### <span id="jobs-toc-heading-15" data-jobs-toc="v2">6.1.2、选错了工程或 Scheme <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不要依赖自动回退，显式传入：
 
@@ -166,11 +191,11 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
   --scheme 'App'
 ```
 
-#### 6.1.3、找不到 `.app` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+#### <span id="jobs-toc-heading-16" data-jobs-toc="v2">6.1.3、找不到 `.app` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 先在 Xcode 中为真机完成一次构建，再检查目标 Configuration 和 Scheme；或者改用 fastlane 直接从源码构建。
 
-## 七、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-17" data-jobs-toc="v2">七、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```mermaid
 flowchart TD
@@ -188,7 +213,7 @@ flowchart TD
     K --> L([结束])
 ```
 
-## 八、验证状态 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-18" data-jobs-toc="v2">八、验证状态 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - `zsh -n ./【MacOS】📦双击自动生成ipa文件.command`：已通过。
 - 已核对本机 `fastlane 2.237.0` 与官方文档。

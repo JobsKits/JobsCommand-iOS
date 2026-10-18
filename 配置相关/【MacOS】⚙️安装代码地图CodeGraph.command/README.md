@@ -2,15 +2,27 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、运行与结果速览](#jobs-toc-heading-2)
+- [二、完整依赖链体检](#jobs-toc-heading-3)
+- [三、交互与安装位置](#jobs-toc-heading-4)
+- [四、配置、日志与边界](#jobs-toc-heading-5)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 逐层体检完整依赖链，安装或更新官方 CLI，再通过 `codemap` 给项目构建 `.codegraph`。安装器仅在系统临时目录做建图自检，不为业务仓库建图，也不调用会修改 AI 工具配置的 `codegraph install`。
 
-## 一、运行与结果速览 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、运行与结果速览 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 在本目录执行，或双击同名脚本：
 
@@ -28,7 +40,7 @@
 
 命令注册由 [codemap 模块](../../../JobsConfigOS/🌍JobsMacEnvVarConfigs/scripts/codemap.command/README.md)负责。新系统入口见[同名目录 README](../../../JobsConfigOS/【MacOS】🆕新系统配置.command/README.md)。
 
-## 二、完整依赖链体检 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、完整依赖链体检 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 层级 | 健康检查 | 缺失或损坏时 |
 | --- | --- | --- |
@@ -42,7 +54,7 @@
 
 本脚本的 Node 健康基线为 20 及以上，缺失时选 Brew node@24；这是脚本策略，并非当前 CodeGraph npm 制品的版本要求。当前官方发行自带平台运行时和解析组件，不引入无实际需要的 Python / Rust 编译链。参见[官方安装说明](https://github.com/colbymchenry/codegraph#readme)。
 
-## 三、交互与安装位置 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、交互与安装位置 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1、先显示内置自述，按回车确认后才写日志和检查；无交互终端停止，Ctrl+C 可取消。
 
@@ -70,7 +82,7 @@
 
 平台二进制在可选依赖中，不能 `--omit=optional`；包名必须是 `@colbymchenry/codegraph`，不安装其它同名包。
 
-## 四、配置、日志与边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、配置、日志与边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 真实建图复检通过后，在当前用户 zsh 登录配置中幂等维护 `Jobs CodeGraph environment` 标记块，把已验证的 Node 和 CLI 目录加入 PATH；这会影响新终端中 Node 的优先选择。保留其它内容，修改前创建时间戳备份，保留符号链接。
 - 新装 Homebrew 时另维护 `Jobs Homebrew shellenv` 标记块；当前脚本立即刷新会话，父终端新开窗口加载配置。

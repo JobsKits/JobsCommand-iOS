@@ -2,11 +2,30 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、适用场景](#jobs-toc-heading-2)
+- [二、脚本信息](#jobs-toc-heading-3)
+- [三、运行方式](#jobs-toc-heading-4)
+- [四、执行流程](#jobs-toc-heading-5)
+- [五、菜单栏能力](#jobs-toc-heading-6)
+- [六、Scheme Hook 配置](#jobs-toc-heading-7)
+- [七、执行前检查](#jobs-toc-heading-8)
+- [八、流程图](#jobs-toc-heading-9)
+- [九、风险边界](#jobs-toc-heading-10)
+- [十、常见问题](#jobs-toc-heading-11)
+- [十一、未执行声明](#jobs-toc-heading-12)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 > 这是一份双击脚本外部 README，面向运行前阅读；脚本运行后还会打印内置自述并等待确认，README 不替代脚本自身的防误触提示。
 
@@ -15,14 +34,14 @@
 - 脚本会使用 [**Swift**](https://www.swift.org/) / `swiftc` 编译一个本机 App Bundle，并写入用户主目录下的 `.xcode-build-timer/` 工作目录。
 - 脚本默认不修改 Xcode 工程文件；只有在菜单栏工具里主动点击 `配置 Scheme Hook` 并确认后，才会修改对应工程的 `.xcscheme`。
 
-## 一、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 想在 macOS 菜单栏实时看到 Xcode 当前编译已经耗时多久。
 - 想快速查看最近构建的耗时、状态、慢 Swift 编译项、慢脚本阶段和疑似慢 target。
 - 想用轻量方式观察多工程、多 Scheme、多 SDK / 设备组合的构建耗时。
 - 不想给 Xcode 安装插件，只希望通过本地脚本生成一个菜单栏辅助工具。
 
-## 二、脚本信息 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、脚本信息 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 说明 |
 | --- | --- |
@@ -36,7 +55,7 @@
 | 是否含高风险操作 | 有边界风险。会结束旧的 `XcodeBuildTimer` 进程，清理旧 App Bundle；刷新菜单栏必须输入 `YES` |
 | 日志位置 | 系统临时目录中的 `【MacOS】⌚️Xcode编译耗时菜单栏.log` |
 
-## 三、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 推荐方式：双击 `【MacOS】⌚️Xcode编译耗时菜单栏.command`。
 - 终端方式：
@@ -50,7 +69,7 @@
 - 脚本启动后会先打印内置自述，并等待回车确认。确认前不会生成源码、清理旧 App Bundle、编译工具或启动菜单栏 App。
 - 取消方式：在确认前按 `Ctrl+C` 终止。
 
-## 四、执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1. 打印脚本内置自述，说明用途、影响范围、日志位置和取消方式。
 2. 初始化日志，日志同步写入系统临时目录中的脚本同名 `.log` 文件。
@@ -63,7 +82,7 @@
 9. 打印手动配置 Scheme Hook 的命令提示。
 10. 询问是否刷新 `SystemUIServer`。只有输入 `YES` 才会刷新菜单栏并重新打开工具。
 
-## 五、菜单栏能力 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、菜单栏能力 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 菜单栏标题：
 
@@ -89,7 +108,7 @@
   | `清除计时` | 清空本工具计时状态，不删除 Xcode 构建日志 |
   | `清除历史记录` | 清空菜单中的历史展示，不删除原始 `.xcactivitylog` |
 
-## 六、Scheme Hook 配置 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、Scheme Hook 配置 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 推荐方式：启动菜单栏工具后，先在 Xcode 打开 `.xcworkspace` 或 `.xcodeproj`，再从菜单栏选择 `配置 Scheme Hook`，选择对应工程和 Scheme，弹窗确认后自动写入。
 - 手动方式：进入 `Product -> Scheme -> Edit Scheme...`，在 `Build` 动作里配置：
@@ -104,14 +123,14 @@
 - 自动配置会移除同一 `.xcscheme` 中旧的 `xbt-build-hook.sh` Action，再插入新的 Pre / Post Action，避免重复写入。
 - 自动配置不会创建 `.xcscheme` 备份。共享 Scheme 或团队仓库里使用前，建议先确认 Git 工作区干净。
 
-## 七、执行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-8" data-jobs-toc="v2">七、执行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 确认本机已安装完整 Xcode 或 Command Line Tools，且 `xcrun --find swiftc` 能找到 Swift 编译器。
 - 如果需要配置 Hook，请先在 Xcode 打开目标 `.xcworkspace` 或 `.xcodeproj`。
 - 如果目标 Scheme 文件已经纳入 Git 管理，建议先提交或备份本地改动，再从菜单栏执行 `配置 Scheme Hook`。
 - 如果右上角菜单栏图标异常，脚本末尾可以输入 `YES` 刷新 `SystemUIServer`；默认直接回车会跳过。
 
-## 八、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-9" data-jobs-toc="v2">八、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```mermaid
 graph TD
@@ -131,7 +150,7 @@ graph TD
   M --> N
 ```
 
-## 九、风险边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-10" data-jobs-toc="v2">九、风险边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 脚本运行阶段会写入用户主目录下的 `.xcode-build-timer/`，包含 Swift 源码、App Bundle、Hook 脚本、计时状态和运行日志。
 - 脚本运行阶段会结束旧的 `XcodeBuildTimer` 进程，并清理旧 App Bundle；不会结束 Xcode，不会清理项目源码，不会删除 `DerivedData`。
@@ -140,7 +159,7 @@ graph TD
 - 菜单栏中的 `清除计时` 会清理本工具状态文件，不影响 Xcode 构建产物。
 - 刷新 `SystemUIServer` 会让右上角菜单栏图标短暂消失并自动恢复；必须输入 `YES` 才会执行。
 
-## 十、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-11" data-jobs-toc="v2">十、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 右上角没有看到 `⏱XBT`：
 
@@ -162,7 +181,7 @@ graph TD
 
   在菜单栏里选择 `退出`。如需移除 Hook，需要到 Xcode Scheme 里删除对应的 XBT Pre / Post Action，或还原 `.xcscheme` 文件。
 
-## 十一、未执行声明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-12" data-jobs-toc="v2">十一、未执行声明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 本 README 编写过程未实际运行该脚本，未执行 `swiftc` 编译、未启动菜单栏 App、未刷新 `SystemUIServer`、未修改任何 `.xcscheme`。
 - 本 README 仅根据脚本源码描述实际行为；如脚本后续调整，README 需要同步维护。

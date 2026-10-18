@@ -2,14 +2,28 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
 
-## 🔥 <font id=前言>前言</font>
+- [🔥 前言](#jobs-toc-heading-1)
+- [用途](#jobs-toc-heading-2)
+- [第一次使用](#jobs-toc-heading-3)
+- [CocoaPods 逻辑](#jobs-toc-heading-4)
+- [lint 参数](#jobs-toc-heading-5)
+- [常见失败方向](#jobs-toc-heading-6)
+- [一、日志文件](#jobs-toc-heading-7)
+
+</details>
+<!-- jobs-toc:end -->
+
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 - 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
 
 
-## 用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 `pd` 用来检查一个本地 CocoaPods Pod 是否能在自己的 podspec 环境下独立编译通过。
 
@@ -32,7 +46,7 @@ PodsRoot/
 3. 把其他 podspec 作为 `--include-podspecs` 传给 `pod lib lint`
 4. 执行目标 Pod 的内部编译自检
 
-## 第一次使用 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">第一次使用 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 双击运行：
 
@@ -58,7 +72,7 @@ export PATH="$HOME/.local/bin:$PATH"
 pd
 ```
 
-## CocoaPods 逻辑 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">CocoaPods 逻辑 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本会先检查 `pod` 命令：
 
@@ -75,7 +89,7 @@ sudo gem install cocoapods
 输入任意字符后回车：执行 sudo gem install cocoapods
 ```
 
-## lint 参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">lint 参数 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 默认执行：
 
@@ -89,7 +103,7 @@ pod lib lint Target.podspec \
   --include-podspecs=其他本地podspec
 ```
 
-## 常见失败方向 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">常见失败方向 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 如果 lint 失败，优先看这些关键词：
 
@@ -111,7 +125,7 @@ The following build commands failed
 - 本地 Pod 之间存在循环依赖
 - 资源文件没有正确写入 `resources` / `resource_bundles`
 
-## 一、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">一、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 

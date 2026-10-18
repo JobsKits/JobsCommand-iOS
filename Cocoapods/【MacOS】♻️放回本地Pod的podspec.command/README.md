@@ -11,9 +11,60 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
 
-## 🔥 <font id=前言>前言</font>
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、🎯 项目白皮书](#jobs-toc-heading-2)
+- [二、🧭 脚本执行流程](#jobs-toc-heading-3)
+- [三、🧩 功能清单](#jobs-toc-heading-4)
+  - [1、启动前置说明](#jobs-toc-heading-5)
+  - [2、本地 Pod 管理目录选择](#jobs-toc-heading-6)
+  - [3、待放回目录选择](#jobs-toc-heading-7)
+  - [4、.podspec 同名替换](#jobs-toc-heading-8)
+  - [5、JobsPodspecKit.rb 同步](#jobs-toc-heading-9)
+  - [6、Podfile 三件套可选替换](#jobs-toc-heading-10)
+  - [7、路径兼容能力](#jobs-toc-heading-11)
+  - [8、重复文件保护](#jobs-toc-heading-12)
+  - [9、临时文件清理](#jobs-toc-heading-13)
+- [四、📁 目录结构建议](#jobs-toc-heading-14)
+  - [1、本地工程推荐结构](#jobs-toc-heading-15)
+  - [2、待放回目录推荐结构](#jobs-toc-heading-16)
+  - [3、不推荐结构](#jobs-toc-heading-17)
+- [五、🚀 使用方式](#jobs-toc-heading-18)
+  - [1、双击运行](#jobs-toc-heading-19)
+  - [2、终端运行](#jobs-toc-heading-20)
+  - [3、第一步拖入本地 Pod 管理目录](#jobs-toc-heading-21)
+  - [4、第二步拖入待放回目录](#jobs-toc-heading-22)
+  - [5、确认 Podfile 三件套](#jobs-toc-heading-23)
+- [六、🧪 常用自检命令](#jobs-toc-heading-24)
+  - [1、检查目标 Pod 是否存在 JobsPodspecKit.rb](#jobs-toc-heading-25)
+  - [2、检查 podspec 是否还引用了缺失的 JobsPodspecKit](#jobs-toc-heading-26)
+  - [3、检查是否还有旧的公共命名空间](#jobs-toc-heading-27)
+  - [4、检查 podspec Ruby 语法](#jobs-toc-heading-28)
+  - [5、检查 JobsPodspecKit Ruby 语法](#jobs-toc-heading-29)
+  - [6、检查 Git 修改内容](#jobs-toc-heading-30)
+  - [7、重新安装 Pods](#jobs-toc-heading-31)
+- [七、⚠️ 常见问题](#jobs-toc-heading-32)
+  - [1、为什么 .podspec 不存在时不自动创建？](#jobs-toc-heading-33)
+  - [2、为什么来源或目标存在多个同名 .podspec 会跳过？](#jobs-toc-heading-34)
+  - [3、为什么 JobsPodspecKit.rb 可以创建，而 .podspec 不创建？](#jobs-toc-heading-35)
+  - [4、为什么 Podfile 三件套默认跳过？](#jobs-toc-heading-36)
+  - [5、替换前会自动备份吗？](#jobs-toc-heading-37)
+  - [6、拖入路径带空格会不会出问题？](#jobs-toc-heading-38)
+  - [7、为什么只扫描到一级子目录？](#jobs-toc-heading-39)
+  - [8、替换后 pod install 还有 warning 怎么办？](#jobs-toc-heading-40)
+  - [9、替换后提示 cannot load such file -- JobsPodspecKit 怎么办？](#jobs-toc-heading-41)
+- [八、🧨 安全边界](#jobs-toc-heading-42)
+- [九、✅ 总结](#jobs-toc-heading-43)
+- [十、日志文件](#jobs-toc-heading-44)
+
+</details>
+<!-- jobs-toc:end -->
+
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 - 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
 
@@ -39,7 +90,7 @@
 
 - `Podfile`、`Podfile.deps`、`Podfile.lock` 不会默认替换，脚本会逐个询问。直接回车跳过，输入任意字符后回车才执行替换。
 
-## 一、🎯 项目白皮书 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、🎯 项目白皮书 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 这个脚本解决的是本地 Pod 体系中 `.podspec` 解耦后的安全放回问题。
 
@@ -70,7 +121,7 @@
 | `Podfile` | 来源根目录存在时，询问后替换 | 否，需确认 | 否 |
 | `Podfile.lock` | 来源根目录存在时，询问后替换 | 否，需确认 | 否 |
 
-## 二、🧭 脚本执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、🧭 脚本执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 基础放回主流程如下：
 
@@ -135,13 +186,13 @@ graph TD
     E --> K
 ```
 
-## 三、🧩 功能清单 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、🧩 功能清单 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 1、启动前置说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-5" data-jobs-toc="v2">1、启动前置说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本双击运行后，会先显示内置说明，并等待用户按回车确认。这样可以避免误触后直接替换本地 Pod 文件。
 
-### 2、本地 Pod 管理目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-6" data-jobs-toc="v2">2、本地 Pod 管理目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本第一步会要求拖入管理本地 Pod 的文件夹。
 
@@ -166,7 +217,7 @@ JobsByPods/AAA@Pods/AAA.podspec
 JobsByPods/AAA@Pods/SubDir/AAA.podspec
 ```
 
-### 3、待放回目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-7" data-jobs-toc="v2">3、待放回目录选择 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本第二步会要求拖入装有 `.podspec` 的来源文件夹。
 
@@ -193,7 +244,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 └── Podfile.lock
 ```
 
-### 4、`.podspec` 同名替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-8" data-jobs-toc="v2">4、`.podspec` 同名替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本以 `.podspec` 文件名作为唯一匹配依据。
 
@@ -208,7 +259,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 
 脚本不会按目录名匹配，也不会根据 Pod 内部 `spec.name` 推断目标。
 
-### 5、`JobsPodspecKit.rb` 同步 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-9" data-jobs-toc="v2">5、`JobsPodspecKit.rb` 同步 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 如果来源 `.podspec` 同目录存在：
 
@@ -227,7 +278,7 @@ JobsPodspecKit.rb
 
 这个逻辑适合 `.podspec + JobsPodspecKit.rb` 的解耦结构，尤其适合每个 Pod 使用独立 Ruby 命名空间的方案。
 
-### 6、`Podfile` 三件套可选替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-10" data-jobs-toc="v2">6、`Podfile` 三件套可选替换 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本会依次处理：
 
@@ -270,7 +321,7 @@ Podfile.lock
 
 默认位置不存在时，脚本会要求你手动拖入目标文件，或者拖入包含目标文件的文件夹。
 
-### 7、路径兼容能力 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-11" data-jobs-toc="v2">7、路径兼容能力 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本支持以下输入情况：
 
@@ -285,7 +336,7 @@ Podfile.lock
 
 脚本会尽量把输入路径解析为真实路径后再执行替换。
 
-### 8、重复文件保护 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-12" data-jobs-toc="v2">8、重复文件保护 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 如果来源目录中出现多个同名 `.podspec`，脚本会跳过该文件名。
 
@@ -293,15 +344,15 @@ Podfile.lock
 
 这个策略看起来保守，但对本地 Pod 批量替换更安全：宁可跳过，也不要猜。
 
-### 9、临时文件清理 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-13" data-jobs-toc="v2">9、临时文件清理 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本运行过程中会在 `$TMPDIR` 下创建临时索引文件，用于记录来源、目标和已处理文件名。
 
 脚本退出时会自动清理这些临时文件。
 
-## 四、📁 目录结构建议 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-14" data-jobs-toc="v2">四、📁 目录结构建议 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 1、本地工程推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-15" data-jobs-toc="v2">1、本地工程推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```text
 JobsOCBaseConfigDemo/
@@ -320,7 +371,7 @@ JobsOCBaseConfigDemo/
         └── JobsPodspecKit.rb
 ```
 
-### 2、待放回目录推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-16" data-jobs-toc="v2">2、待放回目录推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```text
 PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
@@ -338,7 +389,7 @@ PodspecFiles_Decoupled_PerPodNamespace_20260515_0945/
 └── Podfile.lock
 ```
 
-### 3、不推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-17" data-jobs-toc="v2">3、不推荐结构 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不推荐把 `.podspec` 放到更深层级：
 
@@ -372,9 +423,9 @@ require_relative 'JobsPodspecKit'
 JobsPodspecKit.rb
 ```
 
-## 五、🚀 使用方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-18" data-jobs-toc="v2">五、🚀 使用方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-19" data-jobs-toc="v2">1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 直接双击：
 
@@ -384,7 +435,7 @@ JobsPodspecKit.rb
 
 脚本会打开终端并显示说明。
 
-### 2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-20" data-jobs-toc="v2">2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 如果系统提示没有执行权限，可以先执行：
 
@@ -398,7 +449,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 "./【MacOS】♻️放回本地Pod的podspec.command"
 ```
 
-### 3、第一步拖入本地 Pod 管理目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-21" data-jobs-toc="v2">3、第一步拖入本地 Pod 管理目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 示例：
 
@@ -418,7 +469,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 已解析本地 Pod 管理目录：~/Desktop/JobsOCBaseConfigDemo/JobsByPods
 ```
 
-### 4、第二步拖入待放回目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-22" data-jobs-toc="v2">4、第二步拖入待放回目录 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 示例：
 
@@ -438,7 +489,7 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 已解析待放回目录：~/Desktop/PodspecFiles_Decoupled_PerPodNamespace_20260515_0945
 ```
 
-### 5、确认 `Podfile` 三件套 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-23" data-jobs-toc="v2">5、确认 `Podfile` 三件套 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本会逐个询问：
 
@@ -454,15 +505,15 @@ chmod +x "【MacOS】♻️放回本地Pod的podspec.command"
 - 确认来源目录内三件套就是你要同步的版本：输入任意字符后回车替换
 - 不确定：跳过，后续手动 diff
 
-## 六、🧪 常用自检命令 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-24" data-jobs-toc="v2">六、🧪 常用自检命令 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 1、检查目标 Pod 是否存在 `JobsPodspecKit.rb` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-25" data-jobs-toc="v2">1、检查目标 Pod 是否存在 `JobsPodspecKit.rb` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 find JobsByPods -name JobsPodspecKit.rb -print
 ```
 
-### 2、检查 podspec 是否还引用了缺失的 `JobsPodspecKit` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-26" data-jobs-toc="v2">2、检查 podspec 是否还引用了缺失的 `JobsPodspecKit` <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 grep -R "require_relative ['\"]JobsPodspecKit['\"]" JobsByPods || true
@@ -470,7 +521,7 @@ grep -R "require_relative ['\"]JobsPodspecKit['\"]" JobsByPods || true
 
 如果有输出，说明对应 Pod 的 `.podspec` 依赖同级 `JobsPodspecKit.rb`。
 
-### 3、检查是否还有旧的公共命名空间 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-27" data-jobs-toc="v2">3、检查是否还有旧的公共命名空间 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 如果你已经切换到每个 Pod 独立 Ruby 命名空间，可以检查是否还存在旧写法：
 
@@ -484,7 +535,7 @@ grep -R "module JobsPodspecKit$" JobsByPods || true
 module JobsPodspecKitForBRPickerViewExtra
 ```
 
-### 4、检查 podspec Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-28" data-jobs-toc="v2">4、检查 podspec Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 find JobsByPods -name "*.podspec" -print0 | while IFS= read -r -d '' file; do
@@ -492,7 +543,7 @@ find JobsByPods -name "*.podspec" -print0 | while IFS= read -r -d '' file; do
 done
 ```
 
-### 5、检查 JobsPodspecKit Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-29" data-jobs-toc="v2">5、检查 JobsPodspecKit Ruby 语法 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 find JobsByPods -name "JobsPodspecKit.rb" -print0 | while IFS= read -r -d '' file; do
@@ -500,7 +551,7 @@ find JobsByPods -name "JobsPodspecKit.rb" -print0 | while IFS= read -r -d '' fil
 done
 ```
 
-### 6、检查 Git 修改内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-30" data-jobs-toc="v2">6、检查 Git 修改内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 git status --short
@@ -508,7 +559,7 @@ git diff -- JobsByPods
 git diff -- Podfile Podfile.deps Podfile.lock
 ```
 
-### 7、重新安装 Pods <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-31" data-jobs-toc="v2">7、重新安装 Pods <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 pod install
@@ -516,33 +567,33 @@ pod install
 
 如果 `pod install` 中出现 `already initialized constant JobsPodspecKit`，通常说明某些 Pod 的 `JobsPodspecKit.rb` 仍然使用了相同的顶层模块名，需要改成每个 Pod 独立命名空间。
 
-## 七、⚠️ 常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-32" data-jobs-toc="v2">七、⚠️ 常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 1、为什么 `.podspec` 不存在时不自动创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-33" data-jobs-toc="v2">1、为什么 `.podspec` 不存在时不自动创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 因为这个脚本是“放回”和“替换”，不是“新增 Pod”。
 
 如果目标目录里没有同名 `.podspec`，脚本无法判断这个文件应该属于哪个本地 Pod。自动创建反而容易把文件放错位置。
 
-### 2、为什么来源或目标存在多个同名 `.podspec` 会跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-34" data-jobs-toc="v2">2、为什么来源或目标存在多个同名 `.podspec` 会跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 因为同名重复代表匹配不唯一。
 
 本脚本不做猜测。只要来源或目标有歧义，就跳过，让用户手动处理。
 
-### 3、为什么 `JobsPodspecKit.rb` 可以创建，而 `.podspec` 不创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-35" data-jobs-toc="v2">3、为什么 `JobsPodspecKit.rb` 可以创建，而 `.podspec` 不创建？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 因为 `JobsPodspecKit.rb` 是跟随已经匹配成功的 `.podspec` 放回的。
 
 只要 `.podspec` 目标已经唯一确定，那么它的同级目录就是明确的，创建 `JobsPodspecKit.rb` 是安全的。
 
-### 4、为什么 `Podfile` 三件套默认跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-36" data-jobs-toc="v2">4、为什么 `Podfile` 三件套默认跳过？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 `Podfile`、`Podfile.deps`、`Podfile.lock` 影响的是整个工程依赖解析，不是单个 Pod。
 
 所以脚本不会默认替换，必须由用户逐个确认。
 
-### 5、替换前会自动备份吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-37" data-jobs-toc="v2">5、替换前会自动备份吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不会。
 
@@ -556,17 +607,17 @@ git status --short
 
 必要时先提交或手动备份。
 
-### 6、拖入路径带空格会不会出问题？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-38" data-jobs-toc="v2">6、拖入路径带空格会不会出问题？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 正常不会。
 
 脚本会处理空格、引号、反斜杠转义和 `~`，也会尽量解析 Unix 软链接与 Finder 替身。
 
-### 7、为什么只扫描到一级子目录？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-39" data-jobs-toc="v2">7、为什么只扫描到一级子目录？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 这是为了贴合本地 Pod 管理目录和导出目录的结构，避免递归太深误扫到历史备份、示例工程、Pods 产物或其他无关 podspec。
 
-### 8、替换后 `pod install` 还有 warning 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-40" data-jobs-toc="v2">8、替换后 `pod install` 还有 warning 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 先检查是否仍然存在旧的公共 Ruby 命名空间：
 
@@ -584,7 +635,7 @@ module JobsPodspecKitForBRPickerViewExtra
 
 同时 `.podspec` 内也要调用对应模块名。
 
-### 9、替换后提示 `cannot load such file -- JobsPodspecKit` 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-41" data-jobs-toc="v2">9、替换后提示 `cannot load such file -- JobsPodspecKit` 怎么办？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 说明 `.podspec` 里存在：
 
@@ -602,7 +653,7 @@ find JobsByPods -name JobsPodspecKit.rb -print
 
 确认对应 Pod 目录下存在该文件。如果不存在，重新运行本脚本，并确认来源 `.podspec` 同目录存在 `JobsPodspecKit.rb`。
 
-## 八、🧨 安全边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-42" data-jobs-toc="v2">八、🧨 安全边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 这个脚本会做的事情：
 
@@ -626,7 +677,7 @@ find JobsByPods -name JobsPodspecKit.rb -print
 - 不会自动备份旧文件
 - 不会安装 Homebrew 或其他依赖
 
-## 九、✅ 总结 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-43" data-jobs-toc="v2">九、✅ 总结 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 这个脚本的核心目标是：
 
@@ -643,7 +694,7 @@ find JobsByPods -name JobsPodspecKit.rb -print
 导出 podspec → 批量解耦 → 生成 .podspec + JobsPodspecKit.rb → 运行本脚本放回 → git diff 检查 → pod install 验证
 ```
 
-## 十、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-44" data-jobs-toc="v2">十、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 运行日志默认写入 `$TMPDIR`，文件名通常来自脚本名去掉扩展名：
 

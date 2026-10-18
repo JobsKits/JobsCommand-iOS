@@ -2,7 +2,35 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#%E5%89%8D%E8%A8%80)
+- [一、安装后快速开始](#quick-start)
+  - [1.1、检查命令是否可用](#jobs-toc-heading-3)
+  - [1.2、准备一份示例数据](#jobs-toc-heading-4)
+  - [1.3、生成第一个 Swift 模型](#jobs-toc-heading-5)
+- [二、不同语言与生成选项](#languages)
+  - [2.1、Swift 模型接入工程](#jobs-toc-heading-7)
+  - [2.2、生成 Objective-C 模型](#jobs-toc-heading-8)
+  - [2.3、生成 Dart 与 TypeScript 模型](#jobs-toc-heading-9)
+- [三、输入方式与常用参数](#inputs)
+  - [3.1、文件、管道与剪贴板](#jobs-toc-heading-11)
+  - [3.2、从接口地址读取](#jobs-toc-heading-12)
+  - [3.3、常用参数速查](#jobs-toc-heading-13)
+- [四、类型推断与接口契约](#schema)
+  - [4.1、先核对样本覆盖范围](#jobs-toc-heading-15)
+  - [4.2、通过 JSON Schema 固定类型](#jobs-toc-heading-16)
+- [五、安装脚本行为与风险](#installer)
+  - [5.1、用途、依赖与运行方式](#jobs-toc-heading-18)
+  - [5.2、实际交互与影响范围](#jobs-toc-heading-19)
+- [六、常见问题与日志](#troubleshooting)
+- [七、流程与验证](#verification)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
@@ -21,7 +49,7 @@
 
 ## 一、<span id="quick-start">安装后快速开始</span> <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 1.1、检查命令是否可用 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-3" data-jobs-toc="v2">1.1、检查命令是否可用 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 安装结束后打开新的终端窗口，执行以下只读检查：
 
@@ -33,7 +61,7 @@ quicktype --help
 
 前两条命令应分别显示命令路径和版本号。参数与验证基线见[流程与验证](#verification)；找不到命令时先看[常见问题](#troubleshooting)。
 
-### 1.2、准备一份示例数据 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-4" data-jobs-toc="v2">1.2、准备一份示例数据 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 在终端进入本 `README.md` 所在目录。以下路径均相对于此目录；命令会创建 `./quicktype-demo/`，重复执行会覆盖其中的同名示例和生成文件，首次练习应使用空目录。
 
@@ -54,7 +82,7 @@ JSON
 
 实际使用时，把接口返回的完整数据保存为 `.json` 文件，再替换命令中的输入路径。存在 `code`、`message`、`data` 包装时，生成的顶层模型也会包含这些字段。
 
-### 1.3、生成第一个 <u>[**Swift**](https://www.swift.org/)</u> 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-5" data-jobs-toc="v2">1.3、生成第一个 <u>[**Swift**](https://www.swift.org/)</u> 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 quicktype './quicktype-demo/user.json' \
@@ -78,7 +106,7 @@ quicktype './quicktype-demo/user.json' \
 
 以下命令复用[快速开始](#quick-start)的示例文件和输出目录。
 
-### 2.1、Swift 模型接入工程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-7" data-jobs-toc="v2">2.1、Swift 模型接入工程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 默认输出包含模型和编解码辅助代码。把 `User.swift` 加入 [**Xcode**](https://developer.apple.com/xcode) 工程并勾选目标 target 后，可以使用系统 [**JSONDecoder**](https://developer.apple.com/documentation/foundation/jsondecoder) 的 `decode(User.self, from: data)` 解码接口响应；`data` 是完整响应的字节数据，根节点结构须与生成时一致。
 
@@ -107,7 +135,7 @@ quicktype './quicktype-demo/user.json' \
 
 `User.swift`、`UserClass.swift`、`UserTypes.swift` 是对比用的不同生成方案，不应同时加入同一模块。正式接入 Jobs 工程前，按目标工程约定整理文件头、模型组织和访问权限；生成器不会自动套用 Jobs 的模型封装。
 
-### 2.2、生成 [**Objective-C**](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/Introduction/Introduction.html) 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-8" data-jobs-toc="v2">2.2、生成 [**Objective-C**](https://developer.apple.com/library/archive/documentation/Cocoa/Conceptual/ProgrammingWithObjectiveC/Introduction/Introduction.html) 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```shell
 quicktype './quicktype-demo/user.json' \
@@ -119,7 +147,7 @@ quicktype './quicktype-demo/user.json' \
 
 该命令输出配套的 `User.h` 和 `User.m`，`--class-prefix Jobs` 为生成的类名添加前缀。将两份文件一起加入目标工程，并确认 `.m` 参与编译。具体类名与转换方法以生成的头文件为准；此处输出参数应使用 `.m`，不要改成 `.h`。
 
-### 2.3、生成 [**Dart**](https://dart.dev) 与 [**TypeScript**](https://www.typescriptlang.org/) 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-9" data-jobs-toc="v2">2.3、生成 [**Dart**](https://dart.dev) 与 [**TypeScript**](https://www.typescriptlang.org/) 模型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - Dart 模型可用于 [**Flutter**](https://flutter.dev/) 工程，生成后放入项目既有模型目录：
 
@@ -144,7 +172,7 @@ quicktype './quicktype-demo/user.json' \
 
 ## 三、<span id="inputs">输入方式与常用参数</span> <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 3.1、文件、管道与剪贴板 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-11" data-jobs-toc="v2">3.1、文件、管道与剪贴板 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 文件输入适合保存接口样本并重复生成，完整命令见[快速开始](#quick-start)。
 - 管道输入适合临时数据；未提供文件参数时从标准输入读取：
@@ -168,7 +196,7 @@ quicktype './quicktype-demo/user.json' \
 
   剪贴板必须是合法 JSON；日志文字、代码围栏和接口地址不能作为 JSON 正文直接输入。
 
-### 3.2、从接口地址读取 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-12" data-jobs-toc="v2">3.2、从接口地址读取 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 quicktype 可直接读取返回 JSON 的接口地址。例如，以下命令访问 [**GitHub**](https://github.com) 的公开仓库接口，需要联网：
 
@@ -181,7 +209,7 @@ quicktype 'https://api.github.com/repos/glideapps/quicktype' \
 
 遇到登录、分页、请求方法或接口限流时，先使用现有接口调试工具获取成功响应，保存为本地 JSON，再使用文件输入。生成模型只描述收到的数据，不会自动实现分页或登录流程。
 
-### 3.3、常用参数速查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-13" data-jobs-toc="v2">3.3、常用参数速查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 参数 | 用途 | 示例值 |
 |---|---|---|
@@ -199,7 +227,7 @@ quicktype 'https://api.github.com/repos/glideapps/quicktype' \
 
 ## 四、<span id="schema">类型推断与接口契约</span> <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 4.1、先核对样本覆盖范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-15" data-jobs-toc="v2">4.1、先核对样本覆盖范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 quicktype 根据输入推断类型，单份成功响应不能代表接口的全部情况：
 
@@ -209,7 +237,7 @@ quicktype 根据输入推断类型，单份成功响应不能代表接口的全�
 - 日期格式不固定时，可先用 `--no-date-times` 保留字符串，再由业务层统一处理。
 - 新响应解码失败时，应检查实际字段及类型变化，再修正样本或契约并重新生成；不要直接覆盖已经手工维护的模型。
 
-### 4.2、通过 [**JSON Schema**](https://json-schema.org/) 固定类型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-16" data-jobs-toc="v2">4.2、通过 [**JSON Schema**](https://json-schema.org/) 固定类型 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 需要多端共用模型时，可以先从样本推断 Schema，人工核对字段类型、`required` 和空值规则，再据此生成各语言代码：
 
@@ -234,7 +262,7 @@ quicktype './quicktype-demo/user.schema.json' \
 
 ## 五、<span id="installer">安装脚本行为与风险</span> <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
 
-### 5.1、用途、依赖与运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-18" data-jobs-toc="v2">5.1、用途、依赖与运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 同目录的[安装脚本](./【MacOS】⚙️双击安装quicktype.command)用于安装或更新 [**Homebrew**](https://brew.sh/)、[**Node.js**](https://nodejs.org)、[**npm**](https://docs.npmjs.com/)、[**fzf**](https://formulae.brew.sh/formula/fzf) 和 quicktype。quicktype 通过 npm 全局安装；fzf 由该脚本一并维护，日常生成模型不需要使用选择器。
 
@@ -246,7 +274,7 @@ quicktype './quicktype-demo/user.schema.json' \
 
 运行前确认网络可访问对应官方源；Homebrew 用户目录安装还需要可用的 [**Git**](https://git-scm.com/) 与 [**curl**](https://curl.se/)。现行 quicktype 官方要求 Node.js 20 或更高版本，版本要求参见[官方安装说明](https://github.com/glideapps/quicktype#installation)。安装脚本没有业务参数，输出模型的参数应传给 `quicktype` 命令。
 
-### 5.2、实际交互与影响范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-19" data-jobs-toc="v2">5.2、实际交互与影响范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 **重新运行安装脚本会修改工具链，可能升级其它已安装的软件包；仅生成模型时直接使用前文命令。**
 

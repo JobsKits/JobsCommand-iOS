@@ -2,15 +2,26 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、实际行为与边界](#jobs-toc-heading-2)
+- [二、运行与开关](#jobs-toc-heading-3)
+- [三、日志与迁移](#jobs-toc-heading-4)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 本包为 Jobs Pod 二进制打包器 生成的临时宿主与消费 Demo 提供 [**CocoaPods**](https://cocoapods.org/) 安装网络环境。生成器将完整运行包复制到各工程的 `ScriptsByPods`；生成的 `Podfile` 按“网络适配 → 已审核源码归档回退 → 公共 Specs 选择”同步加载，不依赖其它仓库的路径。
 
-## 一、实际行为与边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、实际行为与边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 入口 | 实际行为 |
 | --- | --- |
@@ -24,7 +35,7 @@
 
 归档验证基线为 CocoaPods `1.17.0` / downloader `2.1`；不兼容时告警并跳过。链路探测成功不代表完整安装成功，Git 与归档域名都受限仍可能失败。私有依赖保留原声明，HTTP 环境代理会被本次所有下载子进程继承。
 
-## 二、运行与开关 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、运行与开关 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 生成工程正常执行 `pod install` 即会挂载；打包器仍使用 `--no-repo-update`。独立诊断在本 README 所在目录运行：
 
@@ -39,7 +50,7 @@
 | `JOBS_POD_PROXY_URL` | 未设置 | 已配置代理 URL，验证通过才使用；勿提交带认证信息的地址 |
 | `JOBS_POD_GITHUB_ARCHIVE_FALLBACK` | 开启 | `0` 关闭已审核归档回退 |
 
-## 三、日志与迁移 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、日志与迁移 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 自动挂载摘要进入打包器原有任务日志；手动执行时显示在终端。独立诊断日志为系统临时目录中的 `jobs-cocoapods-network.log`，确认后覆盖，不输出代理地址或凭据。公共 Specs 包另记同工程的源探测日志。
 

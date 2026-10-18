@@ -8,11 +8,32 @@ flowchart LR
     D --> E[确认后安装到所选设备]
 ```
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、适用范围与准备条件](#jobs-toc-heading-2)
+- [二、运行方式](#jobs-toc-heading-3)
+  - [2.1、双击运行](#jobs-toc-heading-4)
+  - [2.2、终端运行](#jobs-toc-heading-5)
+- [三、完整操作流程](#jobs-toc-heading-6)
+  - [3.1、输入 IPA 与关联工程](#jobs-toc-heading-7)
+  - [3.2、选择设备](#jobs-toc-heading-8)
+  - [3.3、恢复权限与匹配签名材料](#jobs-toc-heading-9)
+  - [3.4、材料不足时刷新 Xcode](#jobs-toc-heading-10)
+  - [3.5、重签、覆盖与安装](#jobs-toc-heading-11)
+- [四、产物、日志与失败边界](#jobs-toc-heading-12)
+- [五、验证方式与现有验证范围](#jobs-toc-heading-13)
+- [六、常见问题](#jobs-toc-heading-14)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 对已有、未加密的 iOS IPA 重新签名，保留原团队与 Bundle ID，不重新编译源码。脚本使用 [**Xcode**](https://developer.apple.com/xcode) 工具链和系统原生命令，分别处理主 App、扩展及嵌套动态代码；验证成功后替换原 IPA，再按确认结果直接安装到设备，无需爱思助手。
 
@@ -20,7 +41,7 @@ flowchart LR
 
 <span style="color:red"><b>重签成功会覆盖原 IPA，不自动保留旧版本。需要留存旧包时，运行前自行复制备份。</b></span>
 
-## 一、适用范围与准备条件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、适用范围与准备条件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 要求或行为 |
 | --- | --- |
@@ -37,15 +58,15 @@ flowchart LR
 
 免费 Personal Team 的描述文件自签发起 7 天过期；保存或重新压缩 IPA 不会延长有效期。需要先取得有效的新描述文件，再重签。参见 [Apple 免费账号限制](https://developer.apple.com/support/compare-memberships/)。
 
-## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 2.1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-4" data-jobs-toc="v2">2.1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 双击同目录的 `.command`，阅读内置自述后回车。依次提供 IPA、关联工程并选择目标设备。
 
 文件路径支持手动输入、Finder 拖入、中文、空格和常规引号／转义写法。每次只接受一个文件，不支持批量拖入多个 IPA。
 
-### 2.2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-5" data-jobs-toc="v2">2.2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 在本目录打开终端：
 
@@ -67,9 +88,9 @@ flowchart LR
 
 指定参数后仍有运行确认、工程关联和安装确认，不能作为无交互批处理使用。第二个参数必须是硬件 UDID，不是序列号、IMEI 或 `devicectl` 的内部 UUID。
 
-## 三、完整操作流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">三、完整操作流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 3.1、输入 IPA 与关联工程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-7" data-jobs-toc="v2">3.1、输入 IPA 与关联工程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1、阅读说明并回车；拖入 IPA 后回车。空输入、只输入空白或路径不存在时继续提示。输入 `q` 退出。
 
@@ -83,7 +104,7 @@ flowchart LR
 
 <span style="color:red"><b>工程配置采用静态解析，不是完整的 Xcode Build Settings 求值器。</b></span> 如果 Bundle ID 或平台设置依赖无法展开的 `.xcconfig`，工程归属校验可能失败；仅换一个目录不能保证解决。目前流程要求工程通过归属校验，没有“跳过工程”或独立“只安装”模式。
 
-### 3.2、选择设备 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-8" data-jobs-toc="v2">3.2、选择设备 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 只有一台可用的真实 iPhone / iPad：自动获取硬件 UDID，并高亮显示名称、型号与连接方式。
 - 存在多台：进入 fzf，输入关键词过滤、方向键选择、回车确认；`Esc` 取消并结束，不默认替代为第一台。
@@ -92,7 +113,7 @@ flowchart LR
 
 只有进入多设备选择时才检查 fzf。按当前 PATH、Apple Silicon 与 Intel 的 Homebrew 常见位置查找，并运行版本检查。缺失或损坏时，找到可用 [**Homebrew**](https://brew.sh/) 后提示安装／重装：**回车跳过并退出，输入任意字符才执行**。安装后复检，失败即停止；没有可用 Homebrew 时提示人工处理，不自动安装 Homebrew。
 
-### 3.3、恢复权限与匹配签名材料 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-9" data-jobs-toc="v2">3.3、恢复权限与匹配签名材料 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 优先保留 IPA 中已有的签名权限。权限缺失时，按 Bundle ID 查找对应 Target 的 `CODE_SIGN_ENTITLEMENTS`；仅在目标唯一、各配置可解析且指向同一文件时自动读取。条件覆盖、未解析变量或多候选等情况转为手动提供 `.entitlements` / `.xcent`。
 
@@ -117,7 +138,7 @@ flowchart LR
 
 逐项核对团队、App ID 前缀、Bundle ID、有效期、设备授权、证书私钥和权限。先找到能覆盖全部 App／扩展的共同签名身份，再在该身份对应的候选中选择每个 bundle 最晚到期的描述文件。
 
-### 3.4、材料不足时刷新 Xcode <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-10" data-jobs-toc="v2">3.4、材料不足时刷新 Xcode <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1、脚本打印失败原因。未检测到 Xcode 运行时暂停：输入 `o` 尝试打开；手动打开后回车复检；`q` 退出。
 
@@ -129,7 +150,7 @@ flowchart LR
 
 **Xcode 已打开不等于描述文件已续期。** 本机材料已经齐全时，不强制打开 Xcode。
 
-### 3.5、重签、覆盖与安装 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-11" data-jobs-toc="v2">3.5、重签、覆盖与安装 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1、在临时副本中从内到外签署动态代码，再分别签署扩展和主 App。
 
@@ -141,7 +162,7 @@ flowchart LR
 
 安装使用最终 IPA 解包得到的 `.app`，执行 `xcrun devicectl device install app`，超时为 180 秒。命令和结构化结果均成功后才显示安装成功。不会自动启动 App，也不会自动卸载设备上的旧 App。
 
-## 四、产物、日志与失败边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-12" data-jobs-toc="v2">四、产物、日志与失败边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 阶段或产物 | 行为 |
 | --- | --- |
@@ -157,7 +178,7 @@ flowchart LR
 
 强制终止进程或系统中断可能留下临时目录。安装超时不等于设备绝对没有完成安装，应检查设备实际状态后再决定是否重试。
 
-## 五、验证方式与现有验证范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-13" data-jobs-toc="v2">五、验证方式与现有验证范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 仅检查脚本语法，不触发重签或安装：
 
@@ -169,7 +190,7 @@ flowchart LR
 
 设备安装流程的回车确认与字符取消已通过模拟测试，尚无本工具真实手机安装成功的验收记录。不同工程结构、Xcode 版本和设备状态仍需按实际安装结果确认。
 
-## 六、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-14" data-jobs-toc="v2">六、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 **为什么不需要每次编译，却仍需更新描述文件？**
 

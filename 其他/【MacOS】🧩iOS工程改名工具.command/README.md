@@ -2,11 +2,32 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、适用场景](#jobs-toc-heading-2)
+- [二、运行方式](#jobs-toc-heading-3)
+- [三、运行模式](#jobs-toc-heading-4)
+- [四、覆盖范围](#jobs-toc-heading-5)
+- [五、开版维护模块](#jobs-toc-heading-6)
+- [六、风险说明](#jobs-toc-heading-7)
+- [七、日志文件](#jobs-toc-heading-8)
+- [八、流程图](#jobs-toc-heading-9)
+- [九、常见问题](#jobs-toc-heading-10)
+  - [9.1、为什么拖入路径后一直提示不正确？](#jobs-toc-heading-11)
+  - [9.2、复制开版会改原工程吗？](#jobs-toc-heading-12)
+  - [9.3、会不会改 Pods 里的第三方代码？](#jobs-toc-heading-13)
+  - [9.4、脚本会自动验证 Xcode 是否能编译吗？](#jobs-toc-heading-14)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 > 这个工具用于把一个 iOS 工程中的旧工程名批量替换为新的工程项目名，支持原地改名，也支持复制工程副本后做开版改名。
 
@@ -14,7 +35,7 @@
 
 ---
 
-## 一、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 场景 | 说明 |
 | --- | --- |
@@ -34,7 +55,7 @@ build
 DerivedData
 ```
 
-## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 推荐在 [**Finder**](https://support.apple.com/guide/mac-help/welcome/mac) 中打开当前目录，双击：
 
@@ -59,7 +80,7 @@ chmod +x './【MacOS】🧩iOS工程改名工具.command'
 6. 执行文本替换和文件目录重命名。
 7. 按需进入开版维护模块。
 
-## 三、运行模式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、运行模式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 模式 | 行为 | 风险 |
 | --- | --- | --- |
@@ -68,7 +89,7 @@ chmod +x './【MacOS】🧩iOS工程改名工具.command'
 
 复制开版模式会要求目标目录不存在，避免覆盖已有工程。
 
-## 四、覆盖范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、覆盖范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本会做两类基础改名：
 
@@ -84,7 +105,7 @@ chmod +x './【MacOS】🧩iOS工程改名工具.command'
 | Swift Package | `Package.swift`、SPM 相关文本配置。 |
 | 源码与资源 | `.swift`、`.h`、`.m`、`.mm`、`.plist`、`.storyboard`、`.xib`、`.json`、`.yml`、`.md` 等文本文件。 |
 
-## 五、开版维护模块 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、开版维护模块 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 改名完成后可以选择进入开版维护模块：
 
@@ -96,7 +117,7 @@ chmod +x './【MacOS】🧩iOS工程改名工具.command'
 
 旧脚本里的系统级动作没有并入本工具默认流程，包括 `sudo spctl --master-disable`、全局 Git 配置、[**Homebrew**](https://brew.sh/) 升级、Oh My Zsh 安装或升级、Rosetta 安装、jq / fzf 自动安装升级、按公网 IP 改 Pod 镜像。
 
-## 六、风险说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、风险说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 原地改名会直接修改拖入工程目录。
 - 复制开版默认不复制 `.git`，适合从旧项目开新项目。
@@ -104,7 +125,7 @@ chmod +x './【MacOS】🧩iOS工程改名工具.command'
 - 删除 `Pods`、`Podfile.lock`、`.xcworkspace` 必须输入 `YES`。
 - 脚本不自动执行 `xcodebuild`、`flutter clean` 或系统级配置命令。
 
-## 七、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-8" data-jobs-toc="v2">七、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 终端输出会同步写入系统临时目录中的日志文件：
 
@@ -125,7 +146,7 @@ $TMPDIR/【MacOS】🧩iOS工程改名工具.log
 - 备份文件位置。
 - 失败明细。
 
-## 八、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-9" data-jobs-toc="v2">八、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```mermaid
 flowchart TD
@@ -147,9 +168,9 @@ flowchart TD
   M --> N[输出摘要]
 ```
 
-## 九、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-10" data-jobs-toc="v2">九、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 9.1、为什么拖入路径后一直提示不正确？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-11" data-jobs-toc="v2">9.1、为什么拖入路径后一直提示不正确？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本只接受能识别出 iOS 工程特征的目录。目录内至少要能在两层深度内找到下面之一：
 
@@ -161,15 +182,15 @@ Podfile
 *.podspec
 ```
 
-### 9.2、复制开版会改原工程吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-12" data-jobs-toc="v2">9.2、复制开版会改原工程吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不会。复制开版会先复制出新目录，再对副本执行改名。原工程只会被读取。
 
-### 9.3、会不会改 `Pods` 里的第三方代码？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-13" data-jobs-toc="v2">9.3、会不会改 `Pods` 里的第三方代码？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 基础改名阶段不会。`Pods` 属于默认跳过目录。开版维护模块中如果输入 `YES`，会直接删除整个 `Pods` 目录并等待后续 `pod install` 重建。
 
-### 9.4、脚本会自动验证 Xcode 是否能编译吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-14" data-jobs-toc="v2">9.4、脚本会自动验证 Xcode 是否能编译吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不会。脚本只做改名和开版维护，不自动运行 `xcodebuild`。
 

@@ -2,11 +2,37 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
+
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、Fastfile 是干什么的？](#jobs-toc-heading-2)
+- [二、脚本具体做什么？](#jobs-toc-heading-3)
+- [三、适用场景](#jobs-toc-heading-4)
+- [四、执行前检查](#jobs-toc-heading-5)
+- [五、运行方式](#jobs-toc-heading-6)
+  - [5.1、双击运行](#jobs-toc-heading-7)
+  - [5.2、终端运行](#jobs-toc-heading-8)
+- [六、生成的基础模板](#jobs-toc-heading-9)
+- [七、执行流程](#jobs-toc-heading-10)
+- [八、文件与影响范围](#jobs-toc-heading-11)
+- [九、风险说明](#jobs-toc-heading-12)
+- [十、常见问题](#jobs-toc-heading-13)
+  - [10.1、为什么运行结束后没有生成 .ipa？](#jobs-toc-heading-14)
+  - [10.2、为什么提示无法识别工程类型？](#jobs-toc-heading-15)
+  - [10.3、Flutter 工程的 Fastfile 应该放在哪里？](#jobs-toc-heading-16)
+  - [10.4、已有 Fastfile 会被覆盖吗？](#jobs-toc-heading-17)
+  - [10.5、没有安装 fzf 能否继续？](#jobs-toc-heading-18)
+  - [10.6、在哪里查看日志？](#jobs-toc-heading-19)
+
+</details>
+<!-- jobs-toc:end -->
 
 ---
 
-## 🔥 <font id=前言>前言</font>
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 > `Fastfile` 是 [**fastlane**](https://fastlane.tools) 的核心配置文件，用 [**Ruby**](https://www.ruby-lang.org) DSL 描述 iOS 自动化流程。它负责告诉 `fastlane` 要执行哪些构建、测试、签名、打包或上传步骤；真正执行这些流程的是 `fastlane`。
 
@@ -14,7 +40,7 @@
 
 该脚本只负责准备环境和生成基础模板，不会自动构建 `.ipa`，也不会自动上传 [**TestFlight**](https://developer.apple.com/testflight/) 或 App Store。
 
-## 一、`Fastfile` 是干什么的？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、`Fastfile` 是干什么的？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 [**Fastfile 官方文档**](https://docs.fastlane.tools/advanced/Fastfile/) 将自动化任务组织成平台、通道和动作：
 
@@ -44,7 +70,7 @@ fastlane ios beta
 
 `Fastfile` 本身不会在保存后自动执行；只有主动运行对应的 `fastlane` 命令，自动化流程才会开始。
 
-## 二、脚本具体做什么？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、脚本具体做什么？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 根据脚本所在目录识别原生 iOS 工程或 [**Flutter**](https://flutter.dev/) 工程。
 - 检查并按需安装 Homebrew、fzf 和 fastlane。
@@ -61,7 +87,7 @@ fastlane ios beta
 - 不会自动登录开发者账号或上传安装包。
 - 不会覆盖已经存在的 `./fastlane/Fastfile`。
 
-## 三、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 原生 iOS 工程第一次接入 fastlane，需要生成 `./fastlane/Fastfile`。
 - Flutter 工程需要在 iOS 子工程中初始化 fastlane。
@@ -75,7 +101,7 @@ fastlane ios beta
 
 如果直接在当前脚本仓库中运行，生成的 `fastlane/` 也会位于当前脚本目录，而不会进入其它 iOS 工程。
 
-## 四、执行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、执行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 确认脚本已经复制到正确的工程目录。
 - 确认网络可以访问 Homebrew 和 fastlane 相关资源。
@@ -85,9 +111,9 @@ fastlane ios beta
 - 当前脚本检测到已安装的 Homebrew 后，会执行 `brew update`、`brew upgrade` 和 `brew cleanup`，可能更新本机其它 Homebrew 软件包。
 - 首次安装 Homebrew 时，脚本可能向当前 Shell 配置文件写入 `shellenv`。
 
-## 五、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 5.1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-7" data-jobs-toc="v2">5.1、双击运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 1. 将 `【MacOS】📦Fastfile.command` 复制到目标工程目录。
 2. 双击脚本。
@@ -95,7 +121,7 @@ fastlane ios beta
 4. 脚本再次展示 fastlane 初始化说明后，按回车进入环境检查。
 5. 根据终端提示决定是否升级工具、创建 `Fastfile` 和选择编辑器。
 
-### 5.2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-8" data-jobs-toc="v2">5.2、终端运行 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 以下命令需要在已经放入脚本的目标工程目录中执行：
 
@@ -106,7 +132,7 @@ chmod +x './【MacOS】📦Fastfile.command'
 
 不要只在终端切换到工程目录后调用其它位置的脚本。脚本依据自身目录定位工程，而不是依据终端当前目录定位工程。
 
-## 六、生成的基础模板 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-9" data-jobs-toc="v2">六、生成的基础模板 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 目标目录不存在 `./fastlane/Fastfile` 时，输入 `y` 才会创建下面的基础模板：
 
@@ -130,7 +156,7 @@ fastlane ios beta
 
 在未补充动作前执行这条命令，只会进入一个没有实际打包步骤的空通道。
 
-## 七、执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-10" data-jobs-toc="v2">七、执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```mermaid
 flowchart TD
@@ -151,7 +177,7 @@ flowchart TD
     M --> N
 ```
 
-## 八、文件与影响范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-11" data-jobs-toc="v2">八、文件与影响范围 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 位置或行为 |
 | --- | --- |
@@ -165,7 +191,7 @@ flowchart TD
 
 日志主要记录 Jobs 标准外壳输出；环境工具自己的完整输出仍应以当前终端内容为准。
 
-## 九、风险说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-12" data-jobs-toc="v2">九、风险说明 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - Homebrew 更新和升级会影响本机由 Homebrew 管理的其它软件，不只影响当前工程。
 - `brew cleanup` 可能清理旧版本软件包和缓存。
@@ -176,29 +202,29 @@ flowchart TD
 
 为避免安装或升级本机工具，阅读本 README 时不应顺手执行脚本；需要验证时应在明确的目标工程和可控环境中运行。
 
-## 十、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-13" data-jobs-toc="v2">十、常见问题 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-### 10.1、为什么运行结束后没有生成 `.ipa`？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-14" data-jobs-toc="v2">10.1、为什么运行结束后没有生成 `.ipa`？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 该脚本只初始化环境和 `Fastfile`。生成 `.ipa` 需要在 `lane` 中配置 `build_app` 等动作，再主动执行对应的 `fastlane` 命令。
 
-### 10.2、为什么提示无法识别工程类型？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-15" data-jobs-toc="v2">10.2、为什么提示无法识别工程类型？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 脚本只检查自身所在目录。原生 iOS 目录需要包含 `.xcodeproj` 或 `.xcworkspace`；Flutter 根目录需要同时包含 `pubspec.yaml` 和 `ios/`。
 
-### 10.3、Flutter 工程的 `Fastfile` 应该放在哪里？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-16" data-jobs-toc="v2">10.3、Flutter 工程的 `Fastfile` 应该放在哪里？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 推荐把脚本放到 Flutter 工程的 `./ios/` 后运行，最终文件位于 `./ios/fastlane/Fastfile`。
 
-### 10.4、已有 `Fastfile` 会被覆盖吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-17" data-jobs-toc="v2">10.4、已有 `Fastfile` 会被覆盖吗？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 不会。脚本检测到现有文件后会直接保留，并进入编辑器选择流程。
 
-### 10.5、没有安装 fzf 能否继续？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-18" data-jobs-toc="v2">10.5、没有安装 fzf 能否继续？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 可以。脚本会尝试通过 Homebrew 安装 fzf；如果安装失败或用户取消选择，会按可用编辑器优先级自动降级。
 
-### 10.6、在哪里查看日志？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+### <span id="jobs-toc-heading-19" data-jobs-toc="v2">10.6、在哪里查看日志？ <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 查看系统临时目录中的 `【MacOS】📦Fastfile.log`。如果需要排查 Homebrew、fzf 或 fastlane 的详细输出，同时保留当前终端内容。
 

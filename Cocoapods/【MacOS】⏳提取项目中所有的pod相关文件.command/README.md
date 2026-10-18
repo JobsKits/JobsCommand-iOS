@@ -2,9 +2,23 @@
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
-[toc]
+<!-- jobs-toc:start -->
+<!-- jobs-toc:source {"v":2,"token":"[toc]"} -->
+<details>
+<summary>📚 目录（点击展开 / 收起）</summary>
 
-## 🔥 <font id=前言>前言</font>
+- [🔥 前言](#jobs-toc-heading-1)
+- [一、脚本用途](#jobs-toc-heading-2)
+- [二、运行方式](#jobs-toc-heading-3)
+- [三、本次升级内容](#jobs-toc-heading-4)
+- [四、Homebrew 标准](#jobs-toc-heading-5)
+- [五、注意事项](#jobs-toc-heading-6)
+- [六、流程图](#jobs-toc-heading-7)
+
+</details>
+<!-- jobs-toc:end -->
+
+## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
 
 - 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
 
@@ -15,7 +29,7 @@
 - 普通安装 / 更新 / 升级交互统一为：**回车跳过，输入任意字符后回车执行**。
 - 危险操作不应该靠回车默认执行；涉及破坏性修改时，应单独输入 `YES` 确认。
 
-## 一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 说明 |
 |---|---|
@@ -29,7 +43,7 @@
 
 脚本统一由 macOS 预置的 `/bin/zsh` 执行。双击或直接执行脚本即可；显式指定解释器时使用 `zsh`，不要使用 `bash` 或 `sh`。运行后先显示内置自述，确认后才进入业务；无法读取确认输入时会退出。
 
-## 二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 推荐双击 `.command` 运行。终端方式如下：
 
@@ -40,7 +54,7 @@ chmod +x './【MacOS】⏳提取项目中所有的pod相关文件.command'
 
 脚本启动后会先显示本 README，并等待回车继续，避免误触执行。
 
-## 三、本次升级内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、本次升级内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 统一脚本解释器为 `# shell: zsh`。
 - 增加 README 展示与回车阻塞，防止双击误操作。
@@ -49,7 +63,7 @@ chmod +x './【MacOS】⏳提取项目中所有的pod相关文件.command'
 - 使用 `main "$@"` 作为统一入口。
 - 原业务逻辑保留在 `run_original_logic` 模块内，方便后续继续拆分重构。
 
-## 四、Homebrew 标准 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、Homebrew 标准 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 若脚本涉及 Homebrew，统一遵循下面的健康标准：
 
@@ -61,7 +75,7 @@ chmod +x './【MacOS】⏳提取项目中所有的pod相关文件.command'
 - 已安装时不强制升级，而是询问：**回车跳过，输入任意字符后回车升级**。
 - 健康更新顺序为：`brew update` → `brew upgrade` → `brew cleanup` → `brew doctor` → `brew -v`。
 
-## 五、注意事项 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、注意事项 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 我没有在生成阶段执行脚本里的 macOS 专属命令，例如 `brew`、`pod`、`flutter`、`xcodebuild`、`osascript`、`sudo`、模拟器控制等。
 - 首次运行前建议先阅读本 README，再执行脚本。
@@ -69,7 +83,7 @@ chmod +x './【MacOS】⏳提取项目中所有的pod相关文件.command'
 - 如果脚本涉及 Git / CocoaPods / Flutter 依赖更新，建议先提交或备份本地改动。
 - 运行日志默认写入：`$TMPDIR/【MacOS】⏳提取项目中所有的pod相关文件.log`。
 
-## 六、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a>
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ```mermaid
 graph TD
