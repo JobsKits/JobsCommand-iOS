@@ -110,7 +110,7 @@
 
 10、创建成功后执行 `boot`，打开同一 Xcode 的 `Simulator.app` 或 Device Hub，并通过 `bootstatus` 确认启动；启动失败保留新设备与 UDID。
 
-11、只有明确返回设备 / Runtime 不兼容才回到选择，其它失败或不明确结果停止，避免重复创建。
+11、正常创建只选择一轮型号和系统。只有明确返回 `Incompatible device` 且用户精确输入 `r` / `R` 才回到选择；直接回车、其它输入或 EOF 停止并返回失败。泛化的 `Unable to create a device for device type` 不视为不兼容，其它失败或不明确结果也停止，避免自动重复选择与创建。
 
 ## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、交互规则 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
@@ -120,6 +120,7 @@
 - 设备型号选择为空：脚本退出，不创建模拟器。
 - Runtime 选择为空：脚本退出，不创建模拟器。
 - 最终创建确认：直接回车创建并启动，任意非空输入取消。
+- 不兼容后的重选：精确输入 `r` / `R` 才重新显示列表，直接回车、其它输入或 EOF 均停止。
 - 无交互终端：无参数入口停止，`--help` / `--check` 仍可只读运行。
 
 ## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、执行前检查 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
@@ -157,7 +158,9 @@ graph TD
   M --> Q{最终回车确认}
   Q -->|取消| P
   Q -->|确认| N{创建结果}
-  N -->|明确不兼容| L
+  N -->|明确不兼容| W{输入 r / R 重选?}
+  W -->|是| L
+  W -->|回车 / 其它 / EOF| R
   N -->|其它失败| R[显示错误并停止]
   R --> P
   N -->|成功| O[启动模拟器并保留新 UDID]
@@ -176,7 +179,7 @@ graph TD
 
 - 创建失败并提示组合不支持：
 
-  某些新设备型号不能搭配旧系统版本。按提示重新选择设备型号和 Runtime 即可。
+  某些新设备型号不能搭配旧系统版本。确认错误后输入 `r` / `R` 重新选择设备型号和 Runtime；直接回车停止，不会自动弹出第二轮列表。
 
 - 日志在哪里看：
 
