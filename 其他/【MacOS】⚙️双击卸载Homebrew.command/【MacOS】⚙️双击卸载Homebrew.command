@@ -1,339 +1,95 @@
 #!/bin/zsh
-# 脚本自述：
-# - 脚本名称：【MacOS】⚙️双击卸载Homebrew.command
-# - 核心用途：执行“⚙️双击卸载Homebrew”对应的本机环境配置任务。
-# - 影响范围：可能安装、更新或修改当前用户的工具链与配置文件。
-# - 运行提示：运行后会先打印内置自述；终端模式按回车确认后继续，按 Ctrl+C 可取消。
-# =====================================================================
-# Jobs 标准化脚本外壳
-# 说明：保留原脚本业务逻辑，补齐 README 防误触、彩色日志、zsh 入口、Homebrew 健康自检标准。
-# =====================================================================
+# shell: zsh
+# 仅调用 Homebrew 官方卸载器；共享目录不做额外递归删除。
+# --dry-run 只显示本地目标，不下载、不卸载。实际卸载须在终端输入 YES。
 
-# 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
-jobs_intro_style() {
-  local intro_color=0
-  if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
-     [ -z "${NO_COLOR+x}" ] && [ "${PLAIN_OUTPUT:-0}" != 1 ] &&
-     [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]; then
-    intro_color=1
-  fi
-  /usr/bin/awk -v color="$intro_color" -v role="${1:-body}" '
-    BEGIN { esc = sprintf("%c", 27) }
-    {
-      gsub(esc "\\[[0-9;]*m", "")
-      gsub(/\\(033|e|x1[bB])\[[0-9;]*m/, "")
-      if (!color || $0 ~ /^[[:space:]]*$/) { print; next }
-      numbered = ($0 ~ /^[[:space:]➤ℹ🔹✔⚠]*([0-9]+[、.)）]|[0-9]+️⃣|[-•])/)
-      heading = ($0 ~ /^[[:space:]]*#{1,6}[[:space:]]/ || $0 ~ /[：:][[:space:]]*$/ || $0 ~ /^[[:space:]]*[=━─-]{3}/)
-      title = (!numbered && (role == "title" || heading))
-      if (role == "auto" && !seen && !numbered) title = 1
-      if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
-      printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
-    }
-  '
-}
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-${(%):-%x}}")" && pwd)"
-SCRIPT_PATH="${SCRIPT_DIR}/$(basename -- "$0")"
-SCRIPT_BASENAME="$(basename "$0" | sed 's/\.[^.]*$//')"
-LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-color_echo()     { log "\033[1;32m$1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-warm_echo()      { log "\033[1;33m$1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-err_echo()       { log "\033[1;31m$1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-gray_echo()      { log "\033[0;90m$1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-bold_echo()      { log "\033[1m$1\033[0m"; }
-# 按当前输出级别记录终端信息，并同步写入脚本日志。
-underline_echo() { log "\033[4m$1\033[0m"; }
-# ============================= 标准工具函数 =============================
-get_cpu_arch() {
-  [[ "$(uname -m)" == "arm64" ]] && echo "arm64" || echo "x86_64"
-}
-# 封装 abs_path 对应的独立处理逻辑。
-abs_path() {
-  local p="$1"
-  [[ -z "$p" ]] && return 1
-  p="${p//\"/}"
-  [[ "$p" != "/" ]] && p="${p%/}"
-  if [[ -d "$p" ]]; then
-    (cd "$p" 2>/dev/null && pwd -P)
-  elif [[ -f "$p" ]]; then
-    (cd "${p:h}" 2>/dev/null && printf "%s/%s\n" "$(pwd -P)" "${p:t}")
-  else
-    return 1
-  fi
-}
-# 收集并校验用户输入，决定后续执行路径。
-ask_run() {
-  echo ""
-  note_echo "👉 $1"
-  gray_echo "【回车=跳过，输入任意字符后回车=执行】"
-  local input=""
-  IFS= read -r "input?➤ "
-  [[ -n "$input" ]]
-}
-# 收集并校验用户输入，决定后续执行路径。
-confirm_yes() {
-  echo ""
-  warn_echo "⚠ $1"
-  gray_echo "危险操作必须输入 YES 后回车；其它输入一律取消。"
-  local input=""
-  IFS= read -r "input?➤ "
-  [[ "$input" == "YES" ]]
-}
-# 封装 inject_shellenv_block 对应的独立处理逻辑。
-inject_shellenv_block() {
-  local profile_file="$1"
-  local shellenv_cmd="$2"
-  local header="# >>> Homebrew 环境变量 >>>"
-  [[ -z "$profile_file" || -z "$shellenv_cmd" ]] && { error_echo "缺少参数：inject_shellenv_block <profile_file> <shellenv_cmd>"; return 1; }
-  mkdir -p "$(dirname "$profile_file")"
-  touch "$profile_file"
-  if grep -Fq "$shellenv_cmd" "$profile_file" 2>/dev/null; then
-    info_echo "已存在 Homebrew shellenv：$profile_file"
-  elif grep -Fq "$header" "$profile_file" 2>/dev/null; then
-    info_echo "已存在 Homebrew 环境变量块：$profile_file"
-  else
-    {
-      echo ""
-      echo "$header"
-      echo "$shellenv_cmd"
-    } >> "$profile_file"
-    success_echo "已写入 Homebrew shellenv：$profile_file"
-  fi
-  eval "$shellenv_cmd" || true
-}
-# 封装 activate_homebrew_shellenv 对应的独立处理逻辑。
-activate_homebrew_shellenv() {
-  local arch="$(get_cpu_arch)"
-  local brew_bin=""
-  if command -v brew >/dev/null 2>&1; then
-    brew_bin="$(command -v brew)"
-  elif [[ "$arch" == "arm64" && -x "/opt/homebrew/bin/brew" ]]; then
-    brew_bin="/opt/homebrew/bin/brew"
-  elif [[ -x "/usr/local/bin/brew" ]]; then
-    brew_bin="/usr/local/bin/brew"
-  fi
-  [[ -z "$brew_bin" ]] && return 1
+SCRIPT_SOURCE="${(%):-%x}"
+WORK_DIR=""
+LOG_FILE=""
 
-  local shell_name="${SHELL##*/}"
-  local profile_file=""
-  case "$shell_name" in
-    zsh)  profile_file="$HOME/.zprofile" ;;
-    bash) profile_file="$HOME/.bash_profile" ;;
-    *)    profile_file="$HOME/.profile" ;;
+TRAPEXIT() {
+  local result=$?
+  [[ -z "$WORK_DIR" || ! -d "$WORK_DIR" ]] || /bin/rm -rf -- "$WORK_DIR"
+  return "$result"
+}
+TRAPINT() { exit 130; }
+TRAPTERM() { exit 143; }
+
+fail() { print -u2 -r -- "错误：$*"; return 1; }
+
+# 从安装本身取得 prefix，拒绝路径漂移和系统 / 用户根目录。
+resolve_prefix() {
+  local candidate="$1" actual=""
+  [[ "$candidate" == /* && "$candidate" != *[[:cntrl:]]* ]] || { fail 'prefix 必须是无控制字符的绝对路径。'; return 1; }
+  candidate="${candidate:A}"
+  case "$candidate" in
+    /|/usr|/opt|/Applications|/Library|/System|/Users|/tmp|/var|"${HOME:A}")
+      fail "拒绝把系统或用户根目录作为 Homebrew prefix：$candidate"; return 1 ;;
   esac
-  inject_shellenv_block "$profile_file" "eval \"\$(${brew_bin} shellenv)\""
-  eval "$(${brew_bin} shellenv)"
+  [[ -x "$candidate/bin/brew" ]] || { fail "未找到可执行的 $candidate/bin/brew"; return 1; }
+  actual="$("$candidate/bin/brew" --prefix)" || { fail '无法读取 Homebrew prefix。'; return 1; }
+  [[ "$actual" == /* && "$actual" != *[[:cntrl:]]* && "${actual:A}" == "$candidate" ]] || { fail 'Homebrew 返回的 prefix 与所选目录不一致。'; return 1; }
+  REPLY="$candidate"
 }
-# 执行已经拆分完成的独立业务步骤。
-run_brew_health_update() {
-  info_echo "正在执行 Homebrew 健康更新..."
-  brew update  || { error_echo "brew update 失败"; return 1; }
-  brew upgrade || { error_echo "brew upgrade 失败"; return 1; }
-  brew cleanup || { error_echo "brew cleanup 失败"; return 1; }
-  brew doctor  || warn_echo "brew doctor 有警告，请按输出处理"
-  brew -v      || warn_echo "打印 brew 版本失败，可忽略"
-  success_echo "Homebrew 健康更新完成"
-}
-# 执行对应的环境配置或同步处理。
-install_homebrew() {
-  local arch="$(get_cpu_arch)"
-  local brew_bin=""
 
-  if ! command -v brew >/dev/null 2>&1 && [[ ! -x "/opt/homebrew/bin/brew" && ! -x "/usr/local/bin/brew" ]]; then
-    warn_echo "未检测到 Homebrew，准备按架构安装：$arch"
-    if [[ "$arch" == "arm64" ]]; then
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || { error_echo "Homebrew 安装失败（arm64）"; return 1; }
-      brew_bin="/opt/homebrew/bin/brew"
-    else
-      arch -x86_64 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || { error_echo "Homebrew 安装失败（x86_64）"; return 1; }
-      brew_bin="/usr/local/bin/brew"
+main() {
+  setopt ERR_EXIT PIPE_FAIL
+  local dry_run="${DRY_RUN:-0}" requested="" brew_bin="" prefix="" answer="" result=0
+  local installer_url='https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh'
+  while (( $# )); do
+    case "$1" in
+      --dry-run) dry_run=1 ;;
+      --prefix)
+        (( $# >= 2 )) || { fail '--prefix 缺少目录。'; return 2; }
+        requested="$2"; shift ;;
+      --help|-h)
+        print -r -- '用法：脚本 [--dry-run] [--prefix /绝对安装路径]；默认选择当前 brew，一次处理一套安装。'
+        return 0 ;;
+      *) fail "未知参数：$1"; return 2 ;;
+    esac
+    shift
+  done
+  [[ "$dry_run" == 0 || "$dry_run" == 1 ]] || { fail 'DRY_RUN 只能为 0 或 1。'; return 2; }
+  [[ "$(uname -s)" == Darwin ]] || { fail '仅支持 macOS。'; return 1; }
+  if [[ -z "$requested" ]]; then
+    brew_bin="$(command -v brew 2>/dev/null || true)"
+    if [[ -z "$brew_bin" ]]; then
+      for brew_bin in /opt/homebrew/bin/brew /usr/local/bin/brew "$HOME/.local/homebrew/bin/brew"; do
+        [[ ! -x "$brew_bin" ]] || break
+      done
     fi
-    success_echo "Homebrew 安装完成"
-    activate_homebrew_shellenv || true
+    [[ -x "$brew_bin" ]] || { fail '未找到 Homebrew；可用 --prefix 指定安装目录。'; return 1; }
+    requested="$("$brew_bin" --prefix)" || return 1
+  fi
+  resolve_prefix "$requested" || return 1
+  prefix="$REPLY"
+  print -r -- "Homebrew 卸载目标：$prefix"
+  print -r -- "官方卸载器：$installer_url"
+  print -r -- '将卸载此安装的包及 Homebrew 管理的文件；不会额外清空 /usr/local/bin、lib、etc 等共享目录。'
+  if [[ "$dry_run" == 1 ]]; then
+    print -r -- '预览结束，未下载、未删除任何内容。'
     return 0
   fi
-
-  activate_homebrew_shellenv || true
-  info_echo "Homebrew 已安装。"
-  if ask_run "是否执行 Homebrew 更新 / 升级 / 清理 / doctor？"; then
-    run_brew_health_update
-  else
-    note_echo "已跳过 Homebrew 更新"
+  [[ -t 0 && -t 1 ]] || { fail '实际卸载必须在交互终端确认；自动检查请使用 --dry-run。'; return 1; }
+  IFS= read -r 'answer?精确输入 YES 卸载以上安装；其它输入取消：' || return 130
+  if [[ "$answer" != YES ]]; then print -r -- '已取消。'; return 0; fi
+  # 确认后复核安装位置，再完整下载并校验语法，下载失败绝不进入执行。
+  resolve_prefix "$prefix" || return 1
+  command -v curl >/dev/null || { fail '缺少 curl。'; return 1; }
+  WORK_DIR="$(mktemp -d "${TMPDIR:-/tmp}/jobs-brew-uninstall.XXXXXXXX")" || return 1
+  LOG_FILE="$(mktemp "${TMPDIR:-/tmp}/jobs-brew-uninstall-log.XXXXXXXX")" || return 1
+  print -r -- "日志：$LOG_FILE"
+  curl --fail --show-error --silent --location --proto '=https' --proto-redir '=https' \
+    --connect-timeout 10 --max-time 120 --output "$WORK_DIR/uninstall.sh" "$installer_url" || return 1
+  [[ -s "$WORK_DIR/uninstall.sh" ]] || { fail '下载结果为空。'; return 1; }
+  /bin/bash -n "$WORK_DIR/uninstall.sh" || { fail '官方卸载器语法检查失败。'; return 1; }
+  # 用户已对具体 prefix 输入 YES；退出码包含下载器 / 卸载器 / 日志失败。
+  /bin/bash "$WORK_DIR/uninstall.sh" --path "$prefix" --force 2>&1 | tee -a "$LOG_FILE" || result=$?
+  if (( result )); then
+    print -u2 -r -- "错误：卸载未完成（退出码 $result），请检查日志：$LOG_FILE"
+    return "$result"
   fi
-}
-# 封装 brew_install_or_upgrade 对应的独立处理逻辑。
-brew_install_or_upgrade() {
-  local formula="$1"
-  [[ -z "$formula" ]] && return 1
-  install_homebrew || return 1
-  if ! brew list --formula "$formula" >/dev/null 2>&1 && ! command -v "$formula" >/dev/null 2>&1; then
-    note_echo "未检测到 $formula，正在安装..."
-    brew install "$formula" || { error_echo "$formula 安装失败"; return 1; }
-    success_echo "$formula 安装完成"
-  else
-    info_echo "$formula 已安装。"
-    if ask_run "是否升级 $formula？"; then
-      brew upgrade "$formula" || warn_echo "$formula 可能已是最新或升级失败，请检查输出"
-      brew cleanup || true
-    else
-      note_echo "已跳过 $formula 升级"
-    fi
-  fi
-}
-# 展示脚本用途和影响范围，并在执行前等待用户确认。
-show_script_intro_and_wait() {
-  clear
-  print -r -- '============================== 脚本内置自述 ==============================' | jobs_intro_style title
-  print -r -- '脚本名称：【MacOS】⚙️双击卸载Homebrew.command' | jobs_intro_style title
-  print -r -- '核心用途：执行“⚙️双击卸载Homebrew”对应的本机环境配置任务。' | jobs_intro_style body
-  print -r -- '影响范围：可能安装、更新或修改当前用户的工具链与配置文件。' | jobs_intro_style body
-  print -r -- '取消方式：确认前按 Ctrl+C 终止，不会继续执行后续业务。' | jobs_intro_style body
-  print -r -- '============================================================================' | jobs_intro_style title
-  echo "" | jobs_intro_style body
-  read -r "?👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：" _
-}
-# 执行已经拆分完成的独立业务步骤。
-run_original_logic() {
-  # ============================= 原脚本业务逻辑区 =============================
-  # ✅ 日志与彩色输出
-  SCRIPT_BASENAME=$(basename "$0" | sed 's/\.[^.]*$//')   # 当前脚本名（去掉扩展名）
-  LOG_FILE="/tmp/${SCRIPT_BASENAME}.log"                  # 设置对应的日志文件路径
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  log()            { echo -e "$1" | tee -a "$LOG_FILE"; }
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  color_echo()     { log "\033[1;32m$1\033[0m"; }        # ✅ 正常绿色输出
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  info_echo()      { log "\033[1;34mℹ $1\033[0m"; }      # ℹ 信息
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  success_echo()   { log "\033[1;32m✔ $1\033[0m"; }      # ✔ 成功
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }      # ⚠ 警告
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  warm_echo()      { log "\033[1;33m$1\033[0m"; }        # 🟡 温馨提示（无图标）
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  note_echo()      { log "\033[1;35m➤ $1\033[0m"; }      # ➤ 说明
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  error_echo()     { log "\033[1;31m✖ $1\033[0m"; }      # ✖ 错误
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  err_echo()       { log "\033[1;31m$1\033[0m"; }        # 🔴 错误纯文本
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }     # 🐞 调试
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }     # 🔹 高亮
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  gray_echo()      { log "\033[0;90m$1\033[0m"; }        # ⚫ 次要信息
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  bold_echo()      { log "\033[1m$1\033[0m"; }           # 📝 加粗
-  # 按当前输出级别记录终端信息，并同步写入脚本日志。
-  underline_echo() { log "\033[4m$1\033[0m"; }           # 🔗 下划线
-  # ✅ 自述信息
-  print_intro() {
-    echo "" | jobs_intro_style body
-    bold_echo "====================================================================" | jobs_intro_style title
-    error_echo "🧨 脚本功能说明："
-    success_echo "✔ 完整卸载 Homebrew（包括 Intel / M 系统安装路径）" | jobs_intro_style body
-    success_echo "✔ 删除所有 Homebrew 缓存、软件、配置路径" | jobs_intro_style body
-    success_echo "✔ 修复残留 Git HEAD 错误问题" | jobs_intro_style body
-    bold_echo "====================================================================" | jobs_intro_style title
-    echo "" | jobs_intro_style body
-  }
-  # ✅ 用户确认操作
-  confirm_uninstall() {
-    read "?⚠️ 确定要卸载 Homebrew？请输入 yes 开始执行： " confirm
-    if [[ "$confirm" != "yes" ]]; then
-      warn_echo "已取消卸载操作"
-      exit 0
-    fi
-  }
-  # ✅ 执行卸载操作
-  uninstall_homebrew() {
-    info_echo "正在卸载 Homebrew..."
-
-    # ---------- 1. 尝试 cleanup ----------
-    brew cleanup || true
-
-    # ---------- 2. 官方卸载脚本 ----------
-    gray_echo "🔄 执行官方卸载脚本..."
-    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/uninstall.sh)"
-
-    # ---------- 3. 手动删除常见路径 ----------
-    gray_echo "🗑️ 清理常见安装目录..."
-    local paths_to_remove=(
-      /usr/local/Caskroom/
-      /usr/local/Frameworks/
-      /usr/local/Homebrew/
-      /usr/local/bin/
-      /usr/local/etc/
-      /usr/local/include/
-      /usr/local/lib/
-      /usr/local/opt/
-      /usr/local/sbin/
-      /usr/local/share/
-      /usr/local/var/
-      /opt/homebrew/
-    )
-    for path in "${paths_to_remove[@]}"; do
-      sudo rm -rf "$path"
-    done
-
-    # ---------- 4. 修复 Git HEAD 错误 ----------
-    gray_echo "🔧 检查并修复 Git HEAD 错误..."
-    local brew_repo
-    brew_repo=$(brew --repo homebrew/core 2>/dev/null || true)
-    if [[ -n "$brew_repo" ]]; then
-      sudo rm -rf "$brew_repo"
-    fi
-
-    success_echo "🎉 Homebrew 已彻底卸载完成"
-  }
-  # ✅ 主函数入口
-  main() {
-    clear                      # 清空终端内容，使输出更整洁
-    print_intro                # 自述信息
-    confirm_uninstall          # 等待用户输入确认是否执行卸载操作（必须输入 yes）
-    uninstall_homebrew         # 执行 Homebrew 卸载和残留路径清理操作
-  }
-
-  main "$@"
-
-  # =========================== 原脚本业务逻辑区结束 ===========================
-}
-# 编排脚本的高层业务流程。
-# 初始化脚本运行环境，并集中承载原有的顶层执行逻辑。
-initialize_script_runtime() {
-  : > "$LOG_FILE"
-}
-# 编排脚本的高层业务流程。
-main() {
-  # 展示脚本内置自述，并按运行入口完成防误触确认。
-  show_script_intro_and_wait
-  # 初始化 Shell 选项、日志、依赖和入口运行状态。
-  initialize_script_runtime
-  # 执行 run_original_logic 对应的核心业务步骤。
-  run_original_logic "$@"
-  # 输出脚本执行结果、摘要和日志位置。
-  success_echo "脚本执行结束。日志：$LOG_FILE"
+  print -r -- "官方卸载流程完成。请按日志检查残留；日志：$LOG_FILE"
 }
 
 main "$@"

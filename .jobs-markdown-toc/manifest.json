@@ -15,10 +15,6 @@
     "Cocoapods/【MacOS】自检具体的某个本地pod是否能编译通过.command/README.md",
     "Cocoapods/【MacOS】🧹双击卸载 Cocoapods.command/README.md",
     "Cocoapods/【MacOS】🫘JobsPublishPods.command/README.md",
-    "Git相关/【MacOS】♻️双击Git（识别子Git） 提交回退.command/README.md",
-    "Git相关/【MacOS】♻️双击恢复误删本地Git已储藏的资料.command/README.md",
-    "Git相关/【MacOS】🔍Git依据提交日志关键字查找.command/README.md",
-    "Git相关/【MacOS】🔍Git寻找分支最近的一次原始切点.command/README.md",
     "README.md",
     "其他/【MacOS】⌚️Xcode编译耗时菜单栏.command/README.md",
     "其他/【MacOS】⏬simios.command/README.md",
@@ -55,6 +51,11 @@
     "配置相关/【MacOS】⚙️双击安装JobsCodeSnippets.command/README.md",
     "配置相关/【MacOS】⚙️双击安装quicktype.command/README.md",
     "配置相关/【MacOS】⚙️安装代码地图CodeGraph.command/README.md",
-    "配置相关/【MacOS】🎈双击打开系统配置文件.command/README.md"
+    "配置相关/【MacOS】🎈双击打开系统配置文件.command/README.md",
+    "Cocoapods/README.md",
+    "其他/README.md",
+    "打包相关/README.md",
+    "配置相关/README.md",
+    "配置相关/【MacOS】⚙️双击安装JobsCodeSnippets.command/tests/README.md"
   ]
 }

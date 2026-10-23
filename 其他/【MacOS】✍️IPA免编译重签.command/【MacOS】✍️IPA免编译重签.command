@@ -58,7 +58,7 @@ display_line() {
 }
 # 打印内置说明，确认前不写文件或修改环境。
 show_script_intro_and_wait() {
-  display_line 'Jobs · 通用 IPA 免编译重签' | jobs_intro_style body
+  display_line 'Jobs · 通用 IPA 免编译重签' | jobs_intro_style title
   display_line '用途：对已有 IPA 重新签名；不重新编译源码。' | jobs_intro_style body
   display_line '需要：有效描述文件、对应证书私钥，以及描述文件已授权的设备。' | jobs_intro_style body
   display_line '免费 Personal Team 的描述文件通常只有 7 天；本工具不能续期。' | jobs_intro_style body

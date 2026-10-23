@@ -7,91 +7,54 @@
 <details>
 <summary>📚 目录（点击展开 / 收起）</summary>
 
-- [🔥 前言](#jobs-toc-heading-1)
-- [一、脚本用途](#jobs-toc-heading-2)
-- [二、运行方式](#jobs-toc-heading-3)
-- [三、本次升级内容](#jobs-toc-heading-4)
-- [四、Homebrew 标准](#jobs-toc-heading-5)
-- [五、注意事项](#jobs-toc-heading-6)
-- [六、流程图](#jobs-toc-heading-7)
+- [🔥 前言](#%E5%89%8D%E8%A8%80)
+- [一、功能覆盖](#jobs-toc-heading-2)
+- [二、输入、选项与产物](#jobs-toc-heading-3)
+- [三、运行方式](#jobs-toc-heading-4)
+- [四、风险与能力边界](#jobs-toc-heading-5)
+- [五、日志与核对](#jobs-toc-heading-6)
 
 </details>
 <!-- jobs-toc:end -->
 
-## <span id="jobs-toc-heading-1" data-jobs-toc="v2">🔥 <font id=前言>前言</font></span><!-- jobs-toc:heading-end -->
+---
 
-- 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
+## 🔥 <span id="前言">前言</span>
 
-- 本自述文件对应脚本：`【MacOS】🫘JobsPublishPods.command`。
-- 脚本原始位置：`JobsGenesis@JobsCommand.iOS/Cocoapods`。
-- 脚本定位：执行该脚本文件名对应的 macOS 自动化任务。
-- 本次已按 Jobs 标准升级：`# shell: zsh`、README 防误触、彩色日志、结构化入口、`main "$@"` 收口。
-- 普通安装 / 更新 / 升级交互统一为：**回车跳过，输入任意字符后回车执行**。
-- 危险操作不应该靠回车默认执行；涉及破坏性修改时，应单独输入 `YES` 确认。
+校验并发布选中的 Podspec 到 [**CocoaPods**](https://cocoapods.org/) trunk。入口：[同名脚本](<./【MacOS】🫘JobsPublishPods.command>)。
 
-## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、脚本用途 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、功能覆盖 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-| 项目 | 说明 |
-|---|---|
-| 脚本名称 | `【MacOS】🫘JobsPublishPods.command` |
-| 所属目录 | `JobsGenesis@JobsCommand.iOS/Cocoapods` |
-| 主要标签 | `通用脚本` |
-| 是否涉及 Homebrew | `是` |
-| 是否可能联网 | `是` |
-| 是否含高风险命令 | `是` |
-| zsh 静态检查 | `当前生成环境未执行，请在 macOS 上复核` |
+- 扫描脚本目录 podspec 或循环输入。
+- 优先同步 HEAD tag 到版本。
+- 读取 Pod 元数据。
+- 检查 trunk 登录并可选注册。
+- 可选 lib lint，之后 trunk push 与 trunk info。
 
-## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、输入、选项与产物 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-推荐双击 `.command` 运行。终端方式如下：
+| 项目 | 当前行为 |
+| --- | --- |
+| 输入与默认值 | 多 Podspec 由 fzf 选择；注册、lint 按交互选择；既有登录不重复注册 |
+| 输出与作用位置 | Podspec 版本可能改写；远端 trunk 发布结果与日志 |
+| 依赖 | [**CocoaPods**](https://cocoapods.org/)、[**Ruby**](https://www.ruby-lang.org)、[**Git**](https://git-scm.com/)、[**fzf**](https://formulae.brew.sh/formula/fzf)、[**Homebrew**](https://brew.sh/) 与网络 |
+
+## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+
+在本 README 所在目录打开终端，也可双击同名 `.command`。先阅读内置自述，确认显示的目标再继续；`Ctrl+C` 可取消。
 
 ```shell
-chmod +x './【MacOS】🫘JobsPublishPods.command'
-'./【MacOS】🫘JobsPublishPods.command'
+zsh './【MacOS】🫘JobsPublishPods.command'
 ```
 
-脚本启动后会先显示本 README，并等待回车继续，避免误触执行。
+## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、风险与能力边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-## <span id="jobs-toc-heading-4" data-jobs-toc="v2">三、本次升级内容 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+实际发布到公共 trunk；[**Git**](https://git-scm.com/) tag 不是自动上传远端源码的保证。必须先确保发布版本、tag、源码提交与 source 地址一致。
 
-- 统一脚本解释器为 `# shell: zsh`。
-- 增加 README 展示与回车阻塞，防止双击误操作。
-- 增加 Jobs 标准彩色日志函数，日志路径为 `$TMPDIR/脚本名.log`。
-- 增加 `SCRIPT_DIR` / `SCRIPT_PATH` 标准路径变量。
-- 使用 `main "$@"` 作为统一入口。
-- 原业务逻辑保留在 `run_original_logic` 模块内，方便后续继续拆分重构。
-- 注入 Homebrew 健康自检标准模块：架构判断、shellenv 注入、当前会话生效、可选更新。
-- 已修正常见旧式升级交互文案与直接强制升级命令。
+## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、日志与核对 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、Homebrew 标准 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+运行状态输出到终端；日志由脚本的 `LOG_FILE` 指定，通常位于系统临时目录、以脚本名去扩展名后加 `.log` 命名。部分业务阶段会重新设置日志，请以实际回显为准。
 
-- 已有 Homebrew 时保留原有维护交互，不因目录只读而自动另装。
-- [**Homebrew**](https://brew.sh/) 安装路径由用户选择：已有可运行安装时复用；确实需要安装时先强提示，只有精确输入大写 `YES` 才选择系统标准目录，其它输入或直接回车选择当前用户的 `.local/homebrew`。`YES` 只表示选择路径，权限与密码由官方安装器实际处理；有管理员权限也可以选用户目录。选定路径失败立即停止，不自动切换；`Ctrl+C` / 输入结束取消整个任务。
-- 用户目录安装需要可用 Git 与 curl；后续系统级软件仍可能要求管理员权限。
-
-## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、注意事项 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
-
-- 我没有在生成阶段执行脚本里的 macOS 专属命令，例如 `brew`、`pod`、`flutter`、`xcodebuild`、`osascript`、`sudo`、模拟器控制等。
-- 首次运行前建议先阅读本 README，再执行脚本。
-- 如果脚本涉及工程目录，请确认当前目录或拖入路径正确。
-- 如果脚本涉及 Git / CocoaPods / Flutter 依赖更新，建议先提交或备份本地改动。
-- 运行日志默认写入：`$TMPDIR/【MacOS】🫘JobsPublishPods.log`。
-
-## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、流程图 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
-
-```mermaid
-graph TD
-    A([开始]) --> B[显示 README 并等待回车]
-    B --> C[初始化脚本路径与日志]
-    C --> D{是否涉及 Homebrew 或依赖工具}
-    D --> |是| E[执行标准自检 / 可选升级]
-    D --> |否| F[进入业务逻辑]
-    E --> F[进入业务逻辑]
-    F --> G{是否存在危险操作}
-    G --> |是| H[要求明确确认]
-    G --> |否| I[执行任务]
-    H --> I[执行任务]
-    I --> J([结束])
-```
+完成后核对：Podspec 版本可能改写；远端 trunk 发布结果与日志。核对实际目标、终端输出和退出状态；发现错误时保留日志，先确认停止阶段与现存产物再重试。
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

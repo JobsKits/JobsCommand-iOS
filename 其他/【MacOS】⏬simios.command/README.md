@@ -21,7 +21,6 @@
 
 - 采用 Shell 脚本的原因：Shell 来自 [**macOS**](https://www.apple.com/macos/) 原生系统底层，虽然写法相对繁琐冗杂，但执行效率高，并且不需要额外介入 [**Ruby**](https://www.ruby-lang.org)、[**Python**](https://www.python.org) 等第三方运行环境，因此具备更好的移植性。
 
-
 用途：在确认完整 **Xcode** 存在之后，检测并补齐执行 `xcodebuild -downloadPlatform iOS` 前需要的本地环境，然后下载 / 补齐 **iOS Simulator Runtime**
 
 ## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、做了什么 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
@@ -73,7 +72,6 @@ xcodebuild -downloadPlatform iOS -verbose
 ## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、不做的事 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - 脚本不会为了这件事额外安装 **Homebrew**、**CocoaPods**、**Flutter**、**Ruby**、**Node** 等工具。它们不是 `xcodebuild -downloadPlatform iOS` 的必要前置条件
-
 - 脚本也不会在未检测到 **Xcode** 时强行安装 **Xcode**。**Xcode** 体积庞大、来源涉及 App Store / Apple Developer / Apple ID，不适合在这个 Runtime 下载脚本里硬塞自动安装逻辑。
 
 ## <span id="jobs-toc-heading-6" data-jobs-toc="v2">五、日志文件 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
