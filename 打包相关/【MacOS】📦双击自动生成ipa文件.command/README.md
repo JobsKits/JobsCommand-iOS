@@ -49,7 +49,7 @@
 | 默认配置 | `Release` |
 | 默认输出 | 桌面 |
 | 联网 | IPA 封装流程不需要联网 |
-| 第三方依赖 | [**fzf**](https://formulae.brew.sh/formula/fzf) 可选；缺失时自动选择列表第一项 |
+| 第三方依赖 | 交互选择需要 [**fzf**](https://formulae.brew.sh/formula/fzf)；缺失或损坏时停止并提示安装 |
 | 当前不负责 | 编译、测试、Archive、Export、签名管理、版本号、TestFlight、App Store |
 
 ### <span id="jobs-toc-heading-3" data-jobs-toc="v2">1.1、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
@@ -72,6 +72,8 @@
 - 已安装 Xcode，并且 `xcodebuild` 可用。
 - 目标 Scheme 已经生成真机 `.app`，对应目录通常带有 `iphoneos`。
 - 多工程环境优先显式传入 `--project` 和 `--scheme`，避免回退逻辑选择错误目标。
+- 交互面板使用方向键或输入搜索，`Enter` 确认，`Esc` / `Ctrl+C` 取消。Scheme 面板按 `←` 返回工程选择，重新进入时定位上次工程；顶部和底部均显示按键提示。`--project` 已预选工程时，Scheme 为首层，不显示不存在的上层入口。
+- 需要交互选择时先检查 fzf 路径、版本和提示能力；缺失时可运行 `brew install fzf`，脚本不会自动安装或采用列表第一项。两个目标都通过参数明确指定时无需选择器。
 - 如果输出目录已有同名 `.ipa`，先移走旧文件，避免 `zip` 更新旧压缩包时保留已经删除的历史条目。
 
 推荐双击 `./【MacOS】📦双击自动生成ipa文件.command` 运行。终端方式如下：
@@ -105,15 +107,23 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 
 ## <span id="jobs-toc-heading-7" data-jobs-toc="v2">三、实际执行流程 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-1. 打印脚本内置自述，等待回车确认。
-2. 解析命令参数，初始化输出目录和日志。
-3. 以脚本所在 Git 仓库为默认扫描根目录。
-4. 查找并选择 `.xcworkspace` 或 `.xcodeproj`。
-5. 通过 `xcodebuild -list` 读取 Scheme。
-6. 通过 `xcodebuild -showBuildSettings` 解析 `CODESIGNING_FOLDER_PATH`，或者组合 `TARGET_BUILD_DIR` 与 `WRAPPER_NAME`。
-7. 如果 Build Settings 没有定位到可用 `.app`，从 `DerivedData` 中回退选择最近修改的 `iphoneos/*.app`。
-8. 将 `.app` 复制到临时 `Payload` 目录，压缩生成 `.ipa`。
-9. 在 Finder 中定位生成结果。
+1、打印脚本内置自述，等待回车确认。
+
+2、解析命令参数并初始化日志。
+
+3、以脚本所在 Git 仓库为默认扫描根目录。
+
+4、查找并选择 `.xcworkspace` 或 `.xcodeproj`。
+
+5、通过 `xcodebuild -list` 读取并选择 Scheme；按 `←` 返回工程重新选择，取消则结束且不封装 IPA。
+
+6、通过 `xcodebuild -showBuildSettings` 解析 `CODESIGNING_FOLDER_PATH`，或者组合 `TARGET_BUILD_DIR` 与 `WRAPPER_NAME`。
+
+7、如果 Build Settings 没有定位到可用 `.app`，从 `DerivedData` 中回退选择最近修改的 `iphoneos/*.app`。
+
+8、创建输出目录，将 `.app` 复制到临时 `Payload` 目录，压缩生成 `.ipa`。
+
+9、在 Finder 中定位生成结果。
 
 > 注意：第 6 步只是读取构建设置，不会触发 Build；第 7 步可能命中旧产物。文件扩展名是 `.ipa`，不等于它已经符合目标分发方式的签名和导出要求。
 
@@ -165,7 +175,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 - **不是规范导出**：脚本没有 `ExportOptions.plist`，也不执行 `xcodebuild -exportArchive`。
 - **不验证签名**：封装前没有执行 `codesign --verify`，无法保证 IPA 可安装或可上传。
 - **回退目标存在歧义**：如果找不到同名 `.app`，会选择 `DerivedData` 中最近修改的任意 `iphoneos/*.app`。
-- **Homebrew PATH 受限**：核心逻辑会把 `PATH` 收窄到系统目录；安装在 `/opt/homebrew/bin` 的 `fzf` 可能无法被识别，多选场景会退化为取第一项。
+- **fzf 发现范围**：脚本在收窄业务 `PATH` 前保存当前环境中的 fzf 绝对路径，菜单沿用该路径；启动环境仍须能发现已安装的选择器。缺失时停止，不退化为首项。
 - **同名 IPA 可能被增量更新**：`zip` 没有先删除旧 IPA，旧压缩包中的历史文件可能残留。
 - **`--target` 尚未生效**：当前只记录参数，没有参与 Target 或 Scheme 选择。
 
@@ -183,7 +193,7 @@ chmod +x './【MacOS】📦双击自动生成ipa文件.command'
 
 #### <span id="jobs-toc-heading-15" data-jobs-toc="v2">6.1.2、选错了工程或 Scheme <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
-不要依赖自动回退，显式传入：
+交互选择 Scheme 时可按 `←` 返回工程重新选择；也可显式传入：
 
 ```shell
 ./【MacOS】📦双击自动生成ipa文件.command \
@@ -203,6 +213,9 @@ flowchart TD
     B --> C[解析参数并初始化日志]
     C --> D[选择 Workspace 或 Project]
     D --> E[读取并选择 Scheme]
+    E -->|左方向键| D
+    D -->|取消| L
+    E -->|取消| L
     E --> F[读取 Build Settings 定位 app]
     F --> G{目标 app 是否存在}
     G -->|否| H[从 DerivedData 回退匹配]
@@ -216,6 +229,7 @@ flowchart TD
 ## <span id="jobs-toc-heading-18" data-jobs-toc="v2">八、验证状态 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 - `zsh -n ./【MacOS】📦双击自动生成ipa文件.command`：已通过。
+- 工程 / Scheme 往返、预选参数跳层、取消、缺失选择器与异常退出传播使用隔离夹具验证；真实 fzf 已验证无匹配查询时的左键返回，无实际 `xcodebuild` 或 IPA 封装。
 - 已核对本机 `fastlane 2.237.0` 与官方文档。
 - 未实际执行 IPA 打包、签名、安装、TestFlight 或 App Store 上传。
 

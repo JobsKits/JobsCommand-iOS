@@ -393,6 +393,10 @@ show_script_intro_and_wait() {
 # 执行已经拆分完成的独立业务步骤。
 run_original_logic() {
   # ============================= 原脚本业务逻辑区 =============================
+  IPA_FZF_BIN="$(command -v fzf 2>/dev/null || true)"
+  IPA_LAST_PROJECT=""
+  IPA_SELECTED_PROJECT=""
+  IPA_SELECTED_SCHEME=""
   export PATH="/usr/bin:/bin:/usr/sbin:/sbin"
   setopt NO_NOMATCH
   set -euo pipefail
@@ -436,7 +440,8 @@ run_original_logic() {
   📦==================================================
                   iOS IPA 打包助手
   ==================================================
-  • 多 Target：用 fzf 选择要打的 Target/Scheme（默认只显示 B 系列）
+  • 多 Target：用 fzf 选择工程和 Scheme（优先 B 系列）；Scheme 按 ← 返回工程
+  • Enter 确认，Esc / Ctrl+C 取消；缺少 fzf 时停止，不自动采用第一项
   • 优先从 Build Settings 精确定位 .app；失败则自动从 DerivedData 回退匹配
   • 组装并导出为 .ipa 到指定目录（默认桌面）
   • 支持交互确认模式（--confirm）
@@ -460,7 +465,6 @@ EOF
   }
   # 封装 prepare 对应的独立处理逻辑。
   prepare() {
-    /bin/mkdir -p "$OUT_DIR"
     : > "$LOG_FILE"
     log "LOG_FILE=$LOG_FILE"
     log "PATH=$PATH"
@@ -490,38 +494,73 @@ EOF
     echo "$script_dir"
   }
   # ================================== fzf ==================================
-  has_fzf() { /usr/bin/command -v fzf >/dev/null 2>&1; }
-  # 封装 fzf_pick_one 对应的独立处理逻辑。
+  has_fzf() {
+    [[ -n "$IPA_FZF_BIN" && -x "$IPA_FZF_BIN" ]] || return 1
+    FZF_DEFAULT_OPTS= FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_COMMAND= "$IPA_FZF_BIN" --version >/dev/null 2>&1
+  }
+  # 选择单项，使用独立返回码区分上一层、取消与选择器失败。
   fzf_pick_one() {
-    local prompt="$1"
-    if has_fzf; then
-      fzf --prompt="$prompt" --height=40% --reverse
-    else
-      /usr/bin/awk 'NF{print; exit}'
+    local prompt="$1" back_title="${2:-}" initial_value="${3:-}" result="" result_code=0 hint='↑↓ 或输入搜索；Enter 确认；Esc / Ctrl+C 取消' key="" rows="" row="" help_text="" position=0
+    local -a options=(--sync --no-multi --no-sort --height=~60% --layout=reverse --border --prompt="$prompt") candidates=()
+    if ! has_fzf; then
+      err_echo 'fzf 缺失或不可用；请先运行 brew install fzf，没有选择目标或生成 IPA。' >&2
+      return 2
     fi
+    help_text="$(FZF_DEFAULT_OPTS= FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_COMMAND= "$IPA_FZF_BIN" --help)" || return 2
+    [[ "$help_text" == *--footer* ]] || { err_echo 'fzf 版本过旧，请更新后重试。' >&2; return 2; }
+    rows="$(/bin/cat)"
+    [[ -n "$rows" ]] || return 1
+    candidates=("${(@f)rows}")
+    if [[ -n "$back_title" ]]; then
+      hint+=$'\n'"← 返回$back_title"
+      options+=(--expect=left)
+    fi
+    for row in "${candidates[@]}"; do
+      (( position++ ))
+      [[ -n "$initial_value" && "$row" == "$initial_value" ]] && options+=(--bind="start:pos($position)")
+    done
+    options+=(--header="$hint" --footer="$hint")
+    result="$(printf '%s\n' "${candidates[@]}" | FZF_DEFAULT_OPTS= FZF_DEFAULT_OPTS_FILE= FZF_DEFAULT_COMMAND= "$IPA_FZF_BIN" "${options[@]}")" || result_code=$?
+    if [[ -n "$back_title" && "${result%%$'\n'*}" == left && ( "$result_code" == 0 || "$result_code" == 1 ) ]]; then
+      return 10
+    fi
+    case "$result_code" in
+      0) ;;
+      1|130) return 1 ;;
+      *) err_echo "fzf 选择失败（退出码 $result_code），没有生成 IPA。" >&2; return 2 ;;
+    esac
+    if [[ -n "$back_title" ]]; then
+      key="${result%%$'\n'*}"
+      [[ "$result" == *$'\n'* ]] || return 1
+      result="${result#*$'\n'}"
+    fi
+    [[ -n "$result" ]] || return 1
+    (( ${candidates[(Ie)$result]} > 0 )) || { err_echo 'fzf 返回了清单之外的目标。' >&2; return 2; }
+    print -r -- "$result"
   }
   # ================================== choose project/workspace ==================================
   choose_project_path() {
     local root="$1"
 
     if [[ -n "$PROJECT_PATH" ]]; then
-      [[ -e "$PROJECT_PATH" ]] || { err_echo "--project 指定路径不存在：$PROJECT_PATH"; exit 1; }
+      [[ -e "$PROJECT_PATH" ]] || { err_echo "--project 指定路径不存在：$PROJECT_PATH" >&2; return 2; }
       echo "$PROJECT_PATH"; return 0
     fi
 
-    local ws_list pj_list picked
+    local ws_list pj_list picked result_code=0
     ws_list="$(/usr/bin/find "$root" -maxdepth 12 -name "*.xcworkspace" -print 2>/dev/null | /usr/bin/awk '!/\.xcodeproj\/project\.xcworkspace$/')"
     pj_list="$(/usr/bin/find "$root" -maxdepth 12 -name "*.xcodeproj" -print 2>/dev/null)"
+    [[ -n "$ws_list" || -n "$pj_list" ]] || { err_echo '未找到可用的 .xcworkspace / .xcodeproj。' >&2; return 2; }
 
     if [[ -n "$ws_list" ]]; then
       picked="$(printf "%s\n" "$ws_list" | /usr/bin/awk '{print length($0) "\t" $0}' | /usr/bin/sort -n | /usr/bin/cut -f2- \
-        | fzf_pick_one "选择 Workspace/Project > ")"
+        | fzf_pick_one "选择 Workspace/Project > " '' "$IPA_LAST_PROJECT")" || result_code=$?
     else
       picked="$(printf "%s\n" "$pj_list" | /usr/bin/awk '{print length($0) "\t" $0}' | /usr/bin/sort -n | /usr/bin/cut -f2- \
-        | fzf_pick_one "选择 Workspace/Project > ")"
+        | fzf_pick_one "选择 Workspace/Project > " '' "$IPA_LAST_PROJECT")" || result_code=$?
     fi
-
-    [[ -n "$picked" && -e "$picked" ]] || { err_echo "未找到可用的 .xcworkspace / .xcodeproj"; exit 1; }
+    (( result_code == 0 )) || return "$result_code"
+    [[ -n "$picked" && -e "$picked" ]] || { err_echo "未找到可用的 .xcworkspace / .xcodeproj" >&2; return 2; }
     echo "$picked"
   }
   # ================================== xcodebuild -list raw (logged) ==================================
@@ -564,7 +603,7 @@ EOF
     local proj="$1"
     [[ -n "$SCHEME" ]] && { echo "$SCHEME"; return 0; }
 
-    local all schemes scount
+    local all schemes scount back_title=""
     all="$(list_schemes_text "$proj" || true)"
     schemes="$(printf "%s\n" "$all" | filter_main_schemes || true)"
     scount="$(printf "%s\n" "$schemes" | /usr/bin/awk 'NF{c++} END{print c+0}')"
@@ -574,14 +613,26 @@ EOF
       scount="$(printf "%s\n" "$schemes" | /usr/bin/awk 'NF{c++} END{print c+0}')"
     fi
 
-    [[ "$scount" -gt 0 ]] || { err_echo "未获取到任何 Scheme（看日志 $LOG_FILE）"; exit 1; }
-
-    if [[ "$scount" -eq 1 ]]; then
-      printf "%s\n" "$schemes"
+    [[ "$scount" -gt 0 ]] || { err_echo "未获取到任何 Scheme（看日志 $LOG_FILE）" >&2; return 2; }
+    [[ -z "$PROJECT_PATH" ]] && back_title='Workspace/Project'
+    printf "%s\n" "$schemes" | fzf_pick_one "选择要打包的 Scheme（优先 B 系列）> " "$back_title"
+  }
+  # 在工程与 Scheme 面板间往返，全部确认后才交给 IPA 封装流程。
+  choose_packaging_target() {
+    local root="$1" proj="" scheme="" result_code=0
+    while true; do
+      result_code=0
+      proj="$(choose_project_path "$root")" || result_code=$?
+      (( result_code == 0 )) || return "$result_code"
+      IPA_LAST_PROJECT="$proj"
+      result_code=0
+      scheme="$(choose_scheme "$proj")" || result_code=$?
+      (( result_code == 10 )) && continue
+      (( result_code == 0 )) || return "$result_code"
+      IPA_SELECTED_PROJECT="$proj"
+      IPA_SELECTED_SCHEME="$scheme"
       return 0
-    fi
-
-    printf "%s\n" "$schemes" | fzf_pick_one "选择要打包的 Scheme（优先 B 系列）> "
+    done
   }
   # 封装 maybe_confirm 对应的独立处理逻辑。
   maybe_confirm() {
@@ -720,18 +771,25 @@ EOF
     parse_args "$@"
     prepare
 
-    local repo_root proj scheme app_path ipa_name ipa_path
+    local repo_root proj scheme app_path ipa_name ipa_path selection_code=0
 
     repo_root="$(find_repo_root)"
     info_echo "📂 工作目录：$repo_root"
     log "repo_root=$repo_root"
     log "PWD=$PWD  0=$0  x=${(%):-%x}"
 
-    proj="$(choose_project_path "$repo_root")"
+    choose_packaging_target "$repo_root" || selection_code=$?
+    if (( selection_code == 1 )); then
+      info_echo '已取消目标选择，没有生成 IPA。'
+      return 0
+    elif (( selection_code != 0 )); then
+      return "$selection_code"
+    fi
+    proj="$IPA_SELECTED_PROJECT"
+    scheme="$IPA_SELECTED_SCHEME"
     success_echo "发现工程：$(basename "$proj")"
     log "project=$proj"
 
-    scheme="$(choose_scheme "$proj")"
     success_echo "选择 scheme：$scheme"
     log "scheme=$scheme"
 
@@ -746,6 +804,7 @@ EOF
     ipa_name="$(infer_ipa_name "$app_path" "$scheme")"
     ipa_path="${OUT_DIR}/${ipa_name}.ipa"
 
+    /bin/mkdir -p "$OUT_DIR"
     package_ipa "$app_path" "$ipa_path"
     success_echo "🎉 打包完成：$ipa_path"
     info_echo "🧾 日志：$LOG_FILE"
