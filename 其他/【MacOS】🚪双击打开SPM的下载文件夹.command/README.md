@@ -30,6 +30,8 @@
 - 查找对应 DerivedData。
 - 打开 SourcePackages/checkouts。
 
+DerivedData 从当前用户的 HOME 解析，支持用户主目录迁移，不按登录名拼接固定用户目录。
+
 ## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、输入、选项与产物 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 当前行为 |

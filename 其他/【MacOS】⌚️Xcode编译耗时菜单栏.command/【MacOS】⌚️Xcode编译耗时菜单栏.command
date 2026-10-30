@@ -175,6 +175,7 @@ write_hook_script() {
 
   cat > "$HOOK_SCRIPT" <<'HOOK_SOURCE'
 #!/bin/zsh
+# Jobs Xcode Build Timer Hook v1
 setopt NO_NOMATCH
 
 STATE_DIR="${HOME}/.xcode-build-timer/state"
@@ -837,6 +838,50 @@ struct XcodeDocumentSchemes {
     let schemes: [SchemeCandidateBox]
 }
 
+enum BuildTimerHookResources {
+    // 用户配置 Scheme 时才准备 Hook；已存在的已知版本保留，未知文件拒绝使用。
+    static func ensureInstalled(at destination: URL, resourceURL: URL?) throws {
+        let fileManager = FileManager.default
+        if let attributes = try? fileManager.attributesOfItem(atPath: destination.path) {
+            guard attributes[.type] as? FileAttributeType == .typeRegular,
+                  fileManager.isExecutableFile(atPath: destination.path) else {
+                throw resourceError("已有 Hook 不是可执行的普通文件，未修改：\(destination.path)")
+            }
+            let contents = try String(contentsOf: destination, encoding: .utf8)
+            guard isKnownHook(contents) else {
+                throw resourceError("已有文件不是已识别的 Jobs Hook，未修改：\(destination.path)")
+            }
+            return
+        }
+        guard let resourceURL,
+              fileManager.isReadableFile(atPath: resourceURL.path) else {
+            throw resourceError("App 缺少随包 Hook：\(resourceURL?.path ?? "Contents/Resources/xbt-build-hook.sh")")
+        }
+        let contents = try String(contentsOf: resourceURL, encoding: .utf8)
+        guard isKnownHook(contents) else {
+            throw resourceError("随包 Hook 版本或用途无法识别：\(resourceURL.path)")
+        }
+        try fileManager.createDirectory(
+            at: destination.deletingLastPathComponent(),
+            withIntermediateDirectories: true
+        )
+        // copyItem 拒绝覆盖，配置期间并发出现的用户文件也会保留。
+        try fileManager.copyItem(at: resourceURL, to: destination)
+        try fileManager.setAttributes([.posixPermissions: 0o755], ofItemAtPath: destination.path)
+    }
+    // 兼容随包 v1 与带状态目录和上下文函数的既有 Jobs Hook。
+    private static func isKnownHook(_ contents: String) -> Bool {
+        return contents.contains("# Jobs Xcode Build Timer Hook v1") ||
+            (contents.contains("STATE_DIR=\"${HOME}/.xcode-build-timer/state\"") &&
+             contents.contains("state_file_for_current_context()") &&
+             contents.contains("ACTION=\"${1:-}\""))
+    }
+    // 错误包含具体目标，方便分享 App 后定位缺失或冲突。
+    private static func resourceError(_ message: String) -> NSError {
+        return NSError(domain: "XBT", code: 3, userInfo: [NSLocalizedDescriptionKey: message])
+    }
+}
+
 final class SchemeHookConfigurator {
     private let fileManager = FileManager.default
     private let hookScript = NSString(string: "~/.xcode-build-timer/xbt-build-hook.sh").expandingTildeInPath
@@ -854,6 +899,10 @@ final class SchemeHookConfigurator {
     }
 
     func configure(_ candidate: SchemeCandidateBox) throws -> String {
+        try BuildTimerHookResources.ensureInstalled(
+            at: URL(fileURLWithPath: hookScript),
+            resourceURL: Bundle.main.url(forResource: "xbt-build-hook", withExtension: "sh")
+        )
         let schemeURL = URL(fileURLWithPath: candidate.schemePath)
         let original = try String(contentsOf: schemeURL, encoding: .utf8)
         let updated = try configuredSchemeXML(from: original)
@@ -1033,7 +1082,7 @@ final class SchemeHookConfigurator {
     }
 
     private func executionActionXML(scriptArgument: String, buildableReference: String?) -> String {
-        let script = xmlEscape("\"\(hookScript)\" \(scriptArgument)")
+        let script = xmlEscape("\"${HOME}/.xcode-build-timer/xbt-build-hook.sh\" \(scriptArgument)")
         let title = scriptArgument == "start" ? "XBT Build Timer Start" : "XBT Build Timer End"
         let environmentBuildable: String
         if let buildableReference {
@@ -2209,7 +2258,8 @@ SWIFT_SOURCE
 }
 
 write_info_plist() {
-  mkdir -p "$APP_CONTENTS" "$APP_MACOS"
+  mkdir -p "$APP_CONTENTS" "$APP_MACOS" "$APP_CONTENTS/Resources"
+  cp "$HOOK_SCRIPT" "$APP_CONTENTS/Resources/xbt-build-hook.sh" || return 1
   cat > "$APP_INFO_PLIST" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

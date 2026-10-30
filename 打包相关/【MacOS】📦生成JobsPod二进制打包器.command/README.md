@@ -53,6 +53,8 @@ JobsPodBinaryBuilder.app
 
 例如公共源原来固定 `source 'https://cdn.cocoapods.org/'`；当前 Podfile 在 `platform` 和 target 前调用 `JobsCocoaPodsNetwork.apply!`、`JobsCocoaPodsDownloadFallback.install!`、`JobsCocoaPodsSource.apply!`。网络包随 App Bundle 与生成工程复制，移动消费 Demo 后仍从自己的 `ScriptsByPods` 读取，不引用来源仓库。
 
+App 可整体复制分享；运行时只从包内 `Contents/Resources/CocoaPods` 读取网络支持资源。资源不完整时停止生成并列出实际查找位置；源码测试或 CLI 调用必须显式传入资源目录，默认也只查 Bundle 资源，不回退编译机源码目录。目标 Mac 仍需满足系统、架构及 CocoaPods / Xcode 环境要求；隔离验证不替代隔空投送后的真实启动与打包验收。
+
 ## <span id="jobs-toc-heading-2" data-jobs-toc="v2">二、核心来源规则 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 ### <span id="jobs-toc-heading-3" data-jobs-toc="v2">2.1、本地索引是最高权威来源 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
@@ -221,7 +223,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 /usr/bin/ruby ./JobsPodBinaryBuilder/Tests/network_generation_test.rb
 ```
 
-该回归使用 Swift 解释器在系统临时目录生成假 Pod 工程，检查两入口的加载顺序、模块随包复制、查询离线、移动目录后可解析、原版本 / 私有快照保留、资源缺失阻断与已有文件不覆盖。测试不运行真实 `pod install`、GUI 或 Xcode 构建，不能替代设备上的实际安装与打包验收。
+该回归使用 Swift 解释器在系统临时目录生成假 Pod 工程，检查两入口的加载顺序、模块随包复制、查询离线、移动目录后可解析、原版本 / 私有快照保留、资源缺失阻断与已有文件不覆盖；另编译小型资源夹具，确认 App 与 CLI 默认均不会偷用仍存在的编译机源码资源。测试不运行真实 `pod install`、GUI 或 Xcode 构建，不能替代设备上的实际安装与打包验收。
 
 如果扫描阶段仍然没有任何 podspec 能被解析，错误弹窗会直接列出前三份失败样例，其余完整信息保留在界面实时日志中。优先检查 `pod --version`、podspec 内的 `require_relative` 路径以及 Ruby 报出的具体异常。
 

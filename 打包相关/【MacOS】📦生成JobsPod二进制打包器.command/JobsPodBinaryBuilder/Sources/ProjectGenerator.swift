@@ -108,14 +108,11 @@ enum ProjectGenerator {
         at projectURL: URL,
         resourceRoot: URL? = nil
     ) throws -> String {
-        let sourceResources = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .appendingPathComponent("Resources/CocoaPods", isDirectory: true)
-        let bundledResources = Bundle.main.resourceURL?
+        let bundledResources = (Bundle.main.resourceURL ?? Bundle.main.bundleURL
+            .appendingPathComponent("Contents/Resources", isDirectory: true))
             .appendingPathComponent("CocoaPods", isDirectory: true)
-        let candidates = resourceRoot.map { [$0] }
-            ?? [bundledResources, sourceResources].compactMap { $0 }
+        // App 与 CLI 均不回退开发机源码；测试和独立调用显式传入资源根。
+        let candidates = resourceRoot.map { [$0] } ?? [bundledResources]
         let fileManager = FileManager.default
         let requiredFiles = [
             "podfile_network_hook.rb",
@@ -132,7 +129,8 @@ enum ProjectGenerator {
                 fileManager.isReadableFile(atPath: candidate.appendingPathComponent(relative).path)
             }
         }) else {
-            throw BuilderError.environment("CocoaPods 网络资源不完整，请重新运行随包生成器。")
+            let searchedPaths = candidates.map(\.path).joined(separator: "\n")
+            throw BuilderError.environment("CocoaPods 网络资源不完整，请重新运行随包生成器。已查找：\n\(searchedPaths)")
         }
         let hook = try String(
             contentsOf: resources.appendingPathComponent("podfile_network_hook.rb"),

@@ -137,6 +137,62 @@ class NetworkGenerationTest < Minitest::Test
     refute File.exist?(File.join(ROOT, 'Package.swift'))
   end
 
+  def test_app_uses_only_bundled_resources_even_when_original_sources_still_exist
+    Dir.mktmpdir('jobs-builder-app-resource-') do |temporary|
+      app = File.join(temporary, 'Moved App 中文.app')
+      executable = File.join(app, 'Contents', 'MacOS', 'ResourceFixture')
+      FileUtils.mkdir_p(File.dirname(executable))
+      File.write(File.join(app, 'Contents', 'Info.plist'), <<~PLIST)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <plist version="1.0"><dict>
+        <key>CFBundleExecutable</key><string>ResourceFixture</string>
+        <key>CFBundleIdentifier</key><string>com.jobs.resource-fixture</string>
+        <key>CFBundlePackageType</key><string>APPL</string>
+        </dict></plist>
+      PLIST
+      source = File.join(temporary, 'main.swift')
+      File.write(source, <<~'SWIFT')
+        import Foundation
+        @main struct ResourceFixture {
+            static func main() {
+                do {
+                    let target = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+                    _ = try ProjectGenerator.writeCocoaPodsSupport(at: target)
+                    print("BUNDLED_RESOURCES_OK")
+                } catch {
+                    print(error)
+                    exit(3)
+                }
+            }
+        }
+      SWIFT
+      output, status = Open3.capture2e('/usr/bin/xcrun', 'swiftc', '-parse-as-library',
+                                     File.join(ROOT, 'Sources', 'Models.swift'),
+                                     File.join(ROOT, 'Sources', 'ProjectGenerator.swift'), source, '-o', executable)
+      assert status.success?, output
+      target = File.join(temporary, 'Generated')
+      output, status = Open3.capture2e(executable, target, chdir: '/')
+      assert_equal 3, status.exitstatus, output
+      assert_includes output, 'Contents/Resources/CocoaPods'
+      refute File.exist?(target)
+      cli = File.join(temporary, 'ResourceFixtureCLI')
+      FileUtils.cp(executable, cli)
+      cli_target = File.join(temporary, 'CLIGenerated')
+      output, status = Open3.capture2e(cli, cli_target, chdir: '/')
+      assert_equal 3, status.exitstatus, output
+      assert_includes output, '已查找：'
+      assert_includes output, '/CocoaPods'
+      refute File.exist?(cli_target)
+      resources = File.join(app, 'Contents', 'Resources')
+      FileUtils.mkdir_p(resources)
+      FileUtils.cp_r(File.join(ROOT, 'Resources', 'CocoaPods'), resources)
+      output, status = Open3.capture2e(executable, target, chdir: '/')
+      assert status.success?, output
+      assert_includes output, 'BUNDLED_RESOURCES_OK'
+      assert File.file?(File.join(target, 'ScriptsByPods', NETWORK_PACKAGE, 'jobs_cocoapods_network.rb'))
+    end
+  end
+
   private
 
   def run_hook(path, command)

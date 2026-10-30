@@ -582,7 +582,7 @@ EOL
   main() {
       jobs_logo # 打印 "Jobs" logo
       self_intro # 自述信息
-      open /Users/$(whoami)/.ssh
+      open "$HOME/.ssh"
       choose_key_type # 选择密钥类型
       personal_email=$(get_email "个人邮箱" "$default_personal_email") # 获取无格式邮箱
       _JobsPrint_Green "个人邮箱是: $personal_email" # 打印无格式邮箱

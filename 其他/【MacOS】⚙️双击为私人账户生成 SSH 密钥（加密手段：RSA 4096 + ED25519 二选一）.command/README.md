@@ -31,6 +31,8 @@
 - 写 SSH 配置、准备 ssh-agent。
 - 打开 [**GitHub**](https://github.com) SSH 设置并测试连接。
 
+密钥目录及打开位置使用当前用户的 HOME 解析，不按登录名拼接固定用户目录，兼容迁移后的用户主目录。
+
 ## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、输入、选项与产物 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 | 项目 | 当前行为 |

@@ -33,6 +33,8 @@
 - 菜单栏工具支持两种计时来源：配置 Scheme Hook 后获得精准开始 / 结束计时；未配置 Hook 时，自动读取 `DerivedData/Logs/Build` 里的 `.xcactivitylog` 展示最近构建记录。
 - 脚本会使用 [**Swift**](https://www.swift.org/) / `swiftc` 编译一个本机 App Bundle，并写入用户主目录下的 `.xcode-build-timer/` 工作目录。
 - 脚本默认不修改 Xcode 工程文件；只有在菜单栏工具里主动点击 `配置 Scheme Hook` 并确认后，才会修改对应工程的 `.xcscheme`。
+- 生成 App 携带 `Contents/Resources/xbt-build-hook.sh`，可单独复制分享。配置 Scheme 时，目标用户缺少 Hook 才从包内复制到自己的 `.xcode-build-timer` 工作目录；已识别的可执行 Jobs Hook 保留，未知文件、目录和符号链接拒绝使用且不覆盖。缺资源时显示具体路径；只启动 App 不写 Scheme 或部署 Hook，目标 Mac 仍需匹配构建架构与最低系统版本。
+- 生成的 Scheme Hook 命令保留双引号引用的 `${HOME}`，由实际构建用户在运行时解析，不写入配置者的用户名或主目录；每台机器先准备自己的 Hook，已有 Scheme 不会被批量改写。
 
 ## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、适用场景 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 

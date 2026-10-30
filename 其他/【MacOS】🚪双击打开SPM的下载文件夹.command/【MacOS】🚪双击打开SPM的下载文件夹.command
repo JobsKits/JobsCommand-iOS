@@ -427,9 +427,7 @@ run_original_logic() {
   }
   # ---------- 获取 DerivedData 目录路径 ----------
   get_derived_data_path() {
-    local user_name
-    user_name=$(whoami)
-    echo "/Users/$user_name/Library/Developer/Xcode/DerivedData"
+    print -r -- "$HOME/Library/Developer/Xcode/DerivedData"
   }
   # ---------- 查找 DerivedData 下的项目目录 ----------
   find_project_dir_in_derived_data() {
