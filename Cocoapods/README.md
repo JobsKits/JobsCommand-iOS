@@ -26,6 +26,7 @@
 | --- | --- |
 | [【MacOS】⏳提取项目中所有的pod相关文件.command](<./【MacOS】⏳提取项目中所有的pod相关文件.command/README.md>) | 收集项目的 Podspec 与根目录 Podfile 相关文件 |
 | [【MacOS】♻️放回本地Pod的podspec.command](<./【MacOS】♻️放回本地Pod的podspec.command/README.md>) | 当前总行数：714 |
+| [【MacOS@Xcode】🫘当前工程Pod Install.command](<./【MacOS@Xcode】🫘当前工程Pod Install.command/README.md>) | 一个 Xcode Behavior 识别当前 iOS 工程；终端精确输入 `INSTALL` 并回车后安装，空行、其它输入、Ctrl+C 或输入结束取消，支持 `--check` 只读定位与独立日志，不复制工程专属入口 |
 | [【MacOS】⚙️Pod_Install.command](<./【MacOS】⚙️Pod_Install.command/README.md>) | 本入口在识别出的项目目录调用 [**CocoaPods**](https://cocoapods.org/)，由目标 `Podfile` 自己加载网络适配与公共 Specs 选源；包装器不再使用旧镜像缓存改写全局源 |
 | [【MacOS】⚙️双击安装Cocoapods.command](<./【MacOS】⚙️双击安装Cocoapods.command/README.md>) | 准备 [**Ruby**](https://www.ruby-lang.org) 工具链并安装 CocoaPods |
 | [【MacOS】⚙️双击更换Cocoapods源\[-\]CDN\[+\]Github.command](<./【MacOS】⚙️双击更换Cocoapods源[-]CDN[+]Github.command/README.md>) | 把 CocoaPods 的 CDN Specs 切换为 [**Git**](https://git-scm.com/) Specs |

@@ -56,4 +56,5 @@
 "/\346\211\223\345\214\205\347\233\270\345\205\263/README.md" filter=jobs-markdown-toc
 "/\351\205\215\347\275\256\347\233\270\345\205\263/README.md" filter=jobs-markdown-toc
 "/配置相关/【MacOS】⚙️双击安装JobsCodeSnippets.command/tests/README.md" filter=jobs-markdown-toc
+"/Cocoapods/\343\200\220MacOS@Xcode\343\200\221\360\237\253\230\345\275\223\345\211\215\345\267\245\347\250\213Pod Install.command/README.md" filter=jobs-markdown-toc
 # jobs-markdown-toc:end
