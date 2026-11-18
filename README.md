@@ -33,7 +33,7 @@
   - [【MacOS】⚙️双击任何来源安装.command](#jobs-toc-heading-24)
   - [【MacOS】⚙️双击卸载Homebrew.command](#jobs-toc-heading-25)
   - [【MacOS】⚙️双击显示隐藏文件.command](#jobs-toc-heading-26)
-  - [【MacOS】⚙️备份:恢复 iOS设备支持.command](#jobs-toc-heading-27)
+  - [【MacOS】⚙️备份：恢复 iOS设备支持.command](#jobs-toc-heading-27)
   - [【MacOS】⚙️运行授权.command](#jobs-toc-heading-28)
   - [【MacOS】✍️IPA免编译重签.command](#jobs-toc-heading-29)
   - [【MacOS】🌞颜色格式的转换.command](#jobs-toc-heading-30)
@@ -289,7 +289,7 @@ JobsCommand@iOS/
 - 写入 Finder 的 AppleShowAllFiles = YES。
 - 按源码重载 Finder。
 
-### <span id="jobs-toc-heading-27" data-jobs-toc="v2">[【MacOS】⚙️备份:恢复 iOS设备支持.command](<./其他/【MacOS】⚙️备份%3A恢复 iOS设备支持.command/README.md>)</span><!-- jobs-toc:heading-end -->
+### <span id="jobs-toc-heading-27" data-jobs-toc="v2">[【MacOS】⚙️备份：恢复 iOS设备支持.command](<./其他/【MacOS】⚙️备份：恢复 iOS设备支持.command/README.md>)</span><!-- jobs-toc:heading-end -->
 
 > **目的：** 备份或恢复 Xcode 的 iPhone DeviceSupport。
 

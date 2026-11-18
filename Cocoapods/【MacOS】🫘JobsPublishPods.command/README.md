@@ -13,6 +13,7 @@
 - [三、运行方式](#jobs-toc-heading-4)
 - [四、风险与能力边界](#jobs-toc-heading-5)
 - [五、日志与核对](#jobs-toc-heading-6)
+- [六、运行规则补充（脚本统一）](#jobs-toc-heading-7)
 
 </details>
 <!-- jobs-toc:end -->
@@ -58,5 +59,9 @@ zsh './【MacOS】🫘JobsPublishPods.command'
 完成后核对：Podspec 版本可能改写；远端 trunk 发布结果与日志。核对实际目标、终端输出和退出状态；发现错误时保留日志，先确认停止阶段与现存产物再重试。
 
 **终端配色保护：** 独立运行时，在支持完整保存与恢复配色的交互终端中临时使用黑底白字及统一强调色；正常结束、失败或可捕获中断后恢复进入前的配色，不修改终端全局偏好或 Shell 启动配置。不支持完整保护、无交互终端、`NO_COLOR`、既有纯文本模式和 Sourcetree 场景不切换配色，并沿用纯文本输出约定。强制终止（如 `kill -9`）无法由脚本自身保证恢复，请使用运行时显示的独立恢复入口。
+
+## <span id="jobs-toc-heading-7" data-jobs-toc="v2">六、运行规则补充（脚本统一） <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
+
+本轮按所选职责准备必要依赖；健康工具直接复用，缺失/损坏才条件获取并刷新当前进程路径后复检。临时网络失败持续重试，Ctrl+C/EOF 或确定的本地、版本、许可错误停止；只读、未选及卸载不因检查触发安装。原生GUI安装、系统权限、目标SDK构建与设备流程尚待对应系统实机验证。
 
 <a id="🔚" href="#前言" style="font-size:17px; color:green; font-weight:bold;">我是有底线的➤点我回到首页</a>

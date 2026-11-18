@@ -31,7 +31,7 @@
 | [【MacOS】⚙️双击任何来源安装.command](<./【MacOS】⚙️双击任何来源安装.command/README.md>) | 检查 SIP 后打开 [**macOS**](https://www.apple.com/macos/) 应用来源设置 |
 | [【MacOS】⚙️双击卸载Homebrew.command](<./【MacOS】⚙️双击卸载Homebrew.command/README.md>) | 本入口一次处理一套 Homebrew 安装，默认选择当前 `brew --prefix` |
 | [【MacOS】⚙️双击显示隐藏文件.command](<./【MacOS】⚙️双击显示隐藏文件.command/README.md>) | 让 Finder 显示隐藏文件 |
-| [【MacOS】⚙️备份:恢复 iOS设备支持.command](<./【MacOS】⚙️备份%3A恢复 iOS设备支持.command/README.md>) | 备份或恢复 Xcode 的 iPhone DeviceSupport |
+| [【MacOS】⚙️备份：恢复 iOS设备支持.command](<./【MacOS】⚙️备份：恢复 iOS设备支持.command/README.md>) | 备份或恢复 Xcode 的 iPhone DeviceSupport |
 | [【MacOS】⚙️运行授权.command](<./【MacOS】⚙️运行授权.command/README.md>) | 为指定文件或目录增加执行权限 |
 | [【MacOS】✍️IPA免编译重签.command](<./【MacOS】✍️IPA免编译重签.command/README.md>) | 对已有、未加密的 [**iOS**](https://developer.apple.com/ios/) IPA 重新签名，保留原团队与 Bundle ID，不重新编译源码 |
 | [【MacOS】🌞颜色格式的转换.command](<./【MacOS】🌞颜色格式的转换.command/README.md>) | 把常见颜色输入转成多种表示并预览色块 |

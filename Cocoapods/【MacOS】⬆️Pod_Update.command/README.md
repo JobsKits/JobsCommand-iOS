@@ -63,7 +63,7 @@
 
 ```zsh
 /bin/zsh -n './【MacOS】⬆️Pod_Update.command'
-/usr/bin/ruby './Tests/cocoapods_route_test.rb'
+/usr/bin/ruby './Tests/cocoapods_route_test.rb/cocoapods_route_test.rb'
 ```
 
 隔离测试只提取真实安装 / 更新函数，以假 pod、arch 和 uname 验证调用目录、一次调用、参数、架构分支、未知工程提示、目标文件保持和失败传播，不执行全脚本的清理、权限变更或工具链安装。已进行语法与隔离验证，未对真实工程执行安装、更新或构建。

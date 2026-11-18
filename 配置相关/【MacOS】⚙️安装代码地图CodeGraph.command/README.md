@@ -38,7 +38,7 @@
 | `codemap "./项目目录"` | 指定目录，支持手工输入或拖入 |
 | `codemap "./项目 一" "./项目二"` | 逐个处理多个目录 |
 
-命令注册由 [codemap 模块](../../../JobsConfigOS/🌍JobsMacEnvVarConfigs/scripts/codemap.command/README.md)负责。新系统入口见[同名目录 README](../../../JobsConfigOS/【MacOS】🆕新系统配置.command/README.md)。
+命令注册由 [codemap 模块](../../../JobsConfigOS/🌍JobsMacEnvVarConfigs/scripts/【MacOS】codemap.command/README.md)负责。新系统入口见[同名目录 README](../../../JobsConfigOS/【MacOS】🆕新系统配置/README.md)。
 
 ## <span id="jobs-toc-heading-3" data-jobs-toc="v2">二、完整依赖链体检 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 

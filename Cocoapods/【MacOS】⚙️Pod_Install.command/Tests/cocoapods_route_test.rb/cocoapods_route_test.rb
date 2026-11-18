@@ -245,7 +245,7 @@ require 'fileutils'
 require 'open3'
 
 class CocoaPodsWrapperRouteTest < Minitest::Test
-  PACKAGE_ROOT = File.expand_path('..', __dir__)
+  PACKAGE_ROOT = File.expand_path('..', File.expand_path('..', __dir__))
   SCRIPT_PATH = Dir[File.join(PACKAGE_ROOT, '*.command')].fetch(0)
   SOURCE = File.read(SCRIPT_PATH)
   MODE = if File.basename(SCRIPT_PATH).include?('Pod_Install')

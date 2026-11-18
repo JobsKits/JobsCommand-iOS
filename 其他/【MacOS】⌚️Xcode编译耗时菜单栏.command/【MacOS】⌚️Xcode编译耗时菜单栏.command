@@ -527,13 +527,255 @@ jobs_terminal_style_bootstrap "$0" "$@"
 # 仅渲染自述：标题红色加粗，编号正文蓝色常规字重；非彩色终端输出纯文本。
 # JOBS_INPUT_CHOICE_STYLE_BEGIN
 # 只展示提示选项；不读取答案、不改变默认值、返回码或业务环境。
+# URL仅供显示；纯文本日志传color=0。
+jobs_url_format() {
+  LC_ALL=en_US.UTF-8 /usr/bin/awk -v color="${1:-0}" -v lines="${2:-1}" '
+    # URL 范围只在展示文本上识别；不会改写真实请求或输出数据。
+    function urlInit() {
+      urlPattern = "[A-Za-z][A-Za-z0-9+.-]*://[^[:space:]<>\"" sprintf("%c", 39) esc "]+"
+      urlPunctuationCount = split("，|。|；|：|！|？|、|（|）|【|】|《|》|「|」|『|』|“|”|‘|’", urlPunctuation, "\\|")
+    }
+    function urlCount(value, token, total, idx) {
+      total = 0
+      for (idx = 1; idx <= length(value); idx++) if (substr(value, idx, 1) == token) total++
+      return total
+    }
+    function urlTrim(value, idx, at, last) {
+      for (idx = 1; idx <= urlPunctuationCount; idx++) {
+        at = index(value, urlPunctuation[idx])
+        if (at) value = substr(value, 1, at - 1)
+      }
+      while (length(value)) {
+        last = substr(value, length(value), 1)
+        if (index(".,;:!?", last) > 0 || (last == ")" && urlCount(value, ")") > urlCount(value, "(")) ||
+            (last == "]" && urlCount(value, "]") > urlCount(value, "[")) || (last == "}" && urlCount(value, "}") > urlCount(value, "{"))) {
+          value = substr(value, 1, length(value) - 1)
+        } else break
+      }
+      return value
+    }
+    function urlClean(value, preserve, output, token, start, size) {
+      gsub(esc "\\][^" esc sprintf("%c", 7) "]*(" sprintf("%c", 7) "|" esc "\\\\)", "", value)
+      output = ""
+      while (match(value, esc "\\[[0-?]*[ -/]*[@-~]")) {
+        start = RSTART; size = RLENGTH; token = substr(value, start, size)
+        output = output substr(value, 1, start - 1)
+        if (preserve && token ~ /m$/) output = output token
+        value = substr(value, start + size)
+      }
+      return output value
+    }
+    # 题干分段前临时遮蔽地址，地址里的 Enter、/、?、= 不参与选项识别。
+    function urlProtect(value, output, at, size, token, marker, number, original) {
+      urlProtectedCount = 0; output = ""; original = value; number = 0
+      while (match(value, urlPattern)) {
+        at = RSTART; size = RLENGTH; token = urlTrim(substr(value, at, size))
+        do { marker = sprintf("%c", 2) "U" ++number sprintf("%c", 3) } while (index(original, marker))
+        urlProtected[++urlProtectedCount] = token; urlMarkers[urlProtectedCount] = marker
+        output = output substr(value, 1, at - 1) marker
+        value = substr(value, at + length(token))
+      }
+      return output value
+    }
+    function urlRestore(value, idx, token, at) {
+      for (idx = urlProtectedCount; idx > 0; idx--) {
+        token = urlMarkers[idx]
+        while ((at = index(value, token))) value = substr(value, 1, at - 1) urlProtected[idx] substr(value, at + length(token))
+      }
+      return value
+    }
+    # 保存原 SGR 的有效序列；RGB 中的零值不能误认为整体复位。
+    function urlTrack(tokens, token, code, idx, total, reset, fields) {
+      while (match(tokens, esc "\\[[0-9;:]*m")) {
+        token = substr(tokens, RSTART, RLENGTH)
+        tokens = substr(tokens, RSTART + RLENGTH)
+        code = substr(token, 3, length(token) - 3); reset = (code == "")
+        total = split(code, fields, ";")
+        for (idx = 1; idx <= total; idx++) {
+          if (fields[idx] == "0") reset = 1
+          if ((fields[idx] == "38" || fields[idx] == "48" || fields[idx] == "58") && idx < total) {
+            if (fields[idx + 1] == "2") idx += 4
+            else if (fields[idx + 1] == "5") idx += 2
+          }
+        }
+        if (reset) urlActive = ""
+        urlActive = urlActive token
+      }
+    }
+    # 用可见字符位置映射原 SGR，URL 内已有样式也会重新覆为绿下划线。
+    function urlRender(value, output, visible, rest, key, at, size, token, idx, offset, url, inURL) {
+      value = urlClean(value, color)
+      if (!color) return value
+      for (key in urlStyles) delete urlStyles[key]
+      for (key in urlStarts) delete urlStarts[key]
+      for (key in urlEnds) delete urlEnds[key]
+      visible = ""; rest = value
+      while (match(rest, esc "\\[[0-9;:]*m")) {
+        at = RSTART; size = RLENGTH; token = substr(rest, at, size)
+        visible = visible substr(rest, 1, at - 1)
+        urlStyles[length(visible) + 1] = urlStyles[length(visible) + 1] token
+        rest = substr(rest, at + size)
+      }
+      visible = visible rest; rest = visible; offset = 0
+      while (match(rest, urlPattern)) {
+        at = RSTART; size = RLENGTH; url = urlTrim(substr(rest, at, size))
+        urlStarts[offset + at] = 1; urlEnds[offset + at + length(url) - 1] = 1
+        offset += at + length(url) - 1; rest = substr(visible, offset + 1)
+      }
+      output = ""; inURL = 0
+      for (idx = 1; idx <= length(visible) + 1; idx++) {
+        if (idx in urlStyles) {
+          token = urlStyles[idx]; output = output token; urlTrack(token)
+          if (inURL) output = output esc "[32;4m"
+        }
+        if (idx > length(visible)) break
+        if (idx in urlStarts) { output = output esc "[32;4m"; inURL = 1 }
+        output = output substr(visible, idx, 1)
+        if (idx in urlEnds) { output = output esc "[0m" urlActive; inURL = 0 }
+      }
+      return output
+    }
+    BEGIN { esc = sprintf("%c", 27); first = 1; urlInit() }
+    {
+      if (lines == 2) {
+        if (!first) printf "%s\n", urlRender(pending)
+        pending = $0; first = 0
+      } else {
+        if (!lines && !first) printf "\n"
+        printf "%s", urlRender($0)
+        if (lines) printf "\n"
+        first = 0
+      }
+    }
+    END {
+      if (lines == 2 && !first) {
+        sub(sprintf("%c", 1) "$", "", pending)
+        printf "%s", urlRender(pending)
+      }
+    }
+  '
+}
+# URL仅供显示；纯文本日志传color=0。
+jobs_url_stream() {
+  local url_color=0
+  if [ -t 1 ] && jobs_prompt_color_ready; then url_color=1; fi
+  jobs_url_format "$url_color" "${1:-1}"
+}
+# 检查当前终端与调用环境，决定是否允许提示样式。
 jobs_prompt_color_ready() {
+  env | LC_ALL=C /usr/bin/grep -qiE '^(SOURCETREE|SOURCE_TREE)' && return 1
   [ -z "${NO_COLOR+x}" ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
     [ "${PLAIN_OUTPUT:-0}" != 1 ] && [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]
 }
 # 原生 awk 分段着色；任意/非空输入优先，括号内外沿用同一个选项。
 jobs_prompt_format() {
-  /usr/bin/awk -v color="${1:-0}" -v lines="${2:-0}" -v keep="${3:-0}" '
+  # 中文字符类按UTF-8字符处理，仅约束此awk进程，保留调用者locale。
+  LC_ALL=en_US.UTF-8 /usr/bin/awk -v color="${1:-0}" -v lines="${2:-0}" -v keep="${3:-0}" -v question="${4:-0}" '
+    # URL 范围只在展示文本上识别；不会改写真实请求或输出数据。
+    function urlInit() {
+      urlPattern = "[A-Za-z][A-Za-z0-9+.-]*://[^[:space:]<>\"" sprintf("%c", 39) esc "]+"
+      urlPunctuationCount = split("，|。|；|：|！|？|、|（|）|【|】|《|》|「|」|『|』|“|”|‘|’", urlPunctuation, "\\|")
+    }
+    function urlCount(value, token, total, idx) {
+      total = 0
+      for (idx = 1; idx <= length(value); idx++) if (substr(value, idx, 1) == token) total++
+      return total
+    }
+    function urlTrim(value, idx, at, last) {
+      for (idx = 1; idx <= urlPunctuationCount; idx++) {
+        at = index(value, urlPunctuation[idx])
+        if (at) value = substr(value, 1, at - 1)
+      }
+      while (length(value)) {
+        last = substr(value, length(value), 1)
+        if (index(".,;:!?", last) > 0 || (last == ")" && urlCount(value, ")") > urlCount(value, "(")) ||
+            (last == "]" && urlCount(value, "]") > urlCount(value, "[")) || (last == "}" && urlCount(value, "}") > urlCount(value, "{"))) {
+          value = substr(value, 1, length(value) - 1)
+        } else break
+      }
+      return value
+    }
+    function urlClean(value, preserve, output, token, start, size) {
+      gsub(esc "\\][^" esc sprintf("%c", 7) "]*(" sprintf("%c", 7) "|" esc "\\\\)", "", value)
+      output = ""
+      while (match(value, esc "\\[[0-?]*[ -/]*[@-~]")) {
+        start = RSTART; size = RLENGTH; token = substr(value, start, size)
+        output = output substr(value, 1, start - 1)
+        if (preserve && token ~ /m$/) output = output token
+        value = substr(value, start + size)
+      }
+      return output value
+    }
+    # 题干分段前临时遮蔽地址，地址里的 Enter、/、?、= 不参与选项识别。
+    function urlProtect(value, output, at, size, token, marker, number, original) {
+      urlProtectedCount = 0; output = ""; original = value; number = 0
+      while (match(value, urlPattern)) {
+        at = RSTART; size = RLENGTH; token = urlTrim(substr(value, at, size))
+        do { marker = sprintf("%c", 2) "U" ++number sprintf("%c", 3) } while (index(original, marker))
+        urlProtected[++urlProtectedCount] = token; urlMarkers[urlProtectedCount] = marker
+        output = output substr(value, 1, at - 1) marker
+        value = substr(value, at + length(token))
+      }
+      return output value
+    }
+    function urlRestore(value, idx, token, at) {
+      for (idx = urlProtectedCount; idx > 0; idx--) {
+        token = urlMarkers[idx]
+        while ((at = index(value, token))) value = substr(value, 1, at - 1) urlProtected[idx] substr(value, at + length(token))
+      }
+      return value
+    }
+    # 保存原 SGR 的有效序列；RGB 中的零值不能误认为整体复位。
+    function urlTrack(tokens, token, code, idx, total, reset, fields) {
+      while (match(tokens, esc "\\[[0-9;:]*m")) {
+        token = substr(tokens, RSTART, RLENGTH)
+        tokens = substr(tokens, RSTART + RLENGTH)
+        code = substr(token, 3, length(token) - 3); reset = (code == "")
+        total = split(code, fields, ";")
+        for (idx = 1; idx <= total; idx++) {
+          if (fields[idx] == "0") reset = 1
+          if ((fields[idx] == "38" || fields[idx] == "48" || fields[idx] == "58") && idx < total) {
+            if (fields[idx + 1] == "2") idx += 4
+            else if (fields[idx + 1] == "5") idx += 2
+          }
+        }
+        if (reset) urlActive = ""
+        urlActive = urlActive token
+      }
+    }
+    # 用可见字符位置映射原 SGR，URL 内已有样式也会重新覆为绿下划线。
+    function urlRender(value, output, visible, rest, key, at, size, token, idx, offset, url, inURL) {
+      value = urlClean(value, color)
+      if (!color) return value
+      for (key in urlStyles) delete urlStyles[key]
+      for (key in urlStarts) delete urlStarts[key]
+      for (key in urlEnds) delete urlEnds[key]
+      visible = ""; rest = value
+      while (match(rest, esc "\\[[0-9;:]*m")) {
+        at = RSTART; size = RLENGTH; token = substr(rest, at, size)
+        visible = visible substr(rest, 1, at - 1)
+        urlStyles[length(visible) + 1] = urlStyles[length(visible) + 1] token
+        rest = substr(rest, at + size)
+      }
+      visible = visible rest; rest = visible; offset = 0
+      while (match(rest, urlPattern)) {
+        at = RSTART; size = RLENGTH; url = urlTrim(substr(rest, at, size))
+        urlStarts[offset + at] = 1; urlEnds[offset + at + length(url) - 1] = 1
+        offset += at + length(url) - 1; rest = substr(visible, offset + 1)
+      }
+      output = ""; inURL = 0
+      for (idx = 1; idx <= length(visible) + 1; idx++) {
+        if (idx in urlStyles) {
+          token = urlStyles[idx]; output = output token; urlTrack(token)
+          if (inURL) output = output esc "[32;4m"
+        }
+        if (idx > length(visible)) break
+        if (idx in urlStarts) { output = output esc "[32;4m"; inURL = 1 }
+        output = output substr(visible, idx, 1)
+        if (idx in urlEnds) { output = output esc "[0m" urlActive; inURL = 0 }
+      }
+      return output
+    }
     function typedEnter(value, start, prefix) {
       prefix = substr(value, 1, start - 1)
       gsub(/[“”‘’「」『』"]/, "", prefix)
@@ -553,7 +795,7 @@ jobs_prompt_format() {
       start += RSTART - 1
       return typedEnter(value, start) ? 0 : start
     }
-    function segment(value, inherited, start, kind, prefix, body, red, green, connector, left, right, splitAt) {
+    function segment(value, inherited, is_question, start, kind, prefix, body, red, green, connector, left, right, splitAt) {
       if (value == "") return value
       kind = inherited
       start = 1
@@ -570,11 +812,11 @@ jobs_prompt_format() {
             connector = substr(left, RSTART)
             left = substr(left, 1, RSTART - 1)
           }
-          return segment(left, 0) connector segment(right, 31)
+          return segment(left, 0, is_question) connector segment(right, 31, 0)
         }
         if (red && green && red < green && match(value, /或[[:space:]]*(直接|仅|只需|只|按下|按)?(回车|回車)/)) {
           splitAt = RSTART
-          return segment(substr(value, 1, splitAt - 1), 31) "或" segment(substr(value, splitAt + length("或")), 0)
+          return segment(substr(value, 1, splitAt - 1), 31, is_question) "或" segment(substr(value, splitAt + length("或")), 0, 0)
         }
         if (red) {
           kind = 31
@@ -584,23 +826,27 @@ jobs_prompt_format() {
           start = green
         }
       }
-      if (!kind || !color) return value
+      if (!color) return value
+      if (!kind) return is_question && value !~ /^[[:space:]]*$/ ? esc "[1;36m" value esc "[0m" : value
       prefix = substr(value, 1, start - 1)
       body = substr(value, start)
+      if (is_question && prefix !~ /^[[:space:]]*$/) prefix = esc "[1;36m" prefix esc "[0m"
       return prefix esc "[1;" kind "m" body esc "[0m"
     }
-    function render(value, output, part, boundary, inherited, kind, consumed, depth, original) {
+    function render(value, output, part, boundary, inherited, kind, consumed, depth, original, question_body) {
       original = value
-      gsub(esc "\\[[0-9;]*m", "", value)
-      if (color && keep && !greenPosition(value) && value !~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) return original
+      value = urlProtect(urlClean(value, 0))
+      if (color && keep && !greenPosition(value) && value !~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) return urlRender(original)
       output = ""
       inherited = 0
       depth = 0
+      question_body = question
       while (match(value, /[；;\/|，,、？?：:=＝（）()\[\]【】]/)) {
         part = substr(value, 1, RSTART - 1)
         boundary = substr(value, RSTART, RLENGTH)
         consumed = RSTART + RLENGTH
-        output = output segment(part, inherited) boundary
+        output = output segment(part, inherited, question_body) boundary
+        if (inherited || greenPosition(part) || part ~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) question_body = 0
         if (boundary ~ /[（(\[【]/) {
           depth++
           if (part ~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) inherited = 31
@@ -615,9 +861,9 @@ jobs_prompt_format() {
         } else if (!depth) inherited = 0
         value = substr(value, consumed)
       }
-      return output segment(value, inherited)
+      return urlRender(urlRestore(output segment(value, inherited, question_body) (question && color ? esc "[0m" : "")))
     }
-    BEGIN { esc = sprintf("%c", 27); first = 1 }
+    BEGIN { esc = sprintf("%c", 27); first = 1; urlInit() }
     {
       if (lines == 2) {
         if (!first) printf "%s\n", render(pending)
@@ -642,7 +888,7 @@ jobs_prompt_format() {
 jobs_prompt_render() {
   local jobs_prompt_color=0
   if [ -t 0 ] && [ -t 2 ] && jobs_prompt_color_ready; then jobs_prompt_color=1; fi
-  printf "%s" "$1" | jobs_prompt_format "$jobs_prompt_color" 0
+  printf "%s" "$1" | jobs_prompt_format "$jobs_prompt_color" 0 0 1
 }
 # 仅放在显示链末端；tee 在此函数之前接收纯文本，不把 ANSI 写入日志。
 jobs_prompt_stream() {
@@ -652,13 +898,15 @@ jobs_prompt_stream() {
 }
 # 显示管道保留原末尾换行；只删除本轮追加的最后一个结束标记。
 jobs_prompt_filter() {
-  local jobs_prompt_color=0
+  local jobs_prompt_color=0 jobs_prompt_question=0
+  case "${1:-0}" in 1|--question) jobs_prompt_question=1 ;; esac
   if [ -t 1 ] && jobs_prompt_color_ready; then jobs_prompt_color=1; fi
-  { /bin/cat; printf '\001'; } | jobs_prompt_format "$jobs_prompt_color" 2 1
+  { /bin/cat; printf '\001'; } | jobs_prompt_format "$jobs_prompt_color" 2 "$((1 - jobs_prompt_question))" "$jobs_prompt_question"
 }
 # 仅包装原 printf/echo/print 展示，原参数、尾换行与显示命令退出码保持不变。
 jobs_prompt_output() {
-  local jobs_prompt_status=0 jobs_prompt_stderr=0 jobs_prompt_arg="" jobs_prompt_previous=""
+  local jobs_prompt_status=0 jobs_prompt_stderr=0 jobs_prompt_arg="" jobs_prompt_previous="" jobs_prompt_question=0
+  if [ "${1:-}" = --question ]; then jobs_prompt_question=1; shift; fi
   if [ "${1:-}" = print ]; then
     for jobs_prompt_arg in "$@"; do
       case "$jobs_prompt_arg" in -?*u2*|-u2) jobs_prompt_stderr=1 ;; esac
@@ -669,17 +917,17 @@ jobs_prompt_output() {
   fi
   if [ -n "${ZSH_VERSION:-}" ]; then
     if [ "$jobs_prompt_stderr" = 1 ]; then
-      "$@" 2>&1 | jobs_prompt_filter >&2
+      "$@" 2>&1 | jobs_prompt_filter "$jobs_prompt_question" >&2
       jobs_prompt_status=$(( ${pipestatus[1]} != 0 ? ${pipestatus[1]} : ${pipestatus[2]} ))
     else
-      "$@" | jobs_prompt_filter
+      "$@" | jobs_prompt_filter "$jobs_prompt_question"
       jobs_prompt_status=$(( ${pipestatus[1]} != 0 ? ${pipestatus[1]} : ${pipestatus[2]} ))
     fi
   elif [ -n "${BASH_VERSION:-}" ]; then
-    "$@" | jobs_prompt_filter
+    "$@" | jobs_prompt_filter "$jobs_prompt_question"
     jobs_prompt_status=$(( ${PIPESTATUS[0]} != 0 ? ${PIPESTATUS[0]} : ${PIPESTATUS[1]} ))
   else
-    "$@" | jobs_prompt_filter
+    "$@" | jobs_prompt_filter "$jobs_prompt_question"
     jobs_prompt_status=$?
   fi
   return "$jobs_prompt_status"
@@ -701,6 +949,77 @@ jobs_prompt_tee() {
 }
 # JOBS_INPUT_CHOICE_STYLE_END
 
+# 只终止本次获取或等待创建的子进程树，不碰其它 SDK 写者。
+jobs_brew_stop_acquisition_tree() {
+  local root="$1" child=""
+  for child in $(/usr/bin/pgrep -P "$root" 2>/dev/null); do
+    jobs_brew_stop_acquisition_tree "$child"
+  done
+  /bin/kill -TERM "$root" 2>/dev/null || true
+  /bin/kill -KILL "$root" 2>/dev/null || true
+}
+
+# 将依赖诊断写到人类展示流，避免混入选择结果。
+jobs_fzf_note() {
+  if (( ${+functions[jobs_prompt_output]} )); then
+    jobs_prompt_output print -u2 -r -- "$*"
+  else
+    print -u2 -r -- "$*"
+  fi
+  if [[ -n "${LOG_FILE:-}" ]]; then print -r -- "$*" >> "$LOG_FILE"; fi
+}
+
+# 只给健康探针设置单次上限；下载获取仍由持续重试流程负责。
+jobs_fzf_bounded_probe() {
+  local child=0 watchdog=0 result=0
+  "$@" <&0 &
+  child=$!
+  ( /bin/sleep 10; jobs_brew_stop_acquisition_tree "$child" ) >/dev/null 2>&1 &
+  watchdog=$!
+  wait "$child" || result=$?
+  jobs_brew_stop_acquisition_tree "$watchdog"
+  wait "$watchdog" 2>/dev/null || :
+  return "$result"
+}
+
+# 缺少 Apple 原生开发工具才打开一次官方 CLT 安装界面，并在本流程持续复检。
+jobs_required_clt_tool() {
+  local tool="$1" candidate="" selected="" install_result=0 diagnostic="" probe_result=0 locate_result=0
+  locate_result=0
+  candidate="$(/usr/bin/xcrun --find "$tool" 2>/dev/null)" || locate_result=$?
+  case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+  if [[ -n "$candidate" && -x "$candidate" ]]; then
+    probe_result=0;jobs_fzf_bounded_probe "$candidate" --version </dev/null >/dev/null 2>&1 || probe_result=$?
+    case "$probe_result" in 129|130|131|137|143) return "$probe_result" ;; esac
+    (( probe_result != 0 )) || { JOBS_REQUIRED_COMMAND="$candidate"; return 0; }
+  fi
+  if [[ -n "${DEVELOPER_DIR:-}" ]]; then jobs_fzf_note "✖ 显式 DEVELOPER_DIR 的 $tool 不可用；保留用户选择，未自动改变开发目录。"; return 1; fi
+  locate_result=0;selected="$(/usr/bin/xcode-select -p 2>/dev/null)" || locate_result=$?
+  case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+  if [[ -n "$selected" && -d "$selected" ]]; then
+    jobs_fzf_note "✖ 已选择的开发目录 $selected 未提供健康 $tool；可能是版本、许可或本地文件阻塞。保留原选择，未反复安装或改全局 xcode-select。"
+    return 1
+  fi
+  if [[ "${DRY_RUN:-0}" == 1 || "${CHECK_ONLY:-0}" == 1 ]]; then print -u2 -r -- "✖ $tool 尚未就绪；只读模式未打开安装界面。"; return 1; fi
+  if [[ ! -t 0 || ! -t 2 || "${IS_SOURCETREE_RUNTIME:-0}" == 1 ]]; then print -u2 -r -- "✖ 缺少 $tool，当前不是可交互终端，未打开或等待原生安装界面。"; return 1; fi
+  jobs_fzf_note "➤ $tool 需要 Apple Command Line Tools；将打开一次原生安装窗口，许可由本人确认，安装后当前流程自动复检，Ctrl+C 停止。" || return $?
+  diagnostic="$(/usr/bin/xcode-select --install 2>&1)" || install_result=$?
+  jobs_fzf_note "$diagnostic" || return $?
+  if (( install_result != 0 )) && [[ "$diagnostic" != *'already being installed'* && "$diagnostic" != *'正在安装'* ]]; then return "$install_result"; fi
+  while true; do
+    locate_result=0
+    candidate="$(/usr/bin/xcrun --find "$tool" 2>/dev/null)" || locate_result=$?
+    case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+    if [[ -n "$candidate" && -x "$candidate" ]]; then
+      probe_result=0;jobs_fzf_bounded_probe "$candidate" --version </dev/null >/dev/null 2>&1 || probe_result=$?
+      case "$probe_result" in 129|130|131|137|143) return "$probe_result" ;; esac
+      (( probe_result != 0 )) || { JOBS_REQUIRED_COMMAND="$candidate"; rehash; return 0; }
+    fi
+    jobs_fzf_note "等待 Apple 原生安装完成并提供 $tool；不会重复打开窗口，Ctrl+C 取消。" || return $?
+    /bin/sleep 3 || return $?
+  done
+}
+
 jobs_intro_style() {
   local intro_color=0
   if [ -t 1 ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
@@ -721,7 +1040,7 @@ jobs_intro_style() {
       if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
       printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
     }
-  '
+  ' | jobs_prompt_filter
 }
 setopt NO_NOMATCH
 
@@ -741,6 +1060,7 @@ APP_EXECUTABLE="${APP_MACOS}/${APP_NAME}"
 APP_INFO_PLIST="${APP_CONTENTS}/Info.plist"
 HOOK_SCRIPT="${WORK_DIR}/xbt-build-hook.sh"
 
+# 展示彩色日志，持久记录仅保存去色文本。
 log() {
   if [[ "${LOG_READY}" == "1" ]]; then
     echo -e "$1" | jobs_prompt_tee "$LOG_FILE"
@@ -749,20 +1069,34 @@ log() {
   fi
 }
 
+# 输出当前默认强调样式，交由日志层统一去色落盘。
 color_echo()     { log "\033[1;32m$1\033[0m"; }
+# 展示说明，持久日志由统一日志层去色。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }
+# 展示成功结果，持久日志由统一日志层去色。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }
+# 展示警告，持久日志由统一日志层去色。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }
+# 展示警告，持久日志由统一日志层去色。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }
+# 展示步骤提示，持久日志由统一日志层去色。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }
+# 展示错误，持久日志由统一日志层去色。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }
+# 展示错误，持久日志由统一日志层去色。
 err_echo()       { log "\033[1;31m$1\033[0m"; }
+# 展示调试诊断，持久日志由统一日志层去色。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }
+# 展示重点，持久日志由统一日志层去色。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }
+# 展示辅助信息，持久日志由统一日志层去色。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }
+# 展示粗体重点，持久日志由统一日志层去色。
 bold_echo()      { log "\033[1m$1\033[0m"; }
+# 展示下划线重点，持久日志由统一日志层去色。
 underline_echo() { log "\033[4m$1\033[0m"; }
 
+# 先展示用途与影响，并按本入口协议完成防误触确认。
 show_script_intro_and_wait() {
   local current_arch=""
   current_arch="$(uname -m)"
@@ -781,9 +1115,10 @@ show_script_intro_and_wait() {
   gray_echo "取消方式：按 Ctrl+C 终止；确认前不会生成或更新工具。" | jobs_intro_style body
   highlight_echo "=======================================================================" | jobs_intro_style title
   echo "" | jobs_intro_style body
-  read -r "?$(jobs_prompt_render "👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：")" _
+  read -r "?$(jobs_prompt_render "👉 已了解脚本用途与影响，按回车继续；按 Ctrl+C 取消：")" _ || exit 130
 }
 
+# 从脚本位置初始化日志和临时路径，不依赖启动目录。
 init_runtime() {
   mkdir -p "$(dirname "$LOG_FILE")"
   : > "$LOG_FILE"
@@ -791,6 +1126,7 @@ init_runtime() {
   info_echo "日志文件：${LOG_FILE}"
 }
 
+# 在业务前检查真实工具与运行前提，失败不继续写操作。
 check_environment() {
   local current_arch=""
   current_arch="$(uname -m)"
@@ -804,10 +1140,7 @@ check_environment() {
       ;;
   esac
 
-  if ! command -v xcrun >/dev/null 2>&1; then
-    error_echo "未找到 xcrun。请先安装 Xcode 或 Command Line Tools。"
-    return 1
-  fi
+  jobs_required_clt_tool swiftc || return $?
 
   if ! xcrun --find swiftc >/dev/null 2>&1; then
     error_echo "未找到 swiftc。请先打开 Xcode 完成组件安装，或执行 xcode-select 指向完整 Xcode。"
@@ -822,6 +1155,7 @@ check_environment() {
   success_echo "环境检查通过。"
 }
 
+# 按已声明范围处理旧运行状态，保护不归本工具的进程及文件。
 clean_running_environment() {
   info_echo "清理旧运行环境。"
 
@@ -854,6 +1188,7 @@ clean_running_environment() {
   success_echo "旧 App Bundle 已清理并重建目录。"
 }
 
+# 生成工程计时 hook，并保持输出脚本的固定调用协议。
 write_hook_script() {
   mkdir -p "$WORK_DIR/state"
 
@@ -994,6 +1329,7 @@ HOOK_SOURCE
   success_echo "已写入 Scheme Hook：${HOOK_SCRIPT}"
 }
 
+# 生成菜单栏应用的 Swift 源码，保持应用入口和资源关系。
 write_swift_source() {
   mkdir -p "$WORK_DIR"
   cat > "$SOURCE_FILE" <<'SWIFT_SOURCE'
@@ -2952,6 +3288,7 @@ SWIFT_SOURCE
   success_echo "已写入 Swift 源码：${SOURCE_FILE}"
 }
 
+# 生成当前应用包的固定元数据及系统权限说明。
 write_info_plist() {
   mkdir -p "$APP_CONTENTS" "$APP_MACOS" "$APP_CONTENTS/Resources"
   cp "$HOOK_SCRIPT" "$APP_CONTENTS/Resources/xbt-build-hook.sh" || return 1
@@ -2983,6 +3320,7 @@ EOF
   success_echo "已写入 App 配置：${APP_INFO_PLIST}"
 }
 
+# 构建当前生成源码并检查实际产物，失败不启动应用。
 compile_app() {
   local swiftc_path=""
   local sdk_path=""
@@ -3017,6 +3355,7 @@ compile_app() {
   success_echo "编译完成：${APP_BUNDLE}"
 }
 
+# 仅启动本工具刚生成并验证的应用包。
 launch_app() {
   info_echo "启动菜单栏工具。"
   open -n "$APP_BUNDLE"
@@ -3035,6 +3374,7 @@ launch_app() {
   fi
 }
 
+# 说明 Xcode Scheme hook 配置与计时事件来源。
 show_scheme_hook_usage() {
   echo ""
   highlight_echo "=========================== Xcode Scheme Hook ==========================="
@@ -3055,13 +3395,14 @@ show_scheme_hook_usage() {
   highlight_echo "======================================================================="
 }
 
+# 仅在需要时询问是否刷新系统界面，不默认影响其它窗口。
 ask_refresh_system_ui_if_needed() {
   echo ""
   warn_echo "如果右上角仍看不到 ⏱XBT，可以刷新 macOS 菜单栏 SystemUIServer。"
   gray_echo "这个动作会让右上角菜单栏图标短暂消失并自动恢复，不会重启电脑。"
   jobs_prompt_output gray_echo "默认不执行；只有输入 YES 后回车才刷新。"
   local input=""
-  IFS= read -r "input?➤ 是否刷新菜单栏？输入 YES 执行，其它输入跳过：" input
+  IFS= read -r "input?$(jobs_prompt_render "➤ 是否刷新菜单栏？输入 YES 执行，其它输入跳过：")" input
   if [[ "$input" == "YES" ]]; then
     info_echo "正在刷新 SystemUIServer。"
     killall SystemUIServer >/dev/null 2>&1 || true
@@ -3073,9 +3414,8 @@ ask_refresh_system_ui_if_needed() {
   fi
 }
 
-main() {
-  show_script_intro_and_wait
-  init_runtime
+# 校验环境后生成、编译并启动菜单栏工具，失败时停止后续步骤。
+build_and_launch_menu_bar_app() {
   check_environment || return 1
   clean_running_environment || return 1
   write_hook_script || return 1
@@ -3086,6 +3426,12 @@ main() {
   show_scheme_hook_usage
   ask_refresh_system_ui_if_needed
   success_echo "全部完成。"
+}
+# 编排用途确认、运行初始化与菜单栏工具发布。
+main() {
+  show_script_intro_and_wait # 展示用途与影响，并完成运行确认。
+  init_runtime # 确认后初始化日志、目标路径与清理。
+  build_and_launch_menu_bar_app # 环境验证成功后构建并启动本次工具。
 }
 
 main "$@"

@@ -240,164 +240,214 @@ end
 # JOBS_TERMINAL_STYLE_GUARD_V1_END
 
 require 'minitest/autorun'
-require 'tmpdir'
 require 'fileutils'
+require 'tmpdir'
 require 'open3'
 
-class CocoaPodsWrapperRouteTest < Minitest::Test
-  PACKAGE_ROOT = File.expand_path('..', __dir__)
-  SCRIPT_PATH = Dir[File.join(PACKAGE_ROOT, '*.command')].fetch(0)
-  SOURCE = File.read(SCRIPT_PATH)
-  MODE = if File.basename(SCRIPT_PATH).include?('Pod_Install')
-           :install
-         elsif File.basename(SCRIPT_PATH).include?('Pod_Update')
-           :update
-         else
-           :refresh
-         end
-  BUSINESS_FUNCTION = {
-    :install => 'install_pod',
-    :update => 'update_pod_in_dir',
-    :refresh => 'run_pod_install'
-  }.fetch(MODE)
+class NetworkGenerationTest < Minitest::Test
+  ROOT = File.expand_path('..', File.expand_path('..', __dir__))
+  NETWORK_PACKAGE = '【MacOS】🌐CocoaPods网络适配.command'
+  SPECS_PACKAGE = '【MacOS】🌐CocoaPods源自动选择.command'
 
-  def test_commands_do_not_reconfigure_global_sources
-    refute_match(/\.cocoapods_mirror_config/, SOURCE)
-    refute_match(/^\s*pod\s+repo\s+(?:add|remove|update)\b/, SOURCE)
-    refute_match(/^\s*pod\s+setup\b/, SOURCE)
+  def self.fixtures
+    return @fixtures if @fixtures
+
+    @fixtures = Dir.mktmpdir('jobs-builder-network-')
+    at_exit { FileUtils.remove_entry(@fixtures) if File.directory?(@fixtures) }
+    script = %w[Models.swift ProjectGenerator.swift].map do |name|
+      File.read(File.join(ROOT, 'Sources', name))
+    end.join("\n") + "\n" + File.read(File.join(File.expand_path('..', __dir__), 'NetworkGenerationMain.swift'))
+    script_path = File.join(@fixtures, 'Generate.swift')
+    File.write(script_path, script)
+    @output, status = Open3.capture2e(
+      '/usr/bin/xcrun', 'swift', '-swift-version', '5', script_path,
+      File.join(ROOT, 'Resources', 'CocoaPods'), @fixtures
+    )
+    raise @output unless status.success?
+
+    @fixtures
   end
 
-  def test_one_process_handles_the_requested_project_operation
-    result = run_fixture
-    assert result[:status].success?, result[:output]
-    assert_equal [[result[:project], expected_arguments]], result[:calls]
+  def setup
+    @fixtures = self.class.fixtures
   end
 
-  def test_unknown_project_gets_a_clear_boundary_warning
-    result = run_fixture
-    assert_includes result[:output], '本包装器只执行原生 CocoaPods，不自带选路'
-    assert_equal result[:before], result[:after]
+  def podfile(name)
+    File.read(File.join(@fixtures, name, 'Podfile'))
   end
 
-  def test_adapted_project_is_detected_without_running_its_modules
-    result = run_fixture(adapted: true)
-    assert result[:status].success?, result[:output]
-    assert_includes result[:output], '已找到目标 Podfile 网络适配与选源入口'
-    refute_includes result[:output], '不自带选路'
-    refute result[:module_was_executed], '包装器不得自行加载目标工程 Ruby 脚本'
-    assert_equal result[:before], result[:after]
+  def hook(name)
+    podfile(name).split("platform :ios", 2).first
   end
 
-  def test_partial_script_package_is_not_reported_as_adapted
-    result = run_fixture(adapted: :partial)
-    assert_includes result[:output], '未确认目标 Podfile 已接入'
-  end
-
-  def test_dependency_failure_is_not_reported_as_success
-    result = run_fixture(pod_exit: 17)
-    refute result[:status].success?
-    assert_includes result[:output], '失败'
-    refute_match(/Pod (?:安装|更新)完成|CocoaPods 安装与更新完成/, result[:output])
-    assert_equal 1, result[:calls].length
-  end
-
-  def test_arm_path_still_uses_the_same_target_podfile
-    result = run_fixture(architecture: 'arm64')
-    assert result[:status].success?, result[:output]
-    assert_equal [[result[:project], expected_arguments]], result[:calls]
-  end
-
-  if MODE == :update
-    def test_update_cancellation_does_not_start_a_separate_repo_refresh
-      result = run_fixture(confirm: false)
-      assert result[:status].success?, result[:output]
-      assert_empty result[:calls]
-      assert_includes result[:output], '已跳过 Pod 更新'
+  def test_each_generated_project_has_portable_runtime_packages
+    %w[Packaging Consumer].each do |project|
+      [[NETWORK_PACKAGE, 'jobs_cocoapods_network.rb'],
+       [NETWORK_PACKAGE, 'jobs_cocoapods_download_fallback.rb'],
+       [NETWORK_PACKAGE, NETWORK_PACKAGE],
+       [SPECS_PACKAGE, 'jobs_cocoapods_source.rb'],
+       [SPECS_PACKAGE, SPECS_PACKAGE]].each do |package, name|
+        assert File.file?(File.join(@fixtures, project, 'ScriptsByPods', package, name)), "#{project}: #{name}"
+      end
+      refute_match(%r{/Users/jobs/}, hook(project))
+      network = hook(project).index('JobsCocoaPodsNetwork.apply!')
+      archive = hook(project).index('JobsCocoaPodsDownloadFallback.install!')
+      specs = hook(project).index('JobsCocoaPodsSource.apply!')
+      assert network < archive && archive < specs
     end
   end
 
-  if MODE == :refresh
-    def test_flutter_refresh_enters_its_ios_podfile_directory
-      result = run_fixture(flutter: true)
-      assert result[:status].success?, result[:output]
-      assert_equal [[result[:project], ['install', '--repo-update']]], result[:calls]
+  def test_existing_dependency_versions_local_paths_and_private_snapshots_are_preserved
+    assert_includes podfile('Packaging'), "pod 'AMPopTip', '= 4.12.0'"
+    assert_includes podfile('Packaging'), "pod 'PrivateFixture', :path => 'ImportedPods/PrivateFixture'"
+    assert_includes podfile('Packaging'), "Source With Space'"
+    assert_includes podfile('Consumer'), "pod 'JobsFixture', :path => '../Binary SDK'"
+    original = File.join(@fixtures, 'ReadOnlyPrivateSource', 'PrivateFixture.podspec.json')
+    imported = File.join(@fixtures, 'Packaging', 'ImportedPods', 'PrivateFixture', 'PrivateFixture.podspec.json')
+    assert_equal File.binread(original), File.binread(imported)
+    assert_includes File.read(imported), 'https://private.example.invalid/PrivateFixture.git'
+    assert_equal 'private-source-original', File.read(File.join(@fixtures, 'ReadOnlyPrivateSource', 'Source.txt'))
+  end
+
+  def test_incomplete_resources_stop_and_existing_generated_packages_are_not_overwritten
+    assert_includes self.class.instance_variable_get(:@output), 'MISSING_RESOURCES_BLOCKED'
+    assert_includes self.class.instance_variable_get(:@output), 'EXISTING_RESOURCES_PRESERVED'
+    assert_equal 'keep-user-content', File.read(File.join(@fixtures, 'Packaging', 'ScriptsByPods', NETWORK_PACKAGE, 'README.md'))
+  end
+
+  def test_installs_execute_network_then_archive_then_specs_in_one_environment
+    %w[Packaging Consumer].each do |project|
+      Dir.mktmpdir('jobs-builder-hook-') do |temporary|
+        FileUtils.cp_r(File.join(@fixtures, project, 'ScriptsByPods'), temporary)
+        network = File.join(temporary, 'ScriptsByPods', NETWORK_PACKAGE)
+        specs = File.join(temporary, 'ScriptsByPods', SPECS_PACKAGE)
+        File.write(File.join(network, 'jobs_cocoapods_network.rb'), <<~RUBY)
+          module JobsCocoaPodsNetwork
+            def self.apply!(project_root:)
+              $trace << 'network'
+              ENV['JOBS_TEST_ROUTE'] = 'verified-route'
+            end
+          end
+        RUBY
+        File.write(File.join(network, 'jobs_cocoapods_download_fallback.rb'), <<~RUBY)
+          module JobsCocoaPodsDownloadFallback
+            def self.install!
+              $trace << 'archive:' + ENV.fetch('JOBS_TEST_ROUTE')
+            end
+          end
+        RUBY
+        File.write(File.join(specs, 'jobs_cocoapods_source.rb'), <<~RUBY)
+          module JobsCocoaPodsSource
+            def self.apply!(podfile, project_root:)
+              $trace << 'specs:' + ENV.fetch('JOBS_TEST_ROUTE')
+              podfile.source('https://cdn.cocoapods.org/')
+            end
+          end
+        RUBY
+        path = File.join(temporary, 'Podfile')
+        File.write(path, hook(project))
+        %w[install update].each do |command|
+          output, status = run_hook(path, command)
+          assert status.success?, output
+          assert_includes output, 'network,archive:verified-route,specs:verified-route'
+        end
+      end
+    end
+  end
+
+  def test_actual_copied_modules_parse_queries_offline_after_project_is_relocated
+    %w[Packaging Consumer].each do |project|
+      Dir.mktmpdir('jobs-builder-relocated-') do |temporary|
+        FileUtils.cp_r(File.join(@fixtures, project, 'ScriptsByPods'), temporary)
+        path = File.join(temporary, 'Podfile')
+        File.write(path, hook(project))
+        output, status = run_hook(path, 'ipc')
+        assert status.success?, output
+        assert_includes output, 'https://cdn.cocoapods.org/'
+        refute_includes output, '[PodNetwork]'
+      end
+    end
+  end
+
+  def test_generator_copies_resources_into_app_bundle_without_a_swiftpm_dependency
+    launcher = File.read(File.join(ROOT, '..', '【MacOS】📦生成JobsPod二进制打包器.command'))
+    assert_includes launcher, '/bin/cp -R "${RESOURCE_DIR}/CocoaPods"'
+    assert_includes launcher, 'Contents/Resources/CocoaPods'
+    refute File.exist?(File.join(ROOT, 'Package.swift'))
+  end
+
+  def test_app_uses_only_bundled_resources_even_when_original_sources_still_exist
+    Dir.mktmpdir('jobs-builder-app-resource-') do |temporary|
+      app = File.join(temporary, 'Moved App 中文.app')
+      executable = File.join(app, 'Contents', 'MacOS', 'ResourceFixture')
+      FileUtils.mkdir_p(File.dirname(executable))
+      File.write(File.join(app, 'Contents', 'Info.plist'), <<~PLIST)
+        <?xml version="1.0" encoding="UTF-8"?>
+        <plist version="1.0"><dict>
+        <key>CFBundleExecutable</key><string>ResourceFixture</string>
+        <key>CFBundleIdentifier</key><string>com.jobs.resource-fixture</string>
+        <key>CFBundlePackageType</key><string>APPL</string>
+        </dict></plist>
+      PLIST
+      source = File.join(temporary, 'main.swift')
+      File.write(source, <<~'SWIFT')
+        import Foundation
+        @main struct ResourceFixture {
+            static func main() {
+                do {
+                    let target = URL(fileURLWithPath: CommandLine.arguments[1], isDirectory: true)
+                    _ = try ProjectGenerator.writeCocoaPodsSupport(at: target)
+                    print("BUNDLED_RESOURCES_OK")
+                } catch {
+                    print(error)
+                    exit(3)
+                }
+            }
+        }
+      SWIFT
+      output, status = Open3.capture2e('/usr/bin/xcrun', 'swiftc', '-parse-as-library',
+                                     File.join(ROOT, 'Sources', 'Models.swift'),
+                                     File.join(ROOT, 'Sources', 'ProjectGenerator.swift'), source, '-o', executable)
+      assert status.success?, output
+      target = File.join(temporary, 'Generated')
+      output, status = Open3.capture2e(executable, target, chdir: '/')
+      assert_equal 3, status.exitstatus, output
+      assert_includes output, 'Contents/Resources/CocoaPods'
+      refute File.exist?(target)
+      cli = File.join(temporary, 'ResourceFixtureCLI')
+      FileUtils.cp(executable, cli)
+      cli_target = File.join(temporary, 'CLIGenerated')
+      output, status = Open3.capture2e(cli, cli_target, chdir: '/')
+      assert_equal 3, status.exitstatus, output
+      assert_includes output, '已查找：'
+      assert_includes output, '/CocoaPods'
+      refute File.exist?(cli_target)
+      resources = File.join(app, 'Contents', 'Resources')
+      FileUtils.mkdir_p(resources)
+      FileUtils.cp_r(File.join(ROOT, 'Resources', 'CocoaPods'), resources)
+      output, status = Open3.capture2e(executable, target, chdir: '/')
+      assert status.success?, output
+      assert_includes output, 'BUNDLED_RESOURCES_OK'
+      assert File.file?(File.join(target, 'ScriptsByPods', NETWORK_PACKAGE, 'jobs_cocoapods_network.rb'))
     end
   end
 
   private
 
-  def expected_arguments
-    case MODE
-    when :install then ['install', '--repo-update', '--verbose']
-    when :update then ['update']
-    else ['install', '--repo-update']
-    end
-  end
-
-  def extracted_function(name)
-    SOURCE[/^  #{Regexp.escape(name)}\(\) \{\n.*?^  \}\n/m] || raise("未找到可隔离的函数：#{name}")
-  end
-
-  def run_fixture(adapted: false, pod_exit: 0, architecture: 'x86_64', confirm: true, flutter: false)
-    Dir.mktmpdir('jobs-pod-wrapper-') do |temporary_root|
-      base = File.join(temporary_root, '工程 中文 with spaces')
-      project = flutter ? File.join(base, 'ios') : base
-      fake_bin = File.join(temporary_root, 'bin')
-      trace = File.join(temporary_root, 'commands')
-      module_executed = File.join(temporary_root, 'module-executed')
-      FileUtils.mkdir_p([project, fake_bin])
-      File.write(File.join(base, 'pubspec.yaml'), 'name: fixture') if flutter
-      podfile = File.join(project, 'Podfile')
-      before = adapted ? "JobsCocoaPodsNetwork.apply!\nJobsCocoaPodsSource.apply!\n" : "target 'Fixture' do\nend\n"
-      File.write(podfile, before)
-      if adapted
-        package = File.join(project, 'ScriptsByPods', '【MacOS】🌐CocoaPods网络适配.command')
-        source_package = File.join(project, 'ScriptsByPods', '【MacOS】🌐CocoaPods源自动选择.command')
-        FileUtils.mkdir_p([package, source_package])
-        files = [File.join(package, 'jobs_cocoapods_network.rb'), File.join(source_package, 'jobs_cocoapods_source.rb')]
-        files << File.join(package, 'jobs_cocoapods_download_fallback.rb') unless adapted == :partial
-        files.each { |path| File.write(path, "File.write(#{module_executed.inspect}, 'executed')\n") }
+  def run_hook(path, command)
+    code = <<~RUBY
+      $PROGRAM_NAME = 'pod'
+      ARGV.replace([ARGV.fetch(1)])
+      $trace = []
+      class OfflinePodfile
+        def source(url)
+          puts url
+        end
       end
-      File.write(File.join(fake_bin, 'pod'), <<~'ZSH')
-        #!/bin/zsh
-        printf '%s\t' "$PWD" "$@" >> "$JOBS_TEST_TRACE"
-        printf '\n' >> "$JOBS_TEST_TRACE"
-        exit "$JOBS_TEST_POD_EXIT"
-      ZSH
-      File.write(File.join(fake_bin, 'uname'), <<~'ZSH')
-        #!/bin/zsh
-        print -r -- "$JOBS_TEST_ARCH"
-      ZSH
-      File.write(File.join(fake_bin, 'arch'), <<~'ZSH')
-        #!/bin/zsh
-        [[ "$1" != -x86_64 ]] || shift
-        "$@"
-      ZSH
-      FileUtils.chmod(0o755, Dir[File.join(fake_bin, '*')])
-      invocation = MODE == :refresh ? "basedir=\"$1\"\n#{BUSINESS_FUNCTION}" : "#{BUSINESS_FUNCTION} \"$1\""
-      runner = <<~ZSH
-        info_echo() { print -r -- "$*"; }
-        success_echo() { print -r -- "$*"; }
-        warn_echo() { print -r -- "$*"; }
-        error_echo() { print -r -- "$*"; }
-        ask_run() { [[ "$JOBS_TEST_CONFIRM" == 1 ]]; }
-        create_desktop_shortcut_if_needed() { return 0; }
-        lipo() { print -r -- x86_64; }
-        #{extracted_function('jobs_describe_project_network')}
-        #{extracted_function(BUSINESS_FUNCTION)}
-        #{invocation}
-      ZSH
-      environment = {
-        'PATH' => "#{fake_bin}:/usr/bin:/bin",
-        'JOBS_TEST_TRACE' => trace,
-        'JOBS_TEST_POD_EXIT' => pod_exit.to_s,
-        'JOBS_TEST_ARCH' => architecture,
-        'JOBS_TEST_CONFIRM' => confirm ? '1' : '0'
-      }
-      stdout, stderr, status = Open3.capture3(environment, '/bin/zsh', '-c', runner, 'fixture', base)
-      calls = File.exist?(trace) ? File.readlines(trace).map { |line| pieces = line.chomp.split("\t"); [pieces.shift, pieces] } : []
-      return { :status => status, :output => stdout + stderr, :calls => calls, :project => project,
-               :before => before, :after => File.read(podfile), :module_was_executed => File.exist?(module_executed) }
-    end
+      path = #{path.inspect}
+      OfflinePodfile.new.instance_eval(File.read(path), path, 1)
+      puts $trace.join(',')
+    RUBY
+    Open3.capture2e('/usr/bin/ruby', '-e', code, path, command)
   end
 end

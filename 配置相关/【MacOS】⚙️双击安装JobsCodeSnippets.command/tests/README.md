@@ -19,21 +19,21 @@
 
 ## 🔥 <span id="前言">前言</span>
 
-[regression.zsh](./regression.zsh)用原生 [**zsh**](https://www.zsh.org/) 和 [**Git**](https://git-scm.com/) 验证上级安装 / 升级脚本。每组用例独立创建临时 HOME、本地裸仓、发布仓和 Xcode CodeSnippets 目标，不联网，不修改真实用户目录或源仓提交。
+[【MacOS】regression.zsh/【MacOS】regression.zsh](./【MacOS】regression.zsh/【MacOS】regression.zsh)用原生 [**zsh**](https://www.zsh.org/) 和 [**Git**](https://git-scm.com/) 验证上级安装 / 升级脚本。每组用例独立创建临时 HOME、本地裸仓、发布仓和 Xcode CodeSnippets 目标，不联网，不修改真实用户目录或源仓提交。
 
 ## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、运行方式 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
 在本 README 所在目录运行，阅读自述后按回车开始；`Ctrl+C` 或输入结束取消。
 
 ```shell
-zsh ./regression.zsh
+zsh ./【MacOS】regression.zsh/【MacOS】regression.zsh
 ```
 
 自动回归可明确传入同一次回车确认：
 
 ```shell
 printf '\n' |
-  zsh ./regression.zsh
+  zsh ./【MacOS】regression.zsh/【MacOS】regression.zsh
 ```
 
 脚本不接受参数。依赖系统自带 `/bin/zsh`、`/usr/bin/git`、`awk`、`sed`、`diff`、`find`、`cp`、`mktemp` 等工具。它不安装开发工具或依赖。

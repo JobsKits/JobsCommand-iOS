@@ -56,7 +56,7 @@
 
 迁移生成的宿主或消费工程时，保留 `Podfile` 与整个 `ScriptsByPods`。仅复制 Podfile 会告警并回到原网络和官方 CDN。只迁移这个脚本包不会自动改变别的工程，需由对应 Podfile 明确挂载。
 
-隔离生成回归位于生成器 `JobsPodBinaryBuilder/Tests/network_generation_test.rb`，不运行真实安装、GUI 或 Xcode 构建；其通过结果不替代受限设备的真实安装验收。
+隔离生成回归位于生成器 `JobsPodBinaryBuilder/Tests/network_generation_test.rb/network_generation_test.rb`，不运行真实安装、GUI 或 Xcode 构建；其通过结果不替代受限设备的真实安装验收。
 
 **终端配色保护：** 独立运行时，在支持完整保存与恢复配色的交互终端中临时使用黑底白字及统一强调色；正常结束、失败或可捕获中断后恢复进入前的配色，不修改终端全局偏好或 Shell 启动配置。不支持完整保护、无交互终端、`NO_COLOR`、既有纯文本模式和 Sourcetree 场景不切换配色，并沿用纯文本输出约定。强制终止（如 `kill -9`）无法由脚本自身保证恢复，请使用运行时显示的独立恢复入口。
 

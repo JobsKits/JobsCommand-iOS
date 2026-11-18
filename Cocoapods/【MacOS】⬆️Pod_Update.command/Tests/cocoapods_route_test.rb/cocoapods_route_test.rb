@@ -245,7 +245,7 @@ require 'fileutils'
 require 'open3'
 
 class CocoaPodsWrapperRouteTest < Minitest::Test
-  PACKAGE_ROOT = File.expand_path('..', __dir__)
+  PACKAGE_ROOT = File.expand_path('..', File.expand_path('..', __dir__))
   SCRIPT_PATH = Dir[File.join(PACKAGE_ROOT, '*.command')].fetch(0)
   SOURCE = File.read(SCRIPT_PATH)
   MODE = if File.basename(SCRIPT_PATH).include?('Pod_Install')
@@ -322,26 +322,6 @@ class CocoaPodsWrapperRouteTest < Minitest::Test
       assert result[:status].success?, result[:output]
       assert_equal [[result[:project], ['install', '--repo-update']]], result[:calls]
     end
-
-    def test_refresh_main_preserves_existing_lock_pods_and_workspace
-      [false, true].each do |flutter|
-        result = run_fixture(flutter: flutter, through_main: true, preserve_existing: true)
-        assert result[:status].success?, result[:output]
-        assert_equal [[result[:project], ['install', '--repo-update']]], result[:calls]
-        assert_empty result[:cleanup_calls]
-        assert_equal result[:retained_before], result[:retained_after]
-      end
-      refute_match(/\b(?:clean_pod_cache|rm)\b/, extracted_function('main'))
-    end
-
-    def test_refresh_failure_also_preserves_existing_lock_pods_and_workspace
-      [false, true].each do |flutter|
-        result = run_fixture(flutter: flutter, through_main: true, preserve_existing: true, pod_exit: 17)
-        refute result[:status].success?
-        assert_empty result[:cleanup_calls]
-        assert_equal result[:retained_before], result[:retained_after]
-      end
-    end
   end
 
   private
@@ -358,29 +338,18 @@ class CocoaPodsWrapperRouteTest < Minitest::Test
     SOURCE[/^  #{Regexp.escape(name)}\(\) \{\n.*?^  \}\n/m] || raise("未找到可隔离的函数：#{name}")
   end
 
-  def run_fixture(adapted: false, pod_exit: 0, architecture: 'x86_64', confirm: true, flutter: false, through_main: false, preserve_existing: false)
+  def run_fixture(adapted: false, pod_exit: 0, architecture: 'x86_64', confirm: true, flutter: false)
     Dir.mktmpdir('jobs-pod-wrapper-') do |temporary_root|
       base = File.join(temporary_root, '工程 中文 with spaces')
       project = flutter ? File.join(base, 'ios') : base
       fake_bin = File.join(temporary_root, 'bin')
       trace = File.join(temporary_root, 'commands')
-      cleanup_trace = File.join(temporary_root, 'cleanup-commands')
       module_executed = File.join(temporary_root, 'module-executed')
       FileUtils.mkdir_p([project, fake_bin])
       File.write(File.join(base, 'pubspec.yaml'), 'name: fixture') if flutter
       podfile = File.join(project, 'Podfile')
       before = adapted ? "JobsCocoaPodsNetwork.apply!\nJobsCocoaPodsSource.apply!\n" : "target 'Fixture' do\nend\n"
       File.write(podfile, before)
-      retained_before = preserve_existing ? {
-        'Podfile.lock' => "PODS:\n  - LockedPod (1.0.0)\n",
-        'Pods/cached-source.m' => 'existing downloaded source',
-        'Fixture.xcworkspace/contents.xcworkspacedata' => 'existing workspace'
-      } : {}
-      retained_before.each do |relative_path, bytes|
-        retained_path = File.join(project, relative_path)
-        FileUtils.mkdir_p(File.dirname(retained_path))
-        File.write(retained_path, bytes)
-      end
       if adapted
         package = File.join(project, 'ScriptsByPods', '【MacOS】🌐CocoaPods网络适配.command')
         source_package = File.join(project, 'ScriptsByPods', '【MacOS】🌐CocoaPods源自动选择.command')
@@ -406,7 +375,6 @@ class CocoaPodsWrapperRouteTest < Minitest::Test
       ZSH
       FileUtils.chmod(0o755, Dir[File.join(fake_bin, '*')])
       invocation = MODE == :refresh ? "basedir=\"$1\"\n#{BUSINESS_FUNCTION}" : "#{BUSINESS_FUNCTION} \"$1\""
-      invocation = 'main' if through_main
       runner = <<~ZSH
         info_echo() { print -r -- "$*"; }
         success_echo() { print -r -- "$*"; }
@@ -414,36 +382,22 @@ class CocoaPodsWrapperRouteTest < Minitest::Test
         error_echo() { print -r -- "$*"; }
         ask_run() { [[ "$JOBS_TEST_CONFIRM" == 1 ]]; }
         create_desktop_shortcut_if_needed() { return 0; }
-        init_basedir() { basedir="$JOBS_TEST_BASE"; }
-        print_intro() { return 0; }
-        make_files_executable() { return 0; }
-        clean_pod_cache() { print -r -- cleanup >> "$JOBS_TEST_CLEANUP_TRACE"; return 91; }
-        rm() { print -r -- "rm $*" >> "$JOBS_TEST_CLEANUP_TRACE"; return 92; }
         lipo() { print -r -- x86_64; }
         #{extracted_function('jobs_describe_project_network')}
         #{extracted_function(BUSINESS_FUNCTION)}
-        #{through_main ? extracted_function('main') : ''}
         #{invocation}
       ZSH
       environment = {
         'PATH' => "#{fake_bin}:/usr/bin:/bin",
         'JOBS_TEST_TRACE' => trace,
-        'JOBS_TEST_CLEANUP_TRACE' => cleanup_trace,
-        'JOBS_TEST_BASE' => base,
         'JOBS_TEST_POD_EXIT' => pod_exit.to_s,
         'JOBS_TEST_ARCH' => architecture,
         'JOBS_TEST_CONFIRM' => confirm ? '1' : '0'
       }
       stdout, stderr, status = Open3.capture3(environment, '/bin/zsh', '-c', runner, 'fixture', base)
       calls = File.exist?(trace) ? File.readlines(trace).map { |line| pieces = line.chomp.split("\t"); [pieces.shift, pieces] } : []
-      retained_after = retained_before.each_with_object({}) do |(relative_path, _), result|
-        retained_path = File.join(project, relative_path)
-        result[relative_path] = File.file?(retained_path) ? File.read(retained_path) : nil
-      end
       return { :status => status, :output => stdout + stderr, :calls => calls, :project => project,
-               :before => before, :after => File.read(podfile), :module_was_executed => File.exist?(module_executed),
-               :cleanup_calls => File.exist?(cleanup_trace) ? File.readlines(cleanup_trace) : [],
-               :retained_before => retained_before, :retained_after => retained_after }
+               :before => before, :after => File.read(podfile), :module_was_executed => File.exist?(module_executed) }
     end
   end
 end

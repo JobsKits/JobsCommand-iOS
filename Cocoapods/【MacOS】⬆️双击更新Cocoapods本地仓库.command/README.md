@@ -63,7 +63,7 @@
 
 ```zsh
 /bin/zsh -n './【MacOS】⬆️双击更新Cocoapods本地仓库.command'
-/usr/bin/ruby './Tests/cocoapods_route_test.rb'
+/usr/bin/ruby './Tests/cocoapods_route_test.rb/cocoapods_route_test.rb'
 ```
 
 隔离测试提取真实安装函数与主流程，以假 pod、arch、uname 及权限入口替身验证调用目录、一次调用、参数、未知工程提示和失败传播，并放置已有锁文件 / Pods / 工作空间，断言正常与失败路径都不调用 rm 或清理函数，文件内容保持。测试不执行真实权限变更、工具链安装或依赖下载。已进行语法与隔离验证，未对真实工程执行安装、更新或构建。

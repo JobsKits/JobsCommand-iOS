@@ -22,7 +22,7 @@
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\232\231\357\270\217\345\217\214\345\207\273\344\273\273\344\275\225\346\235\245\346\272\220\345\256\211\350\243\205.command/README.md" filter=jobs-markdown-toc
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\232\231\357\270\217\345\217\214\345\207\273\345\215\270\350\275\275Homebrew.command/README.md" filter=jobs-markdown-toc
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\232\231\357\270\217\345\217\214\345\207\273\346\230\276\347\244\272\351\232\220\350\227\217\346\226\207\344\273\266.command/README.md" filter=jobs-markdown-toc
-"/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\232\231\357\270\217\345\244\207\344\273\275:\346\201\242\345\244\215 iOS\350\256\276\345\244\207\346\224\257\346\214\201.command/README.md" filter=jobs-markdown-toc
+"/其他/【MacOS】⚙️备份：恢复 iOS设备支持.command/README.md" filter=jobs-markdown-toc
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\232\231\357\270\217\350\277\220\350\241\214\346\216\210\346\235\203.command/README.md" filter=jobs-markdown-toc
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\342\234\215\357\270\217IPA\345\205\215\347\274\226\350\257\221\351\207\215\347\255\276.command/README.md" filter=jobs-markdown-toc
 "/\345\205\266\344\273\226/\343\200\220MacOS\343\200\221\360\237\214\236\351\242\234\350\211\262\346\240\274\345\274\217\347\232\204\350\275\254\346\215\242.command/README.md" filter=jobs-markdown-toc
@@ -57,4 +57,12 @@
 "/\351\205\215\347\275\256\347\233\270\345\205\263/README.md" filter=jobs-markdown-toc
 "/配置相关/【MacOS】⚙️双击安装JobsCodeSnippets.command/tests/README.md" filter=jobs-markdown-toc
 "/Cocoapods/\343\200\220MacOS@Xcode\343\200\221\360\237\253\230\345\275\223\345\211\215\345\267\245\347\250\213Pod Install.command/README.md" filter=jobs-markdown-toc
+"/项目相关报告/脚本统一审查.md" filter=jobs-markdown-toc
+"/Cocoapods/【MacOS】⚙️双击更换Cocoapods源[-]CDN[+]Github.command/README.md" filter=jobs-markdown-toc
+"/Cocoapods/【MacOS】⚙️Pod_Install.command/Tests/cocoapods_route_test.rb/README.md" filter=jobs-markdown-toc
+"/Cocoapods/【MacOS】⬆️Pod_Update.command/Tests/cocoapods_route_test.rb/README.md" filter=jobs-markdown-toc
+"/Cocoapods/【MacOS】⬆️双击更新Cocoapods本地仓库.command/Tests/cocoapods_route_test.rb/README.md" filter=jobs-markdown-toc
+"/打包相关/【MacOS】📦生成JobsPod二进制打包器.command/JobsPodBinaryBuilder/Tests/network_generation_test.rb/README.md" filter=jobs-markdown-toc
+"/配置相关/【MacOS】⚙️双击安装JobsCodeSnippets.command/tests/【MacOS】regression.zsh/README.md" filter=jobs-markdown-toc
+"/配置相关/【MacOS】⚙️安装代码地图CodeGraph.command/Tests/【MacOS】installer-health.zsh/README.md" filter=jobs-markdown-toc
 # jobs-markdown-toc:end

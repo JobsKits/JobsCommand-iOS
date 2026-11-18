@@ -220,7 +220,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 从本 README 所在目录运行隔离生成回归：
 
 ```zsh
-/usr/bin/ruby ./JobsPodBinaryBuilder/Tests/network_generation_test.rb
+/usr/bin/ruby ./JobsPodBinaryBuilder/Tests/network_generation_test.rb/network_generation_test.rb
 ```
 
 该回归使用 Swift 解释器在系统临时目录生成假 Pod 工程，检查两入口的加载顺序、模块随包复制、查询离线、移动目录后可解析、原版本 / 私有快照保留、资源缺失阻断与已有文件不覆盖；另编译小型资源夹具，确认 App 与 CLI 默认均不会偷用仍存在的编译机源码资源。测试不运行真实 `pod install`、GUI 或 Xcode 构建，不能替代设备上的实际安装与打包验收。
@@ -250,7 +250,7 @@ GUI 会为 CocoaPods、[**Ruby**](https://www.ruby-lang.org) 和 Xcode 子进程
 │   │   ├── PodspecService.swift
 │   │   └── ProjectGenerator.swift
 │   └── Tests/
-│       ├── network_generation_test.rb
+│       ├── network_generation_test.rb/network_generation_test.rb
 │       ├── NetworkGenerationMain.swift
 │       ├── ImportedPodsInstallMain.swift
 │       ├── SmokeMain.swift

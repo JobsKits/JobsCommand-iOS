@@ -530,13 +530,255 @@ jobs_terminal_style_bootstrap "$0" "$@"
 # 输出安装诊断，避免混入返回的命令路径。
 # JOBS_INPUT_CHOICE_STYLE_BEGIN
 # 只展示提示选项；不读取答案、不改变默认值、返回码或业务环境。
+# URL仅供显示；纯文本日志传color=0。
+jobs_url_format() {
+  LC_ALL=en_US.UTF-8 /usr/bin/awk -v color="${1:-0}" -v lines="${2:-1}" '
+    # URL 范围只在展示文本上识别；不会改写真实请求或输出数据。
+    function urlInit() {
+      urlPattern = "[A-Za-z][A-Za-z0-9+.-]*://[^[:space:]<>\"" sprintf("%c", 39) esc "]+"
+      urlPunctuationCount = split("，|。|；|：|！|？|、|（|）|【|】|《|》|「|」|『|』|“|”|‘|’", urlPunctuation, "\\|")
+    }
+    function urlCount(value, token, total, idx) {
+      total = 0
+      for (idx = 1; idx <= length(value); idx++) if (substr(value, idx, 1) == token) total++
+      return total
+    }
+    function urlTrim(value, idx, at, last) {
+      for (idx = 1; idx <= urlPunctuationCount; idx++) {
+        at = index(value, urlPunctuation[idx])
+        if (at) value = substr(value, 1, at - 1)
+      }
+      while (length(value)) {
+        last = substr(value, length(value), 1)
+        if (index(".,;:!?", last) > 0 || (last == ")" && urlCount(value, ")") > urlCount(value, "(")) ||
+            (last == "]" && urlCount(value, "]") > urlCount(value, "[")) || (last == "}" && urlCount(value, "}") > urlCount(value, "{"))) {
+          value = substr(value, 1, length(value) - 1)
+        } else break
+      }
+      return value
+    }
+    function urlClean(value, preserve, output, token, start, size) {
+      gsub(esc "\\][^" esc sprintf("%c", 7) "]*(" sprintf("%c", 7) "|" esc "\\\\)", "", value)
+      output = ""
+      while (match(value, esc "\\[[0-?]*[ -/]*[@-~]")) {
+        start = RSTART; size = RLENGTH; token = substr(value, start, size)
+        output = output substr(value, 1, start - 1)
+        if (preserve && token ~ /m$/) output = output token
+        value = substr(value, start + size)
+      }
+      return output value
+    }
+    # 题干分段前临时遮蔽地址，地址里的 Enter、/、?、= 不参与选项识别。
+    function urlProtect(value, output, at, size, token, marker, number, original) {
+      urlProtectedCount = 0; output = ""; original = value; number = 0
+      while (match(value, urlPattern)) {
+        at = RSTART; size = RLENGTH; token = urlTrim(substr(value, at, size))
+        do { marker = sprintf("%c", 2) "U" ++number sprintf("%c", 3) } while (index(original, marker))
+        urlProtected[++urlProtectedCount] = token; urlMarkers[urlProtectedCount] = marker
+        output = output substr(value, 1, at - 1) marker
+        value = substr(value, at + length(token))
+      }
+      return output value
+    }
+    function urlRestore(value, idx, token, at) {
+      for (idx = urlProtectedCount; idx > 0; idx--) {
+        token = urlMarkers[idx]
+        while ((at = index(value, token))) value = substr(value, 1, at - 1) urlProtected[idx] substr(value, at + length(token))
+      }
+      return value
+    }
+    # 保存原 SGR 的有效序列；RGB 中的零值不能误认为整体复位。
+    function urlTrack(tokens, token, code, idx, total, reset, fields) {
+      while (match(tokens, esc "\\[[0-9;:]*m")) {
+        token = substr(tokens, RSTART, RLENGTH)
+        tokens = substr(tokens, RSTART + RLENGTH)
+        code = substr(token, 3, length(token) - 3); reset = (code == "")
+        total = split(code, fields, ";")
+        for (idx = 1; idx <= total; idx++) {
+          if (fields[idx] == "0") reset = 1
+          if ((fields[idx] == "38" || fields[idx] == "48" || fields[idx] == "58") && idx < total) {
+            if (fields[idx + 1] == "2") idx += 4
+            else if (fields[idx + 1] == "5") idx += 2
+          }
+        }
+        if (reset) urlActive = ""
+        urlActive = urlActive token
+      }
+    }
+    # 用可见字符位置映射原 SGR，URL 内已有样式也会重新覆为绿下划线。
+    function urlRender(value, output, visible, rest, key, at, size, token, idx, offset, url, inURL) {
+      value = urlClean(value, color)
+      if (!color) return value
+      for (key in urlStyles) delete urlStyles[key]
+      for (key in urlStarts) delete urlStarts[key]
+      for (key in urlEnds) delete urlEnds[key]
+      visible = ""; rest = value
+      while (match(rest, esc "\\[[0-9;:]*m")) {
+        at = RSTART; size = RLENGTH; token = substr(rest, at, size)
+        visible = visible substr(rest, 1, at - 1)
+        urlStyles[length(visible) + 1] = urlStyles[length(visible) + 1] token
+        rest = substr(rest, at + size)
+      }
+      visible = visible rest; rest = visible; offset = 0
+      while (match(rest, urlPattern)) {
+        at = RSTART; size = RLENGTH; url = urlTrim(substr(rest, at, size))
+        urlStarts[offset + at] = 1; urlEnds[offset + at + length(url) - 1] = 1
+        offset += at + length(url) - 1; rest = substr(visible, offset + 1)
+      }
+      output = ""; inURL = 0
+      for (idx = 1; idx <= length(visible) + 1; idx++) {
+        if (idx in urlStyles) {
+          token = urlStyles[idx]; output = output token; urlTrack(token)
+          if (inURL) output = output esc "[32;4m"
+        }
+        if (idx > length(visible)) break
+        if (idx in urlStarts) { output = output esc "[32;4m"; inURL = 1 }
+        output = output substr(visible, idx, 1)
+        if (idx in urlEnds) { output = output esc "[0m" urlActive; inURL = 0 }
+      }
+      return output
+    }
+    BEGIN { esc = sprintf("%c", 27); first = 1; urlInit() }
+    {
+      if (lines == 2) {
+        if (!first) printf "%s\n", urlRender(pending)
+        pending = $0; first = 0
+      } else {
+        if (!lines && !first) printf "\n"
+        printf "%s", urlRender($0)
+        if (lines) printf "\n"
+        first = 0
+      }
+    }
+    END {
+      if (lines == 2 && !first) {
+        sub(sprintf("%c", 1) "$", "", pending)
+        printf "%s", urlRender(pending)
+      }
+    }
+  '
+}
+# URL仅供显示；纯文本日志传color=0。
+jobs_url_stream() {
+  local url_color=0
+  if [ -t 1 ] && jobs_prompt_color_ready; then url_color=1; fi
+  jobs_url_format "$url_color" "${1:-1}"
+}
+# 检查当前终端与调用环境，决定是否允许提示样式。
 jobs_prompt_color_ready() {
+  env | LC_ALL=C /usr/bin/grep -qiE '^(SOURCETREE|SOURCE_TREE)' && return 1
   [ -z "${NO_COLOR+x}" ] && [ -n "${TERM:-}" ] && [ "${TERM:-}" != dumb ] &&
     [ "${PLAIN_OUTPUT:-0}" != 1 ] && [ "${IS_SOURCETREE_RUNTIME:-0}" != 1 ]
 }
 # 原生 awk 分段着色；任意/非空输入优先，括号内外沿用同一个选项。
 jobs_prompt_format() {
-  /usr/bin/awk -v color="${1:-0}" -v lines="${2:-0}" -v keep="${3:-0}" '
+  # 中文字符类按UTF-8字符处理，仅约束此awk进程，保留调用者locale。
+  LC_ALL=en_US.UTF-8 /usr/bin/awk -v color="${1:-0}" -v lines="${2:-0}" -v keep="${3:-0}" -v question="${4:-0}" '
+    # URL 范围只在展示文本上识别；不会改写真实请求或输出数据。
+    function urlInit() {
+      urlPattern = "[A-Za-z][A-Za-z0-9+.-]*://[^[:space:]<>\"" sprintf("%c", 39) esc "]+"
+      urlPunctuationCount = split("，|。|；|：|！|？|、|（|）|【|】|《|》|「|」|『|』|“|”|‘|’", urlPunctuation, "\\|")
+    }
+    function urlCount(value, token, total, idx) {
+      total = 0
+      for (idx = 1; idx <= length(value); idx++) if (substr(value, idx, 1) == token) total++
+      return total
+    }
+    function urlTrim(value, idx, at, last) {
+      for (idx = 1; idx <= urlPunctuationCount; idx++) {
+        at = index(value, urlPunctuation[idx])
+        if (at) value = substr(value, 1, at - 1)
+      }
+      while (length(value)) {
+        last = substr(value, length(value), 1)
+        if (index(".,;:!?", last) > 0 || (last == ")" && urlCount(value, ")") > urlCount(value, "(")) ||
+            (last == "]" && urlCount(value, "]") > urlCount(value, "[")) || (last == "}" && urlCount(value, "}") > urlCount(value, "{"))) {
+          value = substr(value, 1, length(value) - 1)
+        } else break
+      }
+      return value
+    }
+    function urlClean(value, preserve, output, token, start, size) {
+      gsub(esc "\\][^" esc sprintf("%c", 7) "]*(" sprintf("%c", 7) "|" esc "\\\\)", "", value)
+      output = ""
+      while (match(value, esc "\\[[0-?]*[ -/]*[@-~]")) {
+        start = RSTART; size = RLENGTH; token = substr(value, start, size)
+        output = output substr(value, 1, start - 1)
+        if (preserve && token ~ /m$/) output = output token
+        value = substr(value, start + size)
+      }
+      return output value
+    }
+    # 题干分段前临时遮蔽地址，地址里的 Enter、/、?、= 不参与选项识别。
+    function urlProtect(value, output, at, size, token, marker, number, original) {
+      urlProtectedCount = 0; output = ""; original = value; number = 0
+      while (match(value, urlPattern)) {
+        at = RSTART; size = RLENGTH; token = urlTrim(substr(value, at, size))
+        do { marker = sprintf("%c", 2) "U" ++number sprintf("%c", 3) } while (index(original, marker))
+        urlProtected[++urlProtectedCount] = token; urlMarkers[urlProtectedCount] = marker
+        output = output substr(value, 1, at - 1) marker
+        value = substr(value, at + length(token))
+      }
+      return output value
+    }
+    function urlRestore(value, idx, token, at) {
+      for (idx = urlProtectedCount; idx > 0; idx--) {
+        token = urlMarkers[idx]
+        while ((at = index(value, token))) value = substr(value, 1, at - 1) urlProtected[idx] substr(value, at + length(token))
+      }
+      return value
+    }
+    # 保存原 SGR 的有效序列；RGB 中的零值不能误认为整体复位。
+    function urlTrack(tokens, token, code, idx, total, reset, fields) {
+      while (match(tokens, esc "\\[[0-9;:]*m")) {
+        token = substr(tokens, RSTART, RLENGTH)
+        tokens = substr(tokens, RSTART + RLENGTH)
+        code = substr(token, 3, length(token) - 3); reset = (code == "")
+        total = split(code, fields, ";")
+        for (idx = 1; idx <= total; idx++) {
+          if (fields[idx] == "0") reset = 1
+          if ((fields[idx] == "38" || fields[idx] == "48" || fields[idx] == "58") && idx < total) {
+            if (fields[idx + 1] == "2") idx += 4
+            else if (fields[idx + 1] == "5") idx += 2
+          }
+        }
+        if (reset) urlActive = ""
+        urlActive = urlActive token
+      }
+    }
+    # 用可见字符位置映射原 SGR，URL 内已有样式也会重新覆为绿下划线。
+    function urlRender(value, output, visible, rest, key, at, size, token, idx, offset, url, inURL) {
+      value = urlClean(value, color)
+      if (!color) return value
+      for (key in urlStyles) delete urlStyles[key]
+      for (key in urlStarts) delete urlStarts[key]
+      for (key in urlEnds) delete urlEnds[key]
+      visible = ""; rest = value
+      while (match(rest, esc "\\[[0-9;:]*m")) {
+        at = RSTART; size = RLENGTH; token = substr(rest, at, size)
+        visible = visible substr(rest, 1, at - 1)
+        urlStyles[length(visible) + 1] = urlStyles[length(visible) + 1] token
+        rest = substr(rest, at + size)
+      }
+      visible = visible rest; rest = visible; offset = 0
+      while (match(rest, urlPattern)) {
+        at = RSTART; size = RLENGTH; url = urlTrim(substr(rest, at, size))
+        urlStarts[offset + at] = 1; urlEnds[offset + at + length(url) - 1] = 1
+        offset += at + length(url) - 1; rest = substr(visible, offset + 1)
+      }
+      output = ""; inURL = 0
+      for (idx = 1; idx <= length(visible) + 1; idx++) {
+        if (idx in urlStyles) {
+          token = urlStyles[idx]; output = output token; urlTrack(token)
+          if (inURL) output = output esc "[32;4m"
+        }
+        if (idx > length(visible)) break
+        if (idx in urlStarts) { output = output esc "[32;4m"; inURL = 1 }
+        output = output substr(visible, idx, 1)
+        if (idx in urlEnds) { output = output esc "[0m" urlActive; inURL = 0 }
+      }
+      return output
+    }
     function typedEnter(value, start, prefix) {
       prefix = substr(value, 1, start - 1)
       gsub(/[“”‘’「」『』"]/, "", prefix)
@@ -556,7 +798,7 @@ jobs_prompt_format() {
       start += RSTART - 1
       return typedEnter(value, start) ? 0 : start
     }
-    function segment(value, inherited, start, kind, prefix, body, red, green, connector, left, right, splitAt) {
+    function segment(value, inherited, is_question, start, kind, prefix, body, red, green, connector, left, right, splitAt) {
       if (value == "") return value
       kind = inherited
       start = 1
@@ -573,11 +815,11 @@ jobs_prompt_format() {
             connector = substr(left, RSTART)
             left = substr(left, 1, RSTART - 1)
           }
-          return segment(left, 0) connector segment(right, 31)
+          return segment(left, 0, is_question) connector segment(right, 31, 0)
         }
         if (red && green && red < green && match(value, /或[[:space:]]*(直接|仅|只需|只|按下|按)?(回车|回車)/)) {
           splitAt = RSTART
-          return segment(substr(value, 1, splitAt - 1), 31) "或" segment(substr(value, splitAt + length("或")), 0)
+          return segment(substr(value, 1, splitAt - 1), 31, is_question) "或" segment(substr(value, splitAt + length("或")), 0, 0)
         }
         if (red) {
           kind = 31
@@ -587,23 +829,27 @@ jobs_prompt_format() {
           start = green
         }
       }
-      if (!kind || !color) return value
+      if (!color) return value
+      if (!kind) return is_question && value !~ /^[[:space:]]*$/ ? esc "[1;36m" value esc "[0m" : value
       prefix = substr(value, 1, start - 1)
       body = substr(value, start)
+      if (is_question && prefix !~ /^[[:space:]]*$/) prefix = esc "[1;36m" prefix esc "[0m"
       return prefix esc "[1;" kind "m" body esc "[0m"
     }
-    function render(value, output, part, boundary, inherited, kind, consumed, depth, original) {
+    function render(value, output, part, boundary, inherited, kind, consumed, depth, original, question_body) {
       original = value
-      gsub(esc "\\[[0-9;]*m", "", value)
-      if (color && keep && !greenPosition(value) && value !~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) return original
+      value = urlProtect(urlClean(value, 0))
+      if (color && keep && !greenPosition(value) && value !~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) return urlRender(original)
       output = ""
       inherited = 0
       depth = 0
+      question_body = question
       while (match(value, /[；;\/|，,、？?：:=＝（）()\[\]【】]/)) {
         part = substr(value, 1, RSTART - 1)
         boundary = substr(value, RSTART, RLENGTH)
         consumed = RSTART + RLENGTH
-        output = output segment(part, inherited) boundary
+        output = output segment(part, inherited, question_body) boundary
+        if (inherited || greenPosition(part) || part ~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) question_body = 0
         if (boundary ~ /[（(\[【]/) {
           depth++
           if (part ~ /(任意|任何|非空|其它输入|其他输入|[Tt]ype (anything|any[^ ]*)|[Pp]ress any key)/) inherited = 31
@@ -618,9 +864,9 @@ jobs_prompt_format() {
         } else if (!depth) inherited = 0
         value = substr(value, consumed)
       }
-      return output segment(value, inherited)
+      return urlRender(urlRestore(output segment(value, inherited, question_body) (question && color ? esc "[0m" : "")))
     }
-    BEGIN { esc = sprintf("%c", 27); first = 1 }
+    BEGIN { esc = sprintf("%c", 27); first = 1; urlInit() }
     {
       if (lines == 2) {
         if (!first) printf "%s\n", render(pending)
@@ -645,7 +891,7 @@ jobs_prompt_format() {
 jobs_prompt_render() {
   local jobs_prompt_color=0
   if [ -t 0 ] && [ -t 2 ] && jobs_prompt_color_ready; then jobs_prompt_color=1; fi
-  printf "%s" "$1" | jobs_prompt_format "$jobs_prompt_color" 0
+  printf "%s" "$1" | jobs_prompt_format "$jobs_prompt_color" 0 0 1
 }
 # 仅放在显示链末端；tee 在此函数之前接收纯文本，不把 ANSI 写入日志。
 jobs_prompt_stream() {
@@ -655,13 +901,15 @@ jobs_prompt_stream() {
 }
 # 显示管道保留原末尾换行；只删除本轮追加的最后一个结束标记。
 jobs_prompt_filter() {
-  local jobs_prompt_color=0
+  local jobs_prompt_color=0 jobs_prompt_question=0
+  case "${1:-0}" in 1|--question) jobs_prompt_question=1 ;; esac
   if [ -t 1 ] && jobs_prompt_color_ready; then jobs_prompt_color=1; fi
-  { /bin/cat; printf '\001'; } | jobs_prompt_format "$jobs_prompt_color" 2 1
+  { /bin/cat; printf '\001'; } | jobs_prompt_format "$jobs_prompt_color" 2 "$((1 - jobs_prompt_question))" "$jobs_prompt_question"
 }
 # 仅包装原 printf/echo/print 展示，原参数、尾换行与显示命令退出码保持不变。
 jobs_prompt_output() {
-  local jobs_prompt_status=0 jobs_prompt_stderr=0 jobs_prompt_arg="" jobs_prompt_previous=""
+  local jobs_prompt_status=0 jobs_prompt_stderr=0 jobs_prompt_arg="" jobs_prompt_previous="" jobs_prompt_question=0
+  if [ "${1:-}" = --question ]; then jobs_prompt_question=1; shift; fi
   if [ "${1:-}" = print ]; then
     for jobs_prompt_arg in "$@"; do
       case "$jobs_prompt_arg" in -?*u2*|-u2) jobs_prompt_stderr=1 ;; esac
@@ -672,17 +920,17 @@ jobs_prompt_output() {
   fi
   if [ -n "${ZSH_VERSION:-}" ]; then
     if [ "$jobs_prompt_stderr" = 1 ]; then
-      "$@" 2>&1 | jobs_prompt_filter >&2
+      "$@" 2>&1 | jobs_prompt_filter "$jobs_prompt_question" >&2
       jobs_prompt_status=$(( ${pipestatus[1]} != 0 ? ${pipestatus[1]} : ${pipestatus[2]} ))
     else
-      "$@" | jobs_prompt_filter
+      "$@" | jobs_prompt_filter "$jobs_prompt_question"
       jobs_prompt_status=$(( ${pipestatus[1]} != 0 ? ${pipestatus[1]} : ${pipestatus[2]} ))
     fi
   elif [ -n "${BASH_VERSION:-}" ]; then
-    "$@" | jobs_prompt_filter
+    "$@" | jobs_prompt_filter "$jobs_prompt_question"
     jobs_prompt_status=$(( ${PIPESTATUS[0]} != 0 ? ${PIPESTATUS[0]} : ${PIPESTATUS[1]} ))
   else
-    "$@" | jobs_prompt_filter
+    "$@" | jobs_prompt_filter "$jobs_prompt_question"
     jobs_prompt_status=$?
   fi
   return "$jobs_prompt_status"
@@ -704,8 +952,13 @@ jobs_prompt_tee() {
 }
 # JOBS_INPUT_CHOICE_STYLE_END
 
+# 展示 Homebrew 获取进度，日志层保持纯文本。
 jobs_brew_note() {
-  print -u2 -r -- "ℹ $*"
+  jobs_prompt_output print -u2 -r -- "ℹ $*"
+  if [[ "${_JOBS_ENV_LOG_READY:-0}" == 1 && -n "${LOG_FILE:-}" ]]; then
+    print -r -- "ℹ $*" >> "$LOG_FILE"
+  fi
+  return 0
 }
 # 验证候选能够执行；共享安装只读不代表未安装。
 jobs_brew_candidate_ok() {
@@ -748,7 +1001,7 @@ jobs_brew_choose_installation() {
   print -u2 -r -- "   这表示你准备向系统目录安装；官方安装器可能随后要求管理员密码，并自行验证权限。"
   jobs_prompt_output print -u2 -r -- "2、其它输入或直接回车：选择用户目录 ${JOBS_HOMEBREW_INSTALL_PREFIX:-$HOME/.local/homebrew}，不使用 sudo；有管理员权限也可选此路径。"
   print -u2 -r -- "本步骤只选择路径，不收集或验证密码；选定路径失败就停止，不自动切换。按 Ctrl+C 取消整个任务。"
-  print -u2 -n -r -- "➤ 安装路径选择："
+  print -u2 -n -r -- "$(jobs_prompt_render "➤ 安装路径选择：")"
   if ! IFS= read -r answer; then
     jobs_brew_note "输入已取消或结束，停止安装。"
     return 1
@@ -764,22 +1017,32 @@ jobs_brew_install_system() {
   local installer system_prefix="$(jobs_brew_system_prefix)" installer_result=0
   command -v curl >/dev/null 2>&1 || { jobs_brew_note "缺少 curl，无法获取官方安装器。"; return 1; }
   installer="$(mktemp "${TMPDIR:-/tmp}/jobs-homebrew-install.XXXXXX")" || return 1
-  if curl -fsSL --connect-timeout 10 --max-time 120 https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$installer"; then
-    /bin/bash "$installer" || installer_result=$?
+  if jobs_brew_download_file "$installer" 'Homebrew 官方安装器' \
+      https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh \
+      'https://api.github.com/repos/Homebrew/install/contents/install.sh?ref=HEAD'; then
+    if [[ ! -s "$installer" || "$(head -n 1 "$installer")" != '#!/bin/bash' ]] || ! /bin/bash -n "$installer"; then
+      rm -f -- "$installer"
+      jobs_brew_note '官方安装器响应为空或内容校验失败（可能是 HTML / JSON 错误页）；未执行安装。'
+      return 1
+    fi
   else
-    installer_result=1
+    installer_result=$?
+    rm -f -- "$installer"
+    jobs_brew_note "系统目录安装器下载失败（curl 退出码 $installer_result）；尚未执行安装，不自动切换安装路径。"
+    return "$installer_result"
   fi
+  /bin/bash "$installer" || installer_result=$?
   rm -- "$installer"
   if (( installer_result != 0 )); then
     jobs_brew_note "系统目录安装失败（退出码 $installer_result）；停止，不自动切换安装路径。"
-    return 1
+    return "$installer_result"
   fi
   typeset -g JOBS_HOMEBREW_BIN="$system_prefix/bin/brew"
   jobs_brew_candidate_ok "$JOBS_HOMEBREW_BIN" || { jobs_brew_note "官方安装器结束后未找到健康 Homebrew：$JOBS_HOMEBREW_BIN"; return 1; }
 }
 # 克隆官方稳定版本到用户目录；不覆盖非空目录，不调用 sudo。
 jobs_brew_install_user() {
-  local prefix="${JOBS_HOMEBREW_INSTALL_PREFIX:-$HOME/.local/homebrew}" stage release_tag git_bin
+  local prefix="${JOBS_HOMEBREW_INSTALL_PREFIX:-$HOME/.local/homebrew}" stage release_tag git_bin release_result=0
   [[ "$prefix" == /* && "$prefix" != / && "$prefix" != *[[:space:]:]* ]] || {
     jobs_brew_note "Homebrew 用户前缀须为不含空白或冒号的绝对目录：$prefix"
     return 1
@@ -788,21 +1051,76 @@ jobs_brew_install_user() {
     jobs_brew_note "用户安装目标非空或不是普通目录，不覆盖：$prefix"
     return 1
   fi
+  local git_health=1 locate_result=0 git_candidate="" selected_developer="" clt_result=0 clt_diagnostic=""
   git_bin="$(command -v git 2>/dev/null)"
-  [[ -n "$git_bin" ]] && "$git_bin" --version >/dev/null 2>&1 || { jobs_brew_note "用户目录安装需要可用 Git；请先准备 Git / Command Line Tools。"; return 1; }
+  # /usr/bin/git 可能只是CLT占位器；先查询真实工具，避免健康检查自行弹出安装窗口。
+  if [[ "$git_bin" == /usr/bin/git || -z "$git_bin" ]]; then
+    git_bin="$(/usr/bin/xcrun --find git 2>/dev/null)" || locate_result=$?
+    case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+  fi
+  if [[ -n "$git_bin" && -x "$git_bin" ]]; then
+    git_health=0;"$git_bin" --version >/dev/null 2>&1 || git_health=$?
+    case "$git_health" in 129|130|131|137|143) return "$git_health" ;; esac
+  fi
+  if (( git_health != 0 )); then
+    [[ -z "${DEVELOPER_DIR:-}" ]] || { jobs_brew_note '显式DEVELOPER_DIR没有健康Git，保留用户开发目录，未自动改全局选择。'; return 1; }
+    locate_result=0
+    selected_developer="$(/usr/bin/xcode-select -p 2>/dev/null)" || locate_result=$?
+    case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+    if [[ -n "$selected_developer" && -d "$selected_developer" ]]; then
+      jobs_brew_note "既有开发目录未提供健康Git：$selected_developer；可能是许可、版本或本地文件阻塞，未反复安装或改全局xcode-select。"
+      return 1
+    fi
+    if [[ "${DRY_RUN:-0}" == 1 || "${CHECK_ONLY:-0}" == 1 || ! -t 0 || ! -t 2 || "${IS_SOURCETREE_RUNTIME:-0}" == 1 ]] ||
+       env | LC_ALL=C /usr/bin/grep -qiE '^(SOURCETREE|SOURCE_TREE)'; then
+      jobs_brew_note '用户目录Homebrew需要健康Git；当前为只读或非交互入口，未打开CLT安装窗口或写安装目标。'
+      return 1
+    fi
+    jobs_brew_note '当前已选用户目录Homebrew安装需要Apple Command Line Tools的Git；只打开一次原生安装窗口，许可由本人处理，当前流程持续复检，Ctrl+C停止。' || return $?
+    clt_diagnostic="$(/usr/bin/xcode-select --install 2>&1)" || clt_result=$?
+    jobs_brew_note "$clt_diagnostic" || return $?
+    if (( clt_result != 0 )) && [[ "$clt_diagnostic" != *'already being installed'* && "$clt_diagnostic" != *'正在安装'* ]]; then return "$clt_result"; fi
+    while true; do
+      locate_result=0
+      git_candidate="$(/usr/bin/xcrun --find git 2>/dev/null)" || locate_result=$?
+      case "$locate_result" in 129|130|131|137|143) return "$locate_result" ;; esac
+      if [[ -n "$git_candidate" && -x "$git_candidate" ]]; then
+        git_health=0;"$git_candidate" --version >/dev/null 2>&1 || git_health=$?
+        case "$git_health" in 129|130|131|137|143) return "$git_health" ;; esac
+        if (( git_health == 0 )); then git_bin="$git_candidate";break;fi
+      fi
+      jobs_brew_note '等待Apple CLT提供健康Git；不会重复打开窗口，Ctrl+C停止。' || return $?
+      /bin/sleep 3 || return $?
+    done
+  fi
   command -v curl >/dev/null 2>&1 || { jobs_brew_note "缺少 curl，无法获取官方稳定版本。"; return 1; }
   export HOMEBREW_NO_SUDO=1
   mkdir -p "${prefix:h}" || return 1
   stage="$(mktemp -d "${prefix:h}/.jobs-homebrew.XXXXXX")" || return 1
-  if ! curl -fsSL --connect-timeout 10 --max-time 60 https://api.github.com/repos/Homebrew/brew/releases/latest -o "$stage/release.json"; then
+  if jobs_brew_download_file "$stage/release.json" 'Homebrew 官方稳定版本' \
+      https://api.github.com/repos/Homebrew/brew/releases/latest; then
+    release_result=0
+  else
+    release_result=$?
     rm -r -- "$stage"
-    jobs_brew_note "获取官方稳定版本失败，停止安装。"
-    return 1
+    jobs_brew_note "获取官方稳定版本已停止（退出码 $release_result），未执行安装。"
+    return "$release_result"
   fi
   release_tag="$(sed -n 's/.*"tag_name"[[:space:]]*:[[:space:]]*"\([0-9][0-9.]*\)".*/\1/p' "$stage/release.json" | head -n 1)"
-  if [[ ! "$release_tag" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]] ||
-     ! GIT_TERMINAL_PROMPT=0 "$git_bin" -c http.lowSpeedLimit=1 -c http.lowSpeedTime=60 clone --depth 1 --branch "$release_tag" --single-branch https://github.com/Homebrew/brew.git "$stage/brew" ||
-     ! "$git_bin" -C "$stage/brew" checkout -b stable ||
+  if [[ ! "$release_tag" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' ]]; then
+    rm -r -- "$stage"
+    jobs_brew_note '官方版本响应无有效 tag，停止；不重试版本解析或执行安装。'
+    return 1
+  fi
+  if jobs_brew_fetch_release "$git_bin" "$release_tag" "$stage"; then
+    release_result=0
+  else
+    release_result=$?
+    rm -r -- "$stage"
+    jobs_brew_note "Homebrew 官方版本获取已停止（退出码 $release_result），未执行安装。"
+    return "$release_result"
+  fi
+  if ! "$git_bin" -C "$stage/brew" checkout -b stable ||
      ! "$git_bin" -C "$stage/brew" config remote.origin.fetch '+refs/heads/*:refs/remotes/origin/*' ||
      ! mkdir -p "$stage/brew/Cellar" "$stage/brew/Caskroom" "$stage/brew/etc" "$stage/brew/var"; then
     rm -r -- "$stage"
@@ -862,7 +1180,8 @@ jobs_brew_activate() {
     if [[ "${JOBS_HOMEBREW_INSTALL_MODE:-}" == user && -z "${HOMEBREW_CASK_OPTS:-}" ]]; then
       export HOMEBREW_CASK_OPTS="--appdir=$HOME/Applications"
     fi
-    jobs_brew_save_shellenv || return 1
+    # 只刷新本次进程，不向用户 Shell 启动文件写入持久配置。
+    :
   fi
 }
 # 在原版安装位置复用或安装 Homebrew，安装失败必须终止外层业务。
@@ -904,22 +1223,36 @@ jobs_intro_style() {
       if ($0 !~ /^[[:space:]]*[=━─-]+[[:space:]]*$/) seen = 1
       printf "%s%s%s\n", esc (title ? "[1;31m" : "[0;34m"), $0, esc "[0m"
     }
-  '
+  ' | jobs_prompt_filter
 }
 
+# 展示彩色日志，持久记录仅保存去色文本。
 log()            { echo -e "$1" | jobs_prompt_tee "$LOG_FILE"; }
+# 输出当前默认强调样式，交由日志层统一去色落盘。
 color_echo()     { log "\033[1;32m$1\033[0m"; }         # ✅ 正常绿色输出
+# 展示说明，持久日志由统一日志层去色。
 info_echo()      { log "\033[1;34mℹ $1\033[0m"; }       # ℹ 信息
+# 展示成功结果，持久日志由统一日志层去色。
 success_echo()   { log "\033[1;32m✔ $1\033[0m"; }       # ✔ 成功
+# 展示警告，持久日志由统一日志层去色。
 warn_echo()      { log "\033[1;33m⚠ $1\033[0m"; }       # ⚠ 警告
+# 展示警告，持久日志由统一日志层去色。
 warm_echo()      { log "\033[1;33m$1\033[0m"; }         # 🟡 温馨提示（无图标）
+# 展示步骤提示，持久日志由统一日志层去色。
 note_echo()      { log "\033[1;35m➤ $1\033[0m"; }       # ➤ 说明
+# 展示错误，持久日志由统一日志层去色。
 error_echo()     { log "\033[1;31m✖ $1\033[0m"; }       # ✖ 错误
+# 展示错误，持久日志由统一日志层去色。
 err_echo()       { log "\033[1;31m$1\033[0m"; }         # 🔴 错误纯文本
+# 展示调试诊断，持久日志由统一日志层去色。
 debug_echo()     { log "\033[1;35m🐞 $1\033[0m"; }      # 🐞 调试
+# 展示重点，持久日志由统一日志层去色。
 highlight_echo() { log "\033[1;36m🔹 $1\033[0m"; }      # 🔹 高亮
+# 展示辅助信息，持久日志由统一日志层去色。
 gray_echo()      { log "\033[0;90m$1\033[0m"; }         # ⚫ 次要信息
+# 展示粗体重点，持久日志由统一日志层去色。
 bold_echo()      { log "\033[1m$1\033[0m"; }            # 📝 加粗
+# 展示下划线重点，持久日志由统一日志层去色。
 underline_echo() { log "\033[4m$1\033[0m"; }            # 🔗 下划线
 
 # ✅ 初始化 Shell 运行选项。
@@ -950,7 +1283,7 @@ confirm_yes() {
   warn_echo "$1"
   jobs_prompt_output gray_echo "危险操作必须输入 YES 后回车；其它输入一律取消。"
   local input=""
-  IFS= read -r "input?➤ "
+  IFS= read -r "input?$(jobs_prompt_render "➤ ")"
   [[ "$input" == "YES" ]]
 }
 
@@ -1093,7 +1426,7 @@ install_homebrew() {
     note_echo "📦 检测到 Homebrew 已安装"
     jobs_prompt_output gray_echo "直接回车：跳过更新"
     jobs_prompt_output gray_echo "输入任意字符后回车：执行更新升级"
-    read "?👉 是否更新 Homebrew：" user_input
+    read "?$(jobs_prompt_render "👉 是否更新 Homebrew：")" user_input
 
     if [[ -n "$user_input" ]]; then
       info_echo "🔄 开始更新 Homebrew..."
@@ -1107,27 +1440,334 @@ install_homebrew() {
 
 # ✅ 自检安装 Homebrew.fzf
 install_fzf() {
-  local user_input=""
-
-  if ! command -v fzf &>/dev/null; then
-    note_echo "📦 未检测到 fzf，正在通过 Homebrew 安装..."
-    brew install fzf || { error_echo "❌ fzf 安装失败"; exit 1; }
-    success_echo "✅ fzf 安装成功"
-  else
+  local user_input="" result=0
+  jobs_fzf_ensure || return $?
     echo ""
     note_echo "📦 检测到 fzf 已安装"
     jobs_prompt_output gray_echo "直接回车：跳过更新"
     jobs_prompt_output gray_echo "输入任意字符后回车：执行更新升级"
-    read "?👉 是否更新 fzf：" user_input
+    read "?$(jobs_prompt_render "👉 是否更新 fzf：")" user_input || return 130
 
     if [[ -n "$user_input" ]]; then
       info_echo "🔄 开始升级 fzf..."
-      brew upgrade fzf && brew cleanup
-      success_echo "✅ fzf 已是最新版"
+      HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 "${JOBS_HOMEBREW_BIN:-$(command -v brew)}" upgrade fzf || return $?
+      success_echo "✅ fzf 升级命令已完成，继续复检"
     else
       warn_echo "⏭️ 已跳过 fzf 更新"
     fi
+  jobs_fzf_ensure check || return $?
+}
+
+# 当前交互流程必需的选择器；安装链只刷新本进程，不改用户配置。
+jobs_brew_download_file() {
+  local destination="$1" description="$2" download_url attempt download_result=1 http_code
+  local retry_round=0 retry_delay=1 round_has_retryable=0
+  local -a request_headers download_urls
+  local -A blocked_urls
+  shift 2
+  download_urls=("$@")
+  (( ${#download_urls} > 0 )) || { jobs_brew_note '没有已声明的官方获取地址。'; return 2; }
+  while true; do
+    (( retry_round += 1 ))
+    round_has_retryable=0
+    for download_url in "${download_urls[@]}"; do
+      [[ -z "${blocked_urls[$download_url]:-}" ]] || continue
+      request_headers=()
+      if [[ "$download_url" == https://api.github.com/repos/Homebrew/install/contents/install.sh\?ref=HEAD ]]; then
+        request_headers=(-H 'Accept: application/vnd.github.raw+json')
+      fi
+      for attempt in 1 2 3; do
+        jobs_brew_note "下载${description}（第 $retry_round 轮，第 $attempt 次）：$download_url"
+        download_result=0
+        http_code="$(curl -q -fsSL --proto '=https' --proto-redir '=https' \
+          --connect-timeout 10 --max-time 30 "${request_headers[@]}" \
+          --write-out '%{http_code}' "$download_url" -o "$destination" \
+          2> >(tee -a "${LOG_FILE:-/dev/null}" >&2))" || download_result=$?
+        if (( download_result == 0 )); then
+          return 0
+        fi
+        rm -f -- "$destination" || return 1
+        jobs_brew_note "${description}下载失败：curl 退出码 $download_result，HTTP ${http_code:-未知}。"
+        case "$download_result" in
+          129|130|143) return "$download_result" ;;
+          5|6|7|18|28|35|52|55|56) ;;
+          22)
+            if [[ "$http_code" != 408 && "$http_code" != 429 && "$http_code" != 5[0-9][0-9] ]]; then
+              blocked_urls[$download_url]=1
+              break
+            fi
+            ;;
+          *) blocked_urls[$download_url]=1; break ;;
+        esac
+        if (( attempt < 3 )); then
+          jobs_brew_note '临时连接失败，1 秒后重试同一官方地址；Ctrl+C 可取消。'
+          sleep 1 || return $?
+        fi
+      done
+      if [[ -z "${blocked_urls[$download_url]:-}" ]]; then
+        round_has_retryable=1
+      fi
+      jobs_brew_note '当前地址尚未取得可用响应；如有下一已声明官方地址，将按原顺序尝试，安装目录不变。'
+    done
+    if (( round_has_retryable == 0 )); then
+      jobs_brew_note "获取${description}遇到确定错误，停止；未执行安装。日志：${LOG_FILE:-终端输出}。"
+      return "$download_result"
+    fi
+    jobs_brew_note "官方来源暂时不可用，${retry_delay} 秒后继续下一轮；不设总次数或总时长上限，按 Ctrl+C 取消。"
+    sleep "$retry_delay" || return $?
+    if (( retry_delay < 30 )); then
+      retry_delay=$(( retry_delay * 2 ))
+      (( retry_delay <= 30 )) || retry_delay=30
+    fi
+  done
+}
+
+# 只停止当前获取流程创建的子进程树，保留调用者信号陷阱。
+jobs_brew_stop_acquisition_tree() {
+  local root="$1" child=""
+  for child in $(/usr/bin/pgrep -P "$root" 2>/dev/null); do
+    jobs_brew_stop_acquisition_tree "$child"
+  done
+  /bin/kill -TERM "$root" 2>/dev/null || true
+  /bin/kill -KILL "$root" 2>/dev/null || true
+}
+
+# 持续获取明确的官方稳定 tag，网络失败重试，确定错误与取消停止。
+jobs_brew_fetch_release() {
+  setopt LOCAL_OPTIONS LOCAL_TRAPS NO_ERREXIT
+  local git_bin="$1" release_tag="$2" stage="$3" target="${3}/brew"
+  local attempt_log="${3}/git-fetch-attempt.log" history="${3}/git-fetch-history.log"
+  local attempt=1 result=0 delay=1 task_pid="" interrupted=0 failure=""
+  [[ "$release_tag" =~ '^[0-9]+\.[0-9]+\.[0-9]+$' && "$stage" == /* &&
+     "${stage:t}" == .jobs-homebrew.* && -d "$stage" && ! -L "$stage" && ! -e "$target" && ! -L "$target" ]] || {
+    jobs_brew_note 'Homebrew 获取版本或私有暂存路径无效，未执行 Git 获取。'
+    return 2
+  }
+  "$git_bin" init --quiet "$target" || { result=$?; jobs_brew_note "Homebrew 暂存仓初始化失败（$result）：$target"; return "$result"; }
+  "$git_bin" -C "$target" remote add origin https://github.com/Homebrew/brew.git || return $?
+  trap 'interrupted=130; [[ -z "$task_pid" ]] || jobs_brew_stop_acquisition_tree "$task_pid"' INT
+  trap 'interrupted=143; [[ -z "$task_pid" ]] || jobs_brew_stop_acquisition_tree "$task_pid"' TERM
+  trap 'interrupted=129; [[ -z "$task_pid" ]] || jobs_brew_stop_acquisition_tree "$task_pid"' HUP
+  while true; do
+    jobs_brew_note "获取 Homebrew 官方版本 $release_tag（第 $attempt 次）：https://github.com/Homebrew/brew.git → $target；失败自动重试，Ctrl+C 取消。"
+    : > "$attempt_log" || return 1
+    print -r -- "━━ Homebrew $release_tag：第 $attempt 次 ━━" >> "$history" || return 1
+    (
+      local -a acquisition_statuses
+      LC_ALL=C GIT_TERMINAL_PROMPT=0 "$git_bin" -C "$target" -c color.ui=false \
+        -c http.lowSpeedLimit=1 -c http.lowSpeedTime=60 fetch --progress --depth 1 origin "refs/tags/$release_tag" 2>&1 |
+        jobs_prompt_tee "$history" | jobs_prompt_tee "${LOG_FILE:-/dev/null}" | jobs_prompt_tee "$attempt_log" >&2
+      acquisition_statuses=("${pipestatus[@]}")
+      (( acquisition_statuses[2] == 0 && acquisition_statuses[3] == 0 && acquisition_statuses[4] == 0 )) || exit 74
+      exit "${acquisition_statuses[1]}"
+    ) <&0 &
+    task_pid=$!
+    result=0
+    wait "$task_pid" || result=$?
+    task_pid=""
+    (( interrupted == 0 )) || return "$interrupted"
+    jobs_brew_note "Homebrew $release_tag 获取第 $attempt 次退出码：$result。"
+    if (( result == 0 )); then
+      "$git_bin" -C "$target" checkout --quiet --detach FETCH_HEAD || return $?
+      return 0
+    fi
+    case "$result" in
+      74) jobs_brew_note "Homebrew 获取日志写入失败，停止；请检查磁盘空间、路径和权限。"; return 74 ;;
+      129|130|131|137|143|126|127) return "$result" ;;
+    esac
+    failure="$(/usr/bin/tail -c 65536 "$attempt_log")" || return 1
+    if print -r -- "$failure" | /usr/bin/grep -Eqi \
+      'Permission denied|Operation not permitted|No space left on device|Read-only file system|File exists|already exists and is not an empty directory|Bad CPU type|Exec format error|unknown option|unrecognized option|invalid argument|couldn.t find remote ref|Remote branch .* not found|repository .* not found|Authentication failed|could not read Username|terminal prompts disabled|HTTP[^[:cntrl:]]*(401|403|404)|returned error: (401|403|404)|SSL certificate problem|certificate verify failed|unable to get local issuer certificate'; then
+      jobs_brew_note "Homebrew 官方版本获取遇到本地、认证、证书或版本确定错误（$result），已停止；请核对日志：${LOG_FILE:-$history}。"
+      return "$result"
+    fi
+    jobs_brew_note "Homebrew 网络获取尚未完成，保留本轮已收对象，${delay} 秒后继续；不设总次数或总时长上限，Ctrl+C 取消。"
+    sleep "$delay" &
+    task_pid=$!
+    wait "$task_pid" || { result=$?; (( interrupted == 0 )) || return "$interrupted"; return "$result"; }
+    task_pid=""
+    (( interrupted == 0 )) || return "$interrupted"
+    (( attempt += 1 ))
+    (( delay >= 30 )) || delay=$(( delay * 2 ))
+    (( delay <= 30 )) || delay=30
+  done
+}
+
+# 原样传播安装失败及取消状态，不进入后续业务。
+jobs_brew_stop_failed_install() {
+  case "$1" in
+    129|130|143) exit "$1" ;;
+    *) exit 1 ;;
+  esac
+}
+
+# 展示选择器依赖诊断，不混入业务结果流。
+jobs_fzf_note() {
+  if (( ${+functions[jobs_prompt_output]} )); then
+    jobs_prompt_output print -u2 -r -- "$*"
+  else
+    print -u2 -r -- "$*"
   fi
+  if [[ -n "${LOG_FILE:-}" ]]; then print -r -- "$*" >> "$LOG_FILE"; fi
+}
+
+# 仅为健康检查设定单次上限，并回收自有探针及看门子进程。
+jobs_fzf_bounded_probe() {
+  local child=0 watchdog=0 result=0
+  "$@" <&0 &
+  child=$!
+  ( /bin/sleep 10; jobs_brew_stop_acquisition_tree "$child" ) >/dev/null 2>&1 &
+  watchdog=$!
+  wait "$child" || result=$?
+  jobs_brew_stop_acquisition_tree "$watchdog"
+  wait "$watchdog" 2>/dev/null || :
+  return "$result"
+}
+
+# 隔离默认环境后检查路径、版本及实际菜单选项。
+jobs_fzf_probe() {
+  local candidate="$1" probe='__JOBS_FZF_HEALTH__' output="" result=0
+  [[ -n "$candidate" && -x "$candidate" && ! -d "$candidate" ]] || return 1
+  jobs_fzf_bounded_probe /usr/bin/env -u FZF_DEFAULT_OPTS -u FZF_DEFAULT_OPTS_FILE -u FZF_DEFAULT_COMMAND "$candidate" --version >/dev/null 2>&1 || return 1
+  output="$(print -r -- "P"$'\t'"$probe" | jobs_fzf_bounded_probe /usr/bin/env -u FZF_DEFAULT_OPTS -u FZF_DEFAULT_OPTS_FILE -u FZF_DEFAULT_COMMAND \
+    "$candidate" --filter="$probe" --delimiter=$'\t' --with-nth=2.. --no-multi --sync --print-query --layout=reverse --height=60% --border \
+      --bind='up:up,down:down,tab:down,shift-tab:up' --expect=left --header='↑/↓ 选择；回车确认；← 返回上一层；Esc / Ctrl+C 取消')" || result=$?
+  (( result == 0 )) && [[ "${output##*$'\n'}" == P$'\t'"$probe" ]]
+}
+
+# 从明确可执行候选复用健康 fzf，不触发安装。
+jobs_fzf_find() {
+  local candidate=""
+  local -a candidates=("${JOBS_FZF_BIN:-}" "${commands[fzf]:-}" /opt/homebrew/bin/fzf /usr/local/bin/fzf "$HOME/.local/bin/fzf")
+  for candidate in "${candidates[@]}"; do
+    if jobs_fzf_probe "$candidate"; then JOBS_FZF_BIN="${candidate:A}"; return 0; fi
+  done
+  return 1
+}
+
+# 仅所选交互流程准备必要选择器，健康与只读环境不重复安装。
+jobs_fzf_ensure() {
+  local mode="${1:-required}" brew="" action=install result=0 attempt=0 delay=1 output_log="" prefix="" offset=0 log_result=0
+  local -a command_status
+  if [[ "$mode" != check ]] && { [[ ! -t 0 || ! -t 2 ]] || [[ "${IS_SOURCETREE_RUNTIME:-0}" == 1 ]]; }; then
+    print -u2 -r -- '✖ 选择器需要可交互终端；未安装依赖或执行后续业务。'
+    return 1
+  fi
+  if jobs_fzf_find; then
+    if [[ "$mode" != check ]]; then export PATH="${JOBS_FZF_BIN:h}:$PATH"; rehash; fi
+    return 0
+  fi
+  [[ "$mode" != check ]] || { print -u2 -r -- '✖ fzf 路径、版本或菜单选项检查失败；只读模式未安装或修复。'; return 1; }
+  jobs_fzf_note '➤ 本次键盘选择需要健康 fzf；仅在缺失或损坏时通过 Homebrew 准备，Ctrl+C 可取消。' || return $?
+  jobs_brew_install_or_exit >&2 || return $?
+  brew="${JOBS_HOMEBREW_BIN:-}"
+  [[ -n "$brew" ]] || { jobs_fzf_note '✖ Homebrew 准备未返回可执行路径。'; return 1; }
+  prefix="$("$brew" --prefix)" || return $?
+  export PATH="$prefix/bin:$prefix/sbin:$PATH"
+  rehash
+  output_log="${LOG_FILE:-${TMPDIR:-/tmp}/JobsFzf.$$.log}"
+  HOMEBREW_NO_AUTO_UPDATE=1 "$brew" list --versions fzf >/dev/null 2>&1 && action=reinstall
+  while true; do
+    (( attempt += 1 ))
+    jobs_fzf_note "➤ 必需依赖 fzf｜来源：https://formulae.brew.sh/formula/fzf｜目标：$prefix｜$action，第 $attempt 次；网络失败持续重试，Ctrl+C 结束。" || return $?
+    offset=0
+    [[ ! -f "$output_log" ]] || offset="$(/usr/bin/wc -c < "$output_log")"
+    HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_INSTALL_CLEANUP=1 "$brew" "$action" fzf 2>&1 | jobs_prompt_tee "$output_log" >&2
+    command_status=("${pipestatus[@]}")
+    result=${command_status[1]}
+    log_result=${command_status[2]}
+    if (( log_result != 0 )); then print -u2 -r -- "✖ fzf 输出记录失败，退出码 $log_result；未继续重试或报告就绪。"; return "$log_result"; fi
+    if (( result == 0 )); then
+      rehash
+      if jobs_fzf_find; then jobs_fzf_note "✔ fzf 已通过版本与菜单选项复检：$JOBS_FZF_BIN"; return 0; fi
+      jobs_fzf_note '✖ 安装器返回成功，但 fzf 仍未通过实际选项复检；保留日志并停止，未进入业务。'
+      return 1
+    fi
+    case "$result" in 129|130|137|143) return "$result" ;; esac
+    if /usr/bin/tail -c +$((offset + 1)) "$output_log" | /usr/bin/tail -c 65536 | /usr/bin/grep -Eqi 'Permission denied|Operation not permitted|No space left|No available formula|No formulae found|File exists|unsupported|not supported|license.*(not accepted|rejected)|authentication failed|certificate.*(invalid|verify failed)'; then
+      jobs_fzf_note "✖ 必需依赖遇到确定的本地、版本、认证或许可阻塞，退出码 $result；日志：$output_log"
+      return "$result"
+    fi
+    jobs_fzf_note "⚠ fzf 获取失败，退出码 $result；${delay} 秒后继续同一流程。日志：$output_log" || return $?
+    /bin/sleep "$delay" || return $?
+    (( delay < 30 )) && delay=$(( delay * 2 > 30 ? 30 : delay * 2 ))
+  done
+}
+
+# 区分业务候选与取消返回行，前台保存原值和查询状态。
+jobs_fzf_pick() {
+  local title="$1" level="${2:-root}" selected="" result=0 record="" key="" choice="" index=0 header=""
+  shift 2
+  local -a choices=("$@") menu=($'C\t× 取消本轮')
+  JOBS_FZF_SELECTED=""
+  JOBS_FZF_QUERY="${JOBS_FZF_INITIAL_QUERY:-}"
+  (( ${#choices[@]} )) || return 1
+  for choice in "${choices[@]}"; do
+    [[ "$choice" != *$'\n'* && "$choice" != *$'\r'* ]] || { jobs_fzf_note '✖ 候选包含换行，停止以避免错误映射。'; return 1; }
+  done
+  local force=0
+  if [[ "$level" == confirm-* ]]; then force=1; level="${level#confirm-}"; JOBS_FZF_QUERY=""; fi
+  if [[ "$level" == force-* ]]; then force=1; level="${level#force-}"; fi
+  if (( ${#choices[@]} == 1 && ! force )); then JOBS_FZF_SELECTED="${choices[1]}"; return 0; fi
+  jobs_fzf_ensure >&2 || return $?
+  if [[ "$level" == root ]]; then
+    header='↑/↓ 或 Tab 选择；回车确认；← / Esc / Ctrl+C 取消'
+  else
+    menu+=($'B\t← 返回上一层')
+    header='↑/↓ 或 Tab 选择；回车确认；← 返回上一层；Esc / Ctrl+C 取消'
+  fi
+  for choice in "${choices[@]}"; do
+    [[ "$choice" != *$'\n'* && "$choice" != *$'\r'* ]] || { jobs_fzf_note '✖ 候选包含换行，停止以避免错误映射。'; return 1; }
+    (( index += 1 ))
+    menu+=("D${index}"$'\t'"$choice")
+  done
+  selected="$(print -rl -- "${menu[@]}" | /usr/bin/env -u FZF_DEFAULT_OPTS -u FZF_DEFAULT_OPTS_FILE -u FZF_DEFAULT_COMMAND \
+    "$JOBS_FZF_BIN" --no-multi --sync --print-query --query="$JOBS_FZF_QUERY" --layout=reverse --height=60% --border --delimiter=$'\t' --with-nth=2.. --prompt="$title > " \
+      --bind='up:up,down:down,tab:down,shift-tab:up' --expect=left --header="$header")" || result=$?
+  if [[ "$selected" == *$'\n'* ]]; then
+    JOBS_FZF_QUERY="${selected%%$'\n'*}"
+    selected="${selected#*$'\n'}"
+    key="${selected%%$'\n'*}"
+    record="${selected#*$'\n'}"
+  fi
+  if [[ "$key" == left ]]; then
+    [[ "$level" == root ]] && return 130 || return 20
+  fi
+  (( result == 0 )) || { (( result == 1 || result == 130 )) && return 130; return "$result"; }
+  key="${record%%$'\t'*}"
+  [[ -n "$record" && "$key" != C ]] || return 130
+  [[ "$key" != B ]] || return 20
+  [[ "$key" == D<-> ]] || { jobs_fzf_note '✖ 选择器返回无效操作标记。'; return 1; }
+  index="${key#D}"
+  (( index >= 1 && index <= ${#choices[@]} )) && [[ "$record" == "D${index}"$'\t'"${choices[index]}" ]] || {
+    jobs_fzf_note '✖ 选择器返回了不属于当前清单的数据。'; return 1
+  }
+  JOBS_FZF_SELECTED="${choices[index]}"
+  return 0
+}
+
+# 为既有单层调用保留 stdout 返回值，同时传播取消与返回状态。
+jobs_fzf_choose() {
+  jobs_fzf_pick "$@" || return $?
+  print -r -- "$JOBS_FZF_SELECTED"
+}
+
+# 按标题、层级与候选内容保存查询，候选变化时清空失效状态。
+jobs_fzf_menu() {
+  local title="$1" level="${2:-root}" result=0 cache_key="" signature=""
+  shift 2
+  local -a choices=("$@")
+  typeset -gA JOBS_FZF_SAVED_QUERIES JOBS_FZF_SAVED_ROWS
+  cache_key="$level"$'\x1f'"$title"
+  signature="${(F)choices}"
+  local JOBS_FZF_INITIAL_QUERY=""
+  if [[ "${JOBS_FZF_SAVED_ROWS[$cache_key]-}" == "$signature" ]]; then
+    JOBS_FZF_INITIAL_QUERY="${JOBS_FZF_SAVED_QUERIES[$cache_key]-}"
+  fi
+  jobs_fzf_pick "$title" "force-$level" "${choices[@]}" || result=$?
+  JOBS_FZF_SAVED_ROWS[$cache_key]="$signature"
+  JOBS_FZF_SAVED_QUERIES[$cache_key]="$JOBS_FZF_QUERY"
+  return "$result"
 }
 
 # >>> Jobs iOS simulator core >>>
@@ -1477,19 +2117,9 @@ sim_check_environment() {
 }
 # 单独复检选择器，独立入口安装依赖后即可刷新而不重复体检 Xcode。
 sim_check_selector() {
-    local output="$SIM_RUN_DIR/command.out"
-    SIM_FZF="$(command -v fzf 2>/dev/null)"
-    if [[ -n "$SIM_FZF" ]]; then
-        if ! sim_run_to_file "$output" 5 "$SIM_FZF" --version; then
-            SIM_FZF=""
-        fi
-    fi
-    if [[ -n "$SIM_FZF" ]]; then
-        sim_log '➤ 选择方式：本机健康 fzf（系统版本按 ← 返回型号，Esc 取消）。'
-    else
-        sim_log '✖ fzf 缺失或不可用，已停止交互选择；请先运行独立入口的依赖自检，或修复 fzf 后重试。'
-        return 1
-    fi
+    jobs_fzf_ensure || return $?
+    SIM_FZF="$JOBS_FZF_BIN"
+    sim_log '➤ 选择方式：健康 fzf（↑/↓ 选择；系统版本 ← 返回型号；Esc / Ctrl+C 取消）。'
 }
 # 获取结构化清单，任一命令失败都停止，不把错误文本当作设备数据。
 sim_load_catalog() {
@@ -1505,47 +2135,17 @@ sim_load_catalog() {
 }
 # 选择真实清单行；子层用左键返回，取消与选择器失败分别传播。
 sim_choose_row() {
-    local title="$1" content="$2" allow_back="${3:-0}" result=0 output="" key=""
-    local -a picker_args
+    local title="$1" content="$2" allow_back="${3:-0}" result=0 level=root
     SIM_SELECTED_ROW=""
     SIM_ROWS=("${(@f)content}")
-    if [[ -z "$content" || ${#SIM_ROWS} == 0 ]]; then
-        return 2
-    fi
-    sim_log "➤ ${title}"
-    [[ -n "$SIM_FZF" ]] || sim_check_selector || return $?
-    picker_args=(--delimiter=$'\t' --with-nth=1 --height=60% --reverse --prompt="${title} > " --header='回车确认；Esc / Ctrl+C 取消')
-    if (( allow_back )); then
-        picker_args+=(--expect=left --header='← 返回型号选择；回车确认；Esc / Ctrl+C 取消')
-    fi
-    output="$(print -rl -- "${SIM_ROWS[@]}" | /usr/bin/env -u FZF_DEFAULT_OPTS -u FZF_DEFAULT_OPTS_FILE "$SIM_FZF" "${picker_args[@]}")" || result=$?
-    if (( allow_back && (result == 0 || result == 1) )) && [[ "${output%%$'\n'*}" == left ]]; then
-        return 10
-    fi
-    if (( result == 130 || result == 1 )); then
-        SIM_CANCELLED=1
-        return 130
-    fi
-    if (( result != 0 )); then
-        sim_log "✖ 选择器执行失败（退出码 ${result}），未创建模拟器。"
-        return "$result"
-    fi
-    if (( allow_back )); then
-        key="${output%%$'\n'*}"
-        [[ "$key" == left ]] && return 10
-        [[ -z "$key" ]] || return 1
-        [[ "$output" == *$'\n'* ]] || return 1
-        output="${output#*$'\n'}"
-    fi
-    SIM_SELECTED_ROW="$output"
-    if [[ -z "$SIM_SELECTED_ROW" ]]; then
-        SIM_CANCELLED=1
-        return 130
-    fi
-    if (( ${SIM_ROWS[(Ie)$SIM_SELECTED_ROW]} == 0 )); then
-        sim_log '✖ 选择结果不属于当前清单，已停止。'
-        return 1
-    fi
+    [[ -n "$content" && ${#SIM_ROWS} -gt 0 ]] || return 2
+    (( ! allow_back )) || level=child
+    jobs_fzf_menu "$title" "$level" "${SIM_ROWS[@]}" || result=$?
+    (( result != 20 )) || return 10
+    if (( result == 130 )); then SIM_CANCELLED=1; return 130; fi
+    (( result == 0 )) || return "$result"
+    SIM_FZF="$JOBS_FZF_BIN"
+    SIM_SELECTED_ROW="$JOBS_FZF_SELECTED"
 }
 # 保留完整型号并优先推荐可搭配已装系统的型号，选定后只列匹配该型号的系统。
 sim_select_combination() {
@@ -1618,20 +2218,19 @@ sim_prepare_unique_name() {
     fi
     SIM_NAME="$output"
 }
-# 明确展示即将创建的组合；任意非空输入都取消。
+# 展示具体组合后默认取消，只有明确选择创建才进入写操作。
 sim_confirm_creation() {
-    local answer=""
     sim_log "➤ 设备：${SIM_DEVICE_NAME}"
     sim_log "➤ 系统：${SIM_RUNTIME_NAME}"
     sim_log "➤ 新名称：${SIM_NAME}"
     if [[ "$SIM_RUNTIME_NAME" == *未确认支持* ]]; then
-        sim_log '⚠ 所选系统未被 Xcode 明确列为支持该型号，创建可能失败；失败时输入 r 可重新选择。'
+        sim_log '⚠ 所选系统未被 Xcode 明确列为支持该型号，创建可能失败；失败时可以明确返回重选。'
     fi
-    sim_log '➤ 型号与系统分别列出，组合是否受支持由 Xcode 创建命令最终校验；不支持时需输入 r 才重新选择。'
-    if ! IFS= read -r "?$(jobs_prompt_render "直接回车创建并启动；输入任意字符取消：")" answer || [[ -n "$answer" ]]; then
-        SIM_CANCELLED=1
-        return 130
-    fi
+    sim_log '➤ 型号与系统分别列出，组合是否受支持由 Xcode 创建命令最终校验；不支持时可以明确选择重新选择。'
+    local result=0
+    jobs_fzf_pick '确认创建并启动（默认取消；← 返回型号/系统）' confirm-child '创建并启动上述明确组合' || result=$?
+    (( result != 20 )) || return 10
+    return "$result"
 }
 # 只新增并启动选定设备；创建结果不明确时停止，避免重试产生重复设备。
 sim_create_and_boot() {
@@ -1677,12 +2276,11 @@ sim_create_and_boot() {
 }
 # 仅在明确不兼容且用户输入 r / R 后重选，连续回车不会再弹出列表。
 sim_confirm_reselection() {
-    local answer=""
-    if IFS= read -r "?$(jobs_prompt_render "输入 r 重新选择型号和系统；直接回车或其它输入停止：")" answer && [[ "$answer" == [rR] ]]; then
-        return 0
-    fi
+    local result=0
+    jobs_fzf_pick '是否重新选择型号和系统（默认取消）' confirm-root '重新选择型号和系统' || result=$?
+    if (( result == 0 )); then return 0; fi
     sim_log '➤ 已停止，未重复选择或再次创建模拟器。'
-    return 1
+    return "$result"
 }
 # 交互取消正常返回；成功或普通失败均结束，重选必须再次明确发起。
 sim_interactive_loop() {
@@ -1694,21 +2292,27 @@ sim_interactive_loop() {
             sim_log '➤ 已取消，未创建模拟器。'
             return 0
         elif (( result == 2 )); then
-            # 所选型号没有可搭配系统时同不兼容组合一样，只有明确输入 r 才重选。
-            sim_confirm_reselection || return 1
+            sim_confirm_reselection || return $?
             continue
         elif (( result != 0 )); then
             return "$result"
         fi
         sim_prepare_unique_name || return $?
-        if ! sim_confirm_creation; then
+        result=0
+        sim_confirm_creation || result=$?
+        if (( result == 10 )); then
+            sim_log '↩ 已返回型号和系统选择，未创建模拟器。'
+            continue
+        elif (( result == 130 )); then
             sim_log '➤ 已取消，未创建模拟器。'
             return 0
+        elif (( result != 0 )); then
+            return "$result"
         fi
         result=0
         sim_create_and_boot || result=$?
         if (( result == 2 )); then
-            sim_confirm_reselection || return 1
+            sim_confirm_reselection || return $?
             continue
         fi
         return "$result"
@@ -1810,10 +2414,10 @@ show_script_intro_and_wait() {
     sim_prepare_context
     sim_intro_line title '━━━━━━━━━━ 双击初始化 iOS 模拟器 ━━━━━━━━━━'
     sim_intro_line body "当前脚本：${SCRIPT_PATH}"
-    jobs_prompt_output sim_intro_line body '1、完整型号中优先显示有可搭配系统的机型，无可搭配系统的机型带标注；选完型号后只列匹配该型号的系统；一路回车采用首选组合，创建并启动新模拟器。'
+    jobs_prompt_output sim_intro_line body '1、完整型号中优先显示有可搭配系统的机型，无可搭配系统的机型带标注；选完型号后只列匹配该型号的系统；↑/↓ 或 Tab 选择真实组合；菜单及最终创建默认取消。'
     sim_intro_line body '2、初始化前按原策略检查构建与模拟器状态；强制关闭现有设备必须输入 YES。'
     jobs_prompt_output sim_intro_line body '3、自检 Homebrew / fzf；缺少时安装，已有依赖的升级回车跳过、输入任意字符执行。'
-    jobs_prompt_output sim_intro_line body '4、Ctrl+C 随时停止，系统选择时 ← 返回型号，Esc / Ctrl+C 取消，最终回车才创建；--help / --check 只读。'
+    jobs_prompt_output sim_intro_line body '4、Ctrl+C 随时停止，系统选择时 ← 返回型号，Esc / Ctrl+C 取消，最终明确选择“创建并启动”才写入；--help / --check 只读。'
     sim_intro_line body "日志位置：${LOG_FILE}（确认后创建；只读入口不写日志）"
     sim_confirm_entry "$@"
 }
@@ -1826,7 +2430,6 @@ run_initialization_requested_action() {
     sim_initialize_runtime
     sim_check_environment || return $?
     cleanup_simulator_background_safely || return $?
-    install_homebrew || return $?
     install_fzf || return $?
     sim_check_selector || return $?
     sim_load_catalog || return $?

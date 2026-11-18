@@ -2,7 +2,7 @@
 # 脚本自述：
 # - 核心用途：隔离验证 CodeGraph 安装器的依赖修复、失败阻断与真实建图状态校验。
 # - 影响范围：只在 /private/tmp 创建测试文件，不调用真实 brew/npm 安装，不写用户配置。
-# - 运行方式：/bin/zsh Tests/installer-health.zsh；真实样例需额外指定 --real-engine。
+# - 运行方式：/bin/zsh Tests/【MacOS】installer-health.zsh/【MacOS】installer-health.zsh；真实样例需额外指定 --real-engine。
 # shell: zsh
 
 # >>> Jobs terminal style protection v1 >>>
@@ -538,7 +538,7 @@ show_test_intro() {
 # 初始化临时根目录与真实 JSON 解析器，绝不重设 HOME。
 initialize_tests() {
   setopt NO_NOMATCH PIPE_FAIL
-  TEST_DIR="${${(%):-%x}:A:h}"
+  TEST_DIR="${${(%):-%x}:A:h:h}"
   INSTALLER="${TEST_DIR:h}/${${TEST_DIR:h}:t}"
   REAL_NODE="$(command -v node)" || exit 1
   TEST_ROOT="$(mktemp -d /private/tmp/jobs-codegraph-tests.XXXXXX)" || exit 1

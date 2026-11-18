@@ -1,4 +1,4 @@
-# `【MacOS】⚙️备份:恢复 iOS设备支持.command`
+# `【MacOS】⚙️备份：恢复 iOS设备支持.command`
 
 ![Jobs出品，必属精品](https://picsum.photos/1500/400)
 
@@ -21,7 +21,7 @@
 
 ## 🔥 <span id="前言">前言</span>
 
-备份或恢复 [**Xcode**](https://developer.apple.com/xcode) 的 iPhone DeviceSupport。入口：[同名脚本](<./【MacOS】⚙️备份%3A恢复 iOS设备支持.command>)。
+备份或恢复 [**Xcode**](https://developer.apple.com/xcode) 的 iPhone DeviceSupport。入口：[同名脚本](<./【MacOS】⚙️备份：恢复 iOS设备支持.command>)。
 
 ## <span id="jobs-toc-heading-2" data-jobs-toc="v2">一、功能覆盖 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
 
@@ -42,7 +42,7 @@
 在本 README 所在目录打开终端，也可双击同名 `.command`。先阅读内置自述，确认显示的目标再继续；`Ctrl+C` 可取消。
 
 ```shell
-zsh './【MacOS】⚙️备份:恢复 iOS设备支持.command'
+zsh './【MacOS】⚙️备份：恢复 iOS设备支持.command'
 ```
 
 ## <span id="jobs-toc-heading-5" data-jobs-toc="v2">四、风险与能力边界 <a href="#前言" style="font-size:17px; color:green;"><b>🔼</b></a> <a href="#🔚" style="font-size:17px; color:green;"><b>🔽</b></a></span><!-- jobs-toc:heading-end -->
